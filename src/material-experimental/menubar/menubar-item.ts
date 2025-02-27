@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Component, ViewEncapsulation, ChangeDetectionStrategy} from '@angular/core';
@@ -36,7 +36,6 @@ function removeIcons(element: Element) {
     '[attr.aria-disabled]': 'disabled || null',
   },
   providers: [{provide: CdkMenuItem, useExisting: MatMenuBarItem}],
-  standalone: true,
 })
 export class MatMenuBarItem extends CdkMenuItem {
   override getLabel(): string {

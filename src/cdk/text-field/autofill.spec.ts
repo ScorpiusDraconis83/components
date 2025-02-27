@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {normalizePassiveListenerOptions} from '@angular/cdk/platform';
@@ -23,7 +23,7 @@ describe('AutofillMonitor', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [TextFieldModule, Inputs],
-    }).compileComponents();
+    });
   });
 
   beforeEach(inject([AutofillMonitor], (afm: AutofillMonitor) => {
@@ -175,7 +175,7 @@ describe('cdkAutofill', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [TextFieldModule, InputWithCdkAutofilled],
-    }).compileComponents();
+    });
   });
 
   beforeEach(inject([AutofillMonitor], (afm: AutofillMonitor) => {
@@ -204,7 +204,6 @@ describe('cdkAutofill', () => {
     <input #input2>
     <input #input3>
   `,
-  standalone: true,
   imports: [TextFieldModule],
 })
 class Inputs {
@@ -216,7 +215,6 @@ class Inputs {
 
 @Component({
   template: `<input #input cdkAutofill>`,
-  standalone: true,
   imports: [TextFieldModule],
 })
 class InputWithCdkAutofilled {

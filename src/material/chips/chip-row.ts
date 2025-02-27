@@ -3,36 +3,27 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ENTER} from '@angular/cdk/keycodes';
 import {
   AfterViewInit,
-  Attribute,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   ContentChild,
-  ElementRef,
   EventEmitter,
-  Inject,
   Input,
-  NgZone,
-  Optional,
   Output,
   ViewChild,
   ViewEncapsulation,
-  ANIMATION_MODULE_TYPE,
+  afterNextRender,
 } from '@angular/core';
-import {DOCUMENT} from '@angular/common';
-import {MAT_RIPPLE_GLOBAL_OPTIONS, RippleGlobalOptions} from '@angular/material/core';
-import {FocusMonitor} from '@angular/cdk/a11y';
-import {MatChip, MatChipEvent} from './chip';
-import {MatChipEditInput} from './chip-edit-input';
 import {takeUntil} from 'rxjs/operators';
-import {MAT_CHIP} from './tokens';
+import {MatChip, MatChipEvent} from './chip';
 import {MatChipAction} from './chip-action';
+import {MatChipEditInput} from './chip-edit-input';
+import {MAT_CHIP} from './tokens';
 
 /** Represents an event fired on an individual `mat-chip` when it is edited. */
 export interface MatChipEditedEvent extends MatChipEvent {
@@ -77,7 +68,6 @@ export interface MatChipEditedEvent extends MatChipEvent {
   ],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [MatChipAction, MatChipEditInput],
 })
 export class MatChipRow extends MatChip implements AfterViewInit {
@@ -104,28 +94,10 @@ export class MatChipRow extends MatChip implements AfterViewInit {
 
   _isEditing = false;
 
-  constructor(
-    changeDetectorRef: ChangeDetectorRef,
-    elementRef: ElementRef,
-    ngZone: NgZone,
-    focusMonitor: FocusMonitor,
-    @Inject(DOCUMENT) _document: any,
-    @Optional() @Inject(ANIMATION_MODULE_TYPE) animationMode?: string,
-    @Optional()
-    @Inject(MAT_RIPPLE_GLOBAL_OPTIONS)
-    globalRippleOptions?: RippleGlobalOptions,
-    @Attribute('tabindex') tabIndex?: string,
-  ) {
-    super(
-      changeDetectorRef,
-      elementRef,
-      ngZone,
-      focusMonitor,
-      _document,
-      animationMode,
-      globalRippleOptions,
-      tabIndex,
-    );
+  constructor(...args: unknown[]);
+
+  constructor() {
+    super();
 
     this.role = 'row';
     this._onBlur.pipe(takeUntil(this.destroyed)).subscribe(() => {
@@ -182,17 +154,14 @@ export class MatChipRow extends MatChip implements AfterViewInit {
 
     this._isEditing = this._editStartPending = true;
 
-    // Starting the editing sequence below depends on the edit input
-    // query resolving on time. Trigger a synchronous change detection to
-    // ensure that it happens by the time we hit the timeout below.
-    this._changeDetectorRef.detectChanges();
-
-    // TODO(crisbeto): this timeout shouldn't be necessary given the `detectChange` call above.
-    // Defer initializing the input so it has time to be added to the DOM.
-    setTimeout(() => {
-      this._getEditInput().initialize(value);
-      this._editStartPending = false;
-    });
+    // Defer initializing the input until after it has been added to the DOM.
+    afterNextRender(
+      () => {
+        this._getEditInput().initialize(value);
+        this._editStartPending = false;
+      },
+      {injector: this._injector},
+    );
   }
 
   private _onEditFinish() {

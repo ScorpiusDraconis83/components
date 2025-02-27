@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ChangeDetectionStrategy, Component, ViewEncapsulation} from '@angular/core';
@@ -14,7 +14,6 @@ import {ChangeDetectionStrategy, Component, ViewEncapsulation} from '@angular/co
   changeDetection: ChangeDetectionStrategy.OnPush,
   // tslint:disable-next-line:validate-decorators
   encapsulation: ViewEncapsulation.ShadowDom,
-  standalone: true,
 })
 export class TestSubShadowBoundary {}
 
@@ -27,7 +26,6 @@ export class TestSubShadowBoundary {}
   changeDetection: ChangeDetectionStrategy.OnPush,
   // tslint:disable-next-line:validate-decorators
   encapsulation: ViewEncapsulation.ShadowDom,
-  standalone: true,
   imports: [TestSubShadowBoundary],
 })
 export class TestShadowBoundary {}

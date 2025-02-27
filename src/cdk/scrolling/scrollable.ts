@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Directionality} from '@angular/cdk/bidi';
@@ -12,9 +12,8 @@ import {
   RtlScrollAxisType,
   supportsScrollBehavior,
 } from '@angular/cdk/platform';
-import {Directive, ElementRef, NgZone, OnDestroy, OnInit, Optional} from '@angular/core';
-import {fromEvent, Observable, Subject, Observer} from 'rxjs';
-import {takeUntil} from 'rxjs/operators';
+import {Directive, ElementRef, NgZone, OnDestroy, OnInit, Renderer2, inject} from '@angular/core';
+import {Observable, Subject} from 'rxjs';
 import {ScrollDispatcher} from './scroll-dispatcher';
 
 export type _Without<T> = {[P in keyof T]?: never};
@@ -43,31 +42,33 @@ export type ExtendedScrollToOptions = _XAxis & _YAxis & ScrollOptions;
  */
 @Directive({
   selector: '[cdk-scrollable], [cdkScrollable]',
-  standalone: true,
 })
 export class CdkScrollable implements OnInit, OnDestroy {
+  protected elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  protected scrollDispatcher = inject(ScrollDispatcher);
+  protected ngZone = inject(NgZone);
+  protected dir? = inject(Directionality, {optional: true});
+  protected _scrollElement: EventTarget = this.elementRef.nativeElement;
   protected readonly _destroyed = new Subject<void>();
+  private _renderer = inject(Renderer2);
+  private _cleanupScroll: (() => void) | undefined;
+  private _elementScrolled = new Subject<Event>();
 
-  protected _elementScrolled: Observable<Event> = new Observable((observer: Observer<Event>) =>
-    this.ngZone.runOutsideAngular(() =>
-      fromEvent(this.elementRef.nativeElement, 'scroll')
-        .pipe(takeUntil(this._destroyed))
-        .subscribe(observer),
-    ),
-  );
-
-  constructor(
-    protected elementRef: ElementRef<HTMLElement>,
-    protected scrollDispatcher: ScrollDispatcher,
-    protected ngZone: NgZone,
-    @Optional() protected dir?: Directionality,
-  ) {}
+  constructor(...args: unknown[]);
+  constructor() {}
 
   ngOnInit() {
+    this._cleanupScroll = this.ngZone.runOutsideAngular(() =>
+      this._renderer.listen(this._scrollElement, 'scroll', event =>
+        this._elementScrolled.next(event),
+      ),
+    );
     this.scrollDispatcher.register(this);
   }
 
   ngOnDestroy() {
+    this._cleanupScroll?.();
+    this._elementScrolled.complete();
     this.scrollDispatcher.deregister(this);
     this._destroyed.next();
     this._destroyed.complete();

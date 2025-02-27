@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ENTER, SPACE} from '@angular/cdk/keycodes';
@@ -19,7 +19,6 @@ import {MAT_CHIP_AVATAR, MAT_CHIP_REMOVE, MAT_CHIP_TRAILING_ICON} from './tokens
     'role': 'img',
   },
   providers: [{provide: MAT_CHIP_AVATAR, useExisting: MatChipAvatar}],
-  standalone: true,
 })
 export class MatChipAvatar {}
 
@@ -32,7 +31,6 @@ export class MatChipAvatar {}
     'aria-hidden': 'true',
   },
   providers: [{provide: MAT_CHIP_TRAILING_ICON, useExisting: MatChipTrailingIcon}],
-  standalone: true,
 })
 export class MatChipTrailingIcon extends MatChipAction {
   /**
@@ -64,13 +62,12 @@ export class MatChipTrailingIcon extends MatChipAction {
   selector: '[matChipRemove]',
   host: {
     'class':
-      'mat-mdc-chip-remove mat-mdc-chip-trailing-icon mat-mdc-focus-indicator ' +
+      'mat-mdc-chip-remove mat-mdc-chip-trailing-icon mat-focus-indicator ' +
       'mdc-evolution-chip__icon mdc-evolution-chip__icon--trailing',
     'role': 'button',
     '[attr.aria-hidden]': 'null',
   },
   providers: [{provide: MAT_CHIP_REMOVE, useExisting: MatChipRemove}],
-  standalone: true,
 })
 export class MatChipRemove extends MatChipAction {
   override _isPrimary = false;

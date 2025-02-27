@@ -1,22 +1,19 @@
-import {CommonModule} from '@angular/common';
 import {
   AfterViewInit,
   ApplicationRef,
   Component,
-  ComponentFactoryResolver,
   ComponentRef,
   Directive,
   ElementRef,
   Injector,
-  Optional,
   QueryList,
   TemplateRef,
-  Type,
   ViewChild,
   ViewChildren,
   ViewContainerRef,
+  inject,
 } from '@angular/core';
-import {ComponentFixture, TestBed, inject} from '@angular/core/testing';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {DomPortalOutlet} from './dom-portal-outlet';
 import {ComponentPortal, DomPortal, Portal, TemplatePortal} from './portal';
 import {CdkPortal, CdkPortalOutlet, PortalModule} from './portal-directives';
@@ -26,27 +23,21 @@ describe('Portals', () => {
     TestBed.configureTestingModule({
       imports: [
         PortalModule,
-        CommonModule,
         PortalTestApp,
         UnboundPortalTestApp,
         ArbitraryViewContainerRefComponent,
         PizzaMsg,
         SaveParentNodeOnInit,
       ],
-    }).compileComponents();
+    });
   });
 
   describe('CdkPortalOutlet', () => {
     let fixture: ComponentFixture<PortalTestApp>;
-    let componentFactoryResolver: ComponentFactoryResolver;
 
     beforeEach(() => {
       fixture = TestBed.createComponent(PortalTestApp);
       fixture.detectChanges();
-
-      inject([ComponentFactoryResolver], (cfr: ComponentFactoryResolver) => {
-        componentFactoryResolver = cfr;
-      })();
     });
 
     it('should load a component into the portal', () => {
@@ -454,19 +445,6 @@ describe('Portals', () => {
       expect(instance.portalOutlet.hasAttached()).toBe(true);
     });
 
-    it('should use the `ComponentFactoryResolver` from the portal, if available', () => {
-      const spy = jasmine.createSpy('resolveComponentFactorySpy');
-      const portal = new ComponentPortal(PizzaMsg, undefined, undefined, {
-        resolveComponentFactory: <T>(...args: [Type<T>]) => {
-          spy();
-          return componentFactoryResolver.resolveComponentFactory(...args);
-        },
-      });
-
-      fixture.componentInstance.portalOutlet.attachComponentPortal(portal);
-      expect(spy).toHaveBeenCalled();
-    });
-
     it('should render inside outlet when component portal specifies view container ref', () => {
       const hostContainer = fixture.nativeElement.querySelector('.portal-container');
       const portal = new ComponentPortal(PizzaMsg, fixture.componentInstance.alternateContainer);
@@ -494,7 +472,6 @@ describe('Portals', () => {
   });
 
   describe('DomPortalOutlet', () => {
-    let componentFactoryResolver: ComponentFactoryResolver;
     let someViewContainerRef: ViewContainerRef;
     let someInjector: Injector;
     let someFixture: ComponentFixture<ArbitraryViewContainerRefComponent>;
@@ -502,24 +479,12 @@ describe('Portals', () => {
     let host: DomPortalOutlet;
     let injector: Injector;
     let appRef: ApplicationRef;
-    let deps = [ComponentFactoryResolver, Injector, ApplicationRef];
-
-    beforeEach(inject(deps, (cfr: ComponentFactoryResolver, i: Injector, ar: ApplicationRef) => {
-      componentFactoryResolver = cfr;
-      injector = i;
-      appRef = ar;
-    }));
 
     beforeEach(() => {
+      injector = TestBed.inject(Injector);
+      appRef = TestBed.inject(ApplicationRef);
       someDomElement = document.createElement('div');
-      host = new DomPortalOutlet(
-        someDomElement,
-        componentFactoryResolver,
-        appRef,
-        injector,
-        document,
-      );
-
+      host = new DomPortalOutlet(someDomElement, null, appRef, injector, document);
       someFixture = TestBed.createComponent(ArbitraryViewContainerRefComponent);
       someViewContainerRef = someFixture.componentInstance.viewContainerRef;
       someInjector = someFixture.componentInstance.injector;
@@ -676,19 +641,6 @@ describe('Portals', () => {
       expect(spy).toHaveBeenCalled();
     });
 
-    it('should use the `ComponentFactoryResolver` from the portal, if available', () => {
-      const spy = jasmine.createSpy('resolveComponentFactorySpy');
-      const portal = new ComponentPortal(PizzaMsg, undefined, undefined, {
-        resolveComponentFactory: <T>(...args: [Type<T>]) => {
-          spy();
-          return componentFactoryResolver.resolveComponentFactory(...args);
-        },
-      });
-
-      host.attachComponentPortal(portal);
-      expect(spy).toHaveBeenCalled();
-    });
-
     it('should attach and detach a DOM portal', () => {
       const fixture = TestBed.createComponent(PortalTestApp);
       fixture.detectChanges();
@@ -773,11 +725,10 @@ class ChocolateInjector {
 @Component({
   selector: 'pizza-msg',
   template: '<p>Pizza</p><p>{{snack}}</p><ng-content></ng-content>',
-  standalone: true,
-  imports: [PortalModule, CommonModule],
+  imports: [PortalModule],
 })
 class PizzaMsg {
-  constructor(@Optional() public snack: Chocolate) {}
+  snack = inject(Chocolate, {optional: true});
 }
 
 /**
@@ -786,12 +737,11 @@ class PizzaMsg {
  */
 @Directive({
   selector: '[savesParentNodeOnInit]',
-  standalone: true,
 })
 class SaveParentNodeOnInit implements AfterViewInit {
-  parentOnViewInit: HTMLElement;
+  private _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  constructor(private _elementRef: ElementRef<HTMLElement>) {}
+  parentOnViewInit: HTMLElement;
 
   ngAfterViewInit() {
     this.parentOnViewInit = this._elementRef.nativeElement.parentElement!;
@@ -808,17 +758,14 @@ class SaveParentNodeOnInit implements AfterViewInit {
       <div savesParentNodeOnInit></div>
     </ng-template>
   `,
-  standalone: true,
   imports: [SaveParentNodeOnInit],
 })
 class ArbitraryViewContainerRefComponent {
+  viewContainerRef = inject(ViewContainerRef);
+  injector = inject(Injector);
+
   @ViewChild('template') template: TemplateRef<any>;
   @ViewChild(SaveParentNodeOnInit) saveParentNodeOnInit: SaveParentNodeOnInit;
-
-  constructor(
-    public viewContainerRef: ViewContainerRef,
-    public injector: Injector,
-  ) {}
 }
 
 /** Test-bed component that contains a portal outlet and a couple of template portals. */
@@ -852,10 +799,12 @@ class ArbitraryViewContainerRefComponent {
     </div>
   </div>
   `,
-  standalone: true,
   imports: [CdkPortal, CdkPortalOutlet, PizzaMsg],
 })
 class PortalTestApp {
+  viewContainerRef = inject(ViewContainerRef);
+  injector = inject(Injector);
+
   @ViewChildren(CdkPortal) portals: QueryList<CdkPortal>;
   @ViewChild(CdkPortalOutlet) portalOutlet: CdkPortalOutlet;
   @ViewChild('templateRef', {read: TemplateRef}) templateRef: TemplateRef<any>;
@@ -867,11 +816,6 @@ class PortalTestApp {
   fruit: string = 'Banana';
   fruits = ['Apple', 'Pineapple', 'Durian'];
   attachedSpy = jasmine.createSpy('attached spy');
-
-  constructor(
-    public viewContainerRef: ViewContainerRef,
-    public injector: Injector,
-  ) {}
 
   get cakePortal() {
     return this.portals.first;
@@ -897,7 +841,6 @@ class PortalTestApp {
       <ng-template cdkPortalOutlet></ng-template>
     </div>
   `,
-  standalone: true,
   imports: [CdkPortalOutlet],
 })
 class UnboundPortalTestApp {

@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -46,7 +46,6 @@ export const MENU_SCROLL_STRATEGY = new InjectionToken<() => ScrollStrategy>(
     '[attr.aria-controls]': 'childMenu?.id',
     '[attr.data-cdk-menu-stack-id]': 'menuStack.id',
   },
-  standalone: true,
 })
 export abstract class CdkMenuTriggerBase implements OnDestroy {
   /** The DI injector for this component. */

@@ -3,30 +3,33 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {FocusKeyManager} from '@angular/cdk/a11y';
 import {BooleanInput, coerceBooleanProperty} from '@angular/cdk/coercion';
 import {SelectionModel} from '@angular/cdk/collections';
-import {A, ENTER, hasModifierKey, SPACE} from '@angular/cdk/keycodes';
+import {A, ENTER, SPACE, hasModifierKey} from '@angular/cdk/keycodes';
 import {_getFocusedElementPierceShadowDom} from '@angular/cdk/platform';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   ContentChildren,
   ElementRef,
   EventEmitter,
-  forwardRef,
   Input,
   NgZone,
   OnChanges,
   OnDestroy,
   Output,
   QueryList,
+  Renderer2,
   SimpleChanges,
   ViewEncapsulation,
+  forwardRef,
+  inject,
 } from '@angular/core';
 import {ControlValueAccessor, NG_VALUE_ACCESSOR} from '@angular/forms';
 import {ThemePalette} from '@angular/material/core';
@@ -69,14 +72,18 @@ export class MatSelectionListChange {
     {provide: SELECTION_LIST, useExisting: MatSelectionList},
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
 })
 export class MatSelectionList
   extends MatListBase
   implements SelectionList, ControlValueAccessor, AfterViewInit, OnChanges, OnDestroy
 {
+  _element = inject<ElementRef<HTMLElement>>(ElementRef);
+  private _ngZone = inject(NgZone);
+  private _renderer = inject(Renderer2);
+
   private _initialized = false;
   private _keyManager: FocusKeyManager<MatListOption>;
+  private _listenerCleanups: (() => void)[] | undefined;
 
   /** Emits when the list has been destroyed. */
   private _destroyed = new Subject<void>();
@@ -93,7 +100,14 @@ export class MatSelectionList
   @Output() readonly selectionChange: EventEmitter<MatSelectionListChange> =
     new EventEmitter<MatSelectionListChange>();
 
-  /** Theme color of the selection list. This sets the checkbox color for all list options. */
+  /**
+   * Theme color of the selection list. This sets the checkbox color for all
+   * list options. This API is supported in M2 themes only, it has no effect in
+   * M3 themes. For color customization in M3, see https://material.angular.io/components/list/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   @Input() color: ThemePalette = 'accent';
 
   /**
@@ -144,10 +158,11 @@ export class MatSelectionList
   /** View to model callback that should be called if the list or its options lost focus. */
   _onTouched: () => void = () => {};
 
-  constructor(
-    public _element: ElementRef<HTMLElement>,
-    private _ngZone: NgZone,
-  ) {
+  private readonly _changeDetectorRef = inject(ChangeDetectorRef);
+
+  constructor(...args: unknown[]);
+
+  constructor() {
     super();
     this._isNonInteractive = false;
   }
@@ -161,8 +176,10 @@ export class MatSelectionList
     // These events are bound outside the zone, because they don't change
     // any change-detected properties and they can trigger timeouts.
     this._ngZone.runOutsideAngular(() => {
-      this._element.nativeElement.addEventListener('focusin', this._handleFocusin);
-      this._element.nativeElement.addEventListener('focusout', this._handleFocusout);
+      this._listenerCleanups = [
+        this._renderer.listen(this._element.nativeElement, 'focusin', this._handleFocusin),
+        this._renderer.listen(this._element.nativeElement, 'focusout', this._handleFocusout),
+      ];
     });
 
     if (this._value) {
@@ -188,8 +205,7 @@ export class MatSelectionList
 
   ngOnDestroy() {
     this._keyManager?.destroy();
-    this._element.nativeElement.removeEventListener('focusin', this._handleFocusin);
-    this._element.nativeElement.removeEventListener('focusout', this._handleFocusout);
+    this._listenerCleanups?.forEach(current => current());
     this._destroyed.next();
     this._destroyed.complete();
     this._isDestroyed = true;
@@ -239,6 +255,8 @@ export class MatSelectionList
   /** Implemented as a part of ControlValueAccessor. */
   setDisabledState(isDisabled: boolean): void {
     this.disabled = isDisabled;
+    this._changeDetectorRef.markForCheck();
+    this._markOptionsForCheck();
   }
 
   /**
@@ -362,7 +380,7 @@ export class MatSelectionList
       event.keyCode === A &&
       this.multiple &&
       !this._keyManager.isTyping() &&
-      hasModifierKey(event, 'ctrlKey')
+      hasModifierKey(event, 'ctrlKey', 'metaKey')
     ) {
       const shouldSelect = this.options.some(option => !option.disabled && !option.selected);
       event.preventDefault();

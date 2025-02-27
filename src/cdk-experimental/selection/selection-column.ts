@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CdkCellDef, CdkColumnDef, CdkHeaderCellDef, CdkTable} from '@angular/cdk/table';
@@ -12,11 +12,10 @@ import {
   Input,
   OnDestroy,
   OnInit,
-  Optional,
   ViewChild,
   ChangeDetectionStrategy,
   ViewEncapsulation,
-  Inject,
+  inject,
 } from '@angular/core';
 
 import {CdkSelection} from './selection';
@@ -35,7 +34,7 @@ import {CdkSelectAll} from './select-all';
   template: `
     <ng-container cdkColumnDef>
       <th cdkHeaderCell *cdkHeaderCellDef>
-        @if (selection.multiple) {
+        @if (selection && selection.multiple) {
           <input type="checkbox"
               cdkSelectAll
               #allToggler="cdkSelectAll"
@@ -57,7 +56,6 @@ import {CdkSelectAll} from './select-all';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   imports: [
     CdkColumnDef,
     CdkHeaderCellDef,
@@ -68,6 +66,9 @@ import {CdkSelectAll} from './select-all';
   ],
 })
 export class CdkSelectionColumn<T> implements OnInit, OnDestroy {
+  private _table = inject<CdkTable<T>>(CdkTable, {optional: true});
+  readonly selection = inject<CdkSelection<T>>(CdkSelection, {optional: true});
+
   /** Column name that should be used to reference this column. */
   @Input('cdkSelectionColumnName')
   get name(): string {
@@ -83,11 +84,6 @@ export class CdkSelectionColumn<T> implements OnInit, OnDestroy {
   @ViewChild(CdkColumnDef, {static: true}) private readonly _columnDef: CdkColumnDef;
   @ViewChild(CdkCellDef, {static: true}) private readonly _cell: CdkCellDef;
   @ViewChild(CdkHeaderCellDef, {static: true}) private readonly _headerCell: CdkHeaderCellDef;
-
-  constructor(
-    @Optional() @Inject(CdkTable) private _table: CdkTable<T>,
-    @Optional() @Inject(CdkSelection) readonly selection: CdkSelection<T>,
-  ) {}
 
   ngOnInit() {
     if (!this.selection && (typeof ngDevMode === 'undefined' || ngDevMode)) {

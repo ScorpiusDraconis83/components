@@ -3,11 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {BooleanInput, coerceBooleanProperty} from '@angular/cdk/coercion';
-import {CommonModule} from '@angular/common';
 import {EXAMPLE_COMPONENTS} from '@angular/components-examples';
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {MatExpansionModule} from '@angular/material/expansion';
@@ -16,8 +15,7 @@ import {Example} from './example';
 /** Displays a set of components-examples in a mat-accordion. */
 @Component({
   selector: 'material-example-list',
-  standalone: true,
-  imports: [CommonModule, MatExpansionModule, Example],
+  imports: [MatExpansionModule, Example],
   template: `
     <mat-accordion multi>
       @for (id of ids; track id) {

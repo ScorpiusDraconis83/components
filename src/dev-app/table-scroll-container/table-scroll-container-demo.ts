@@ -3,11 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CdkTableScrollContainerModule} from '@angular/cdk-experimental/table-scroll-container';
-import {CommonModule} from '@angular/common';
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatButtonToggleGroup, MatButtonToggleModule} from '@angular/material/button-toggle';
@@ -20,14 +19,7 @@ import {MatTableModule} from '@angular/material/table';
   selector: 'table-scroll-container-demo',
   styleUrl: 'table-scroll-container-demo.css',
   templateUrl: 'table-scroll-container-demo.html',
-  standalone: true,
-  imports: [
-    CdkTableScrollContainerModule,
-    CommonModule,
-    MatButtonModule,
-    MatButtonToggleModule,
-    MatTableModule,
-  ],
+  imports: [CdkTableScrollContainerModule, MatButtonModule, MatButtonToggleModule, MatTableModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TableScrollContainerDemo {

@@ -3,22 +3,23 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Clipboard, ClipboardModule} from '@angular/cdk/clipboard';
-import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 
 @Component({
   selector: 'clipboard-demo',
   styleUrl: 'clipboard-demo.css',
   templateUrl: 'clipboard-demo.html',
-  standalone: true,
   imports: [ClipboardModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClipboardDemo {
+  private _clipboard = inject(Clipboard);
+
   attempts = 3;
 
   value =
@@ -31,8 +32,6 @@ export class ClipboardDemo {
     `thing he was afraid of was losing his power, which eventually, of course, he did. ` +
     `Unfortunately, he taught his apprentice everything he knew, then his apprentice ` +
     `killed him in his sleep. Ironic. He could save others from death, but not himself.`;
-
-  constructor(private _clipboard: Clipboard) {}
 
   copyViaService() {
     this._clipboard.copy(this.value);

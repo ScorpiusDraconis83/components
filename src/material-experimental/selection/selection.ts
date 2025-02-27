@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {coerceBooleanProperty} from '@angular/cdk/coercion';
@@ -20,7 +20,6 @@ import {Directive, Input, Output, EventEmitter} from '@angular/core';
   selector: '[matSelection]',
   exportAs: 'matSelection',
   providers: [{provide: CdkSelection, useExisting: MatSelection}],
-  standalone: true,
 })
 // tslint:disable-next-line: coercion-types
 export class MatSelection<T> extends CdkSelection<T> {

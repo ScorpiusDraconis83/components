@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Directive, ElementRef, Inject, Optional} from '@angular/core';
+import {Directive, ElementRef, inject} from '@angular/core';
 import {LIST_OPTION, ListOption} from './list-option-types';
 
 /**
@@ -18,10 +18,12 @@ import {LIST_OPTION, ListOption} from './list-option-types';
 @Directive({
   selector: '[matListItemTitle]',
   host: {'class': 'mat-mdc-list-item-title mdc-list-item__primary-text'},
-  standalone: true,
 })
 export class MatListItemTitle {
-  constructor(public _elementRef: ElementRef<HTMLElement>) {}
+  _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  constructor(...args: unknown[]);
+  constructor() {}
 }
 
 /**
@@ -33,10 +35,12 @@ export class MatListItemTitle {
 @Directive({
   selector: '[matListItemLine]',
   host: {'class': 'mat-mdc-list-item-line mdc-list-item__secondary-text'},
-  standalone: true,
 })
 export class MatListItemLine {
-  constructor(public _elementRef: ElementRef<HTMLElement>) {}
+  _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+
+  constructor(...args: unknown[]);
+  constructor() {}
 }
 
 /**
@@ -48,7 +52,6 @@ export class MatListItemLine {
 @Directive({
   selector: '[matListItemMeta]',
   host: {'class': 'mat-mdc-list-item-meta mdc-list-item__end'},
-  standalone: true,
 })
 export class MatListItemMeta {}
 
@@ -69,10 +72,12 @@ export class MatListItemMeta {}
     '[class.mdc-list-item__start]': '_isAlignedAtStart()',
     '[class.mdc-list-item__end]': '!_isAlignedAtStart()',
   },
-  standalone: true,
 })
 export class _MatListItemGraphicBase {
-  constructor(@Optional() @Inject(LIST_OPTION) public _listOption: ListOption) {}
+  _listOption = inject<ListOption>(LIST_OPTION, {optional: true});
+
+  constructor(...args: unknown[]);
+  constructor() {}
 
   _isAlignedAtStart() {
     // By default, in all list items the graphic is aligned at start. In list options,
@@ -89,7 +94,6 @@ export class _MatListItemGraphicBase {
 @Directive({
   selector: '[matListItemAvatar]',
   host: {'class': 'mat-mdc-list-item-avatar'},
-  standalone: true,
 })
 export class MatListItemAvatar extends _MatListItemGraphicBase {}
 
@@ -101,6 +105,5 @@ export class MatListItemAvatar extends _MatListItemGraphicBase {}
 @Directive({
   selector: '[matListItemIcon]',
   host: {'class': 'mat-mdc-list-item-icon'},
-  standalone: true,
 })
 export class MatListItemIcon extends _MatListItemGraphicBase {}

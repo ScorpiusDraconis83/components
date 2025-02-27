@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -72,8 +72,14 @@ export class MatCheckboxHarness extends ComponentHarness {
 
   /** Whether the checkbox is disabled. */
   async isDisabled(): Promise<boolean> {
-    const disabled = (await this._input()).getAttribute('disabled');
-    return coerceBooleanProperty(await disabled);
+    const input = await this._input();
+    const disabled = await input.getAttribute('disabled');
+
+    if (disabled !== null) {
+      return coerceBooleanProperty(disabled);
+    }
+
+    return (await input.getAttribute('aria-disabled')) === 'true';
   }
 
   /** Whether the checkbox is required. */

@@ -5,6 +5,10 @@
 ```ts
 
 import * as i0 from '@angular/core';
+import { Renderer2 } from '@angular/core';
+
+// @public
+export function _bindEventWithOptions(renderer: Renderer2, target: EventTarget, eventName: string, callback: (event: any) => boolean | void, options: _ListenerOptions): () => void;
 
 // @public
 export function _getEventTarget<T extends EventTarget>(event: Event): T | null;
@@ -25,11 +29,21 @@ export function getSupportedInputTypes(): Set<string>;
 export function _isTestEnvironment(): boolean;
 
 // @public
+export interface _ListenerOptions {
+    // (undocumented)
+    capture?: boolean;
+    // (undocumented)
+    once?: boolean;
+    // (undocumented)
+    passive?: boolean;
+}
+
+// @public
 export function normalizePassiveListenerOptions(options: AddEventListenerOptions): AddEventListenerOptions | boolean;
 
 // @public
 export class Platform {
-    constructor(_platformId: Object);
+    constructor(..._args: unknown[]);
     ANDROID: boolean;
     BLINK: boolean;
     EDGE: boolean;

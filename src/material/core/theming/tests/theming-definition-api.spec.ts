@@ -4,7 +4,6 @@ import {runfiles} from '@bazel/runfiles';
 import * as path from 'path';
 
 import {createLocalAngularPackageImporter} from '../../../../../tools/sass/local-sass-importer';
-import {pathToFileURL} from 'url';
 
 // Note: For Windows compatibility, we need to resolve the directory paths through runfiles
 // which are guaranteed to reside in the source tree.
@@ -12,17 +11,6 @@ const testDir = path.join(runfiles.resolvePackageRelative('../_all-theme.scss'),
 const packagesDir = path.join(runfiles.resolveWorkspaceRelative('src/cdk/_index.scss'), '../..');
 
 const localPackageSassImporter = createLocalAngularPackageImporter(packagesDir);
-
-const mdcSassImporter = {
-  findFileUrl: (url: string) => {
-    if (url.toString().startsWith('@material')) {
-      return pathToFileURL(
-        path.join(runfiles.resolveWorkspaceRelative('./node_modules'), url),
-      ) as URL;
-    }
-    return null;
-  },
-};
 
 /** Transpiles given Sass content into CSS. */
 function transpile(content: string) {
@@ -38,7 +26,7 @@ function transpile(content: string) {
       `,
     {
       loadPaths: [testDir],
-      importers: [localPackageSassImporter, mdcSassImporter],
+      importers: [localPackageSassImporter],
     },
   ).css.toString();
 }
@@ -75,6 +63,8 @@ describe('theming definition api', () => {
           --color-tokens: #{list.length(map.get($data, color-tokens)) > 0};
           --typography-tokens: #{list.length(map.get($data, typography-tokens)) > 0};
           --density-tokens: #{list.length(map.get($data, density-tokens)) > 0};
+          --color-system-variables-prefix: #{map.get($data, color-system-variables-prefix)};
+          --typography-system-variables-prefix: #{map.get($data, typography-system-variables-prefix)};
         }
       `);
       const vars = getRootVars(css);
@@ -82,8 +72,10 @@ describe('theming definition api', () => {
         'theme-version',
         'theme-type',
         'palettes',
+        'color-system-variables-prefix',
         'color-tokens',
         'font-definition',
+        'typography-system-variables-prefix',
         'typography-tokens',
         'density-scale',
         'density-tokens',
@@ -104,6 +96,8 @@ describe('theming definition api', () => {
       expect(vars['color-tokens']).toBe('true');
       expect(vars['typography-tokens']).toBe('true');
       expect(vars['density-tokens']).toBe('true');
+      expect(vars['typography-system-variables-prefix']).toBe('mat-sys');
+      expect(vars['color-system-variables-prefix']).toBe('mat-sys');
     });
 
     it('should customize colors', () => {
@@ -128,7 +122,7 @@ describe('theming definition api', () => {
         }
       `);
       const vars = getRootVars(css);
-      expect(vars['token-surface']).toBe('#1c1c17');
+      expect(vars['token-surface']).toBe('#14140f');
       expect(vars['token-primary']).toBe('#cdcd00');
       expect(vars['token-secondary']).toBe('#cac8a5');
       expect(vars['token-tertiary']).toBe('#ffb4a8');
@@ -265,6 +259,7 @@ describe('theming definition api', () => {
         'theme-version',
         'theme-type',
         'palettes',
+        'color-system-variables-prefix',
         'color-tokens',
       ]);
     });
@@ -283,13 +278,14 @@ describe('theming definition api', () => {
       expect(vars['keys'].split(', ')).toEqual([
         'theme-version',
         'font-definition',
+        'typography-system-variables-prefix',
         'typography-tokens',
       ]);
     });
   });
 
   describe('define-density', () => {
-    it('should omit non-color info', () => {
+    it('should omit non-density info', () => {
       const css = transpile(`
         $theme: mat.define-density();
         $data: map.get($theme, $internals);

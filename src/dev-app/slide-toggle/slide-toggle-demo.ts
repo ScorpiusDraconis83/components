@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ChangeDetectionStrategy, Component} from '@angular/core';
@@ -15,13 +15,12 @@ import {MatSlideToggleModule} from '@angular/material/slide-toggle';
   selector: 'slide-toggle-demo',
   templateUrl: 'slide-toggle-demo.html',
   styleUrl: 'slide-toggle-demo.css',
-  standalone: true,
   imports: [FormsModule, MatButtonModule, MatSlideToggleModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SlideToggleDemo {
-  firstToggle: boolean = false;
-  formToggle: boolean = false;
+  firstToggle = false;
+  formToggle = false;
 
   onFormSubmit() {
     alert(`You submitted the form. Value: ${this.formToggle}.`);

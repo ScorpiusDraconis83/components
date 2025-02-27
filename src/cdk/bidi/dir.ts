@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Directive, Output, Input, EventEmitter, AfterContentInit, OnDestroy} from '@angular/core';
@@ -21,7 +21,6 @@ import {Direction, Directionality, _resolveDirectionality} from './directionalit
   providers: [{provide: Directionality, useExisting: Dir}],
   host: {'[attr.dir]': '_rawDir'},
   exportAs: 'dir',
-  standalone: true,
 })
 export class Dir implements Directionality, AfterContentInit, OnDestroy {
   /** Normalized direction that accounts for invalid/unsupported values. */

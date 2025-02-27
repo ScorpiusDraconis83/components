@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {BooleanInput, coerceBooleanProperty, coerceNumberProperty} from '@angular/cdk/coercion';
@@ -14,21 +14,22 @@ import {
   Directive,
   ElementRef,
   inject,
-  Inject,
   Input,
   NgZone,
   OnDestroy,
-  Optional,
   QueryList,
   ANIMATION_MODULE_TYPE,
+  Injector,
 } from '@angular/core';
 import {
+  _StructuralStylesLoader,
   MAT_RIPPLE_GLOBAL_OPTIONS,
   RippleConfig,
   RippleGlobalOptions,
   RippleRenderer,
   RippleTarget,
 } from '@angular/material/core';
+import {_CdkPrivateStyleLoader} from '@angular/cdk/private';
 import {Subscription, merge} from 'rxjs';
 import {
   MatListItemLine,
@@ -42,7 +43,6 @@ import {MAT_LIST_CONFIG} from './tokens';
   host: {
     '[attr.aria-disabled]': 'disabled',
   },
-  standalone: true,
 })
 /** @docs-private */
 export abstract class MatListBase {
@@ -80,10 +80,14 @@ export abstract class MatListBase {
     '[attr.aria-disabled]': 'disabled',
     '[attr.disabled]': '(_isButtonElement && disabled) || null',
   },
-  standalone: true,
 })
 /** @docs-private */
 export abstract class MatListItemBase implements AfterViewInit, OnDestroy, RippleTarget {
+  _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  protected _ngZone = inject(NgZone);
+  private _listBase = inject(MatListBase, {optional: true});
+  private _platform = inject(Platform);
+
   /** Query list matching list-item line elements. */
   abstract _lines: QueryList<MatListItemLine> | undefined;
 
@@ -172,22 +176,21 @@ export abstract class MatListItemBase implements AfterViewInit, OnDestroy, Rippl
     return this.disableRipple || !!this.rippleConfig.disabled;
   }
 
-  constructor(
-    public _elementRef: ElementRef<HTMLElement>,
-    protected _ngZone: NgZone,
-    @Optional() private _listBase: MatListBase | null,
-    private _platform: Platform,
-    @Optional()
-    @Inject(MAT_RIPPLE_GLOBAL_OPTIONS)
-    globalRippleOptions?: RippleGlobalOptions,
-    @Optional() @Inject(ANIMATION_MODULE_TYPE) animationMode?: string,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    inject(_CdkPrivateStyleLoader).load(_StructuralStylesLoader);
+    const globalRippleOptions = inject<RippleGlobalOptions>(MAT_RIPPLE_GLOBAL_OPTIONS, {
+      optional: true,
+    });
+    const animationMode = inject(ANIMATION_MODULE_TYPE, {optional: true});
+
     this.rippleConfig = globalRippleOptions || {};
     this._hostElement = this._elementRef.nativeElement;
     this._isButtonElement = this._hostElement.nodeName.toLowerCase() === 'button';
     this._noopAnimations = animationMode === 'NoopAnimations';
 
-    if (_listBase && !_listBase._isNonInteractive) {
+    if (this._listBase && !this._listBase._isNonInteractive) {
       this._initInteractiveListItem();
     }
 
@@ -223,6 +226,7 @@ export abstract class MatListItemBase implements AfterViewInit, OnDestroy, Rippl
       this._ngZone,
       this._hostElement,
       this._platform,
+      inject(Injector),
     );
     this._rippleRenderer.setupTriggerEvents(this._hostElement);
   }

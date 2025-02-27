@@ -3,13 +3,14 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {DOCUMENT} from '@angular/common';
-import {Inject, Injectable, OnDestroy, APP_ID, inject} from '@angular/core';
+import {Injectable, OnDestroy, APP_ID, inject} from '@angular/core';
 import {Platform} from '@angular/cdk/platform';
 import {addAriaReferencedId, getAriaReferenceIds, removeAriaReferencedId} from './aria-reference';
+import {_CdkPrivateStyleLoader, _VisuallyHiddenLoader} from '@angular/cdk/private';
 
 /**
  * Interface used to register message elements and keep a count of how many registrations have
@@ -54,7 +55,8 @@ let nextId = 0;
  */
 @Injectable({providedIn: 'root'})
 export class AriaDescriber implements OnDestroy {
-  private _document: Document;
+  private _platform = inject(Platform);
+  private _document = inject(DOCUMENT);
 
   /** Map of all registered message elements that have been placed into the document. */
   private _messageRegistry = new Map<string | Element, RegisteredMessage>();
@@ -65,15 +67,10 @@ export class AriaDescriber implements OnDestroy {
   /** Unique ID for the service. */
   private readonly _id = `${nextId++}`;
 
-  constructor(
-    @Inject(DOCUMENT) _document: any,
-    /**
-     * @deprecated To be turned into a required parameter.
-     * @breaking-change 14.0.0
-     */
-    private _platform?: Platform,
-  ) {
-    this._document = _document;
+  constructor(...args: unknown[]);
+
+  constructor() {
+    inject(_CdkPrivateStyleLoader).load(_VisuallyHiddenLoader);
     this._id = inject(APP_ID) + '-' + nextId++;
   }
 
@@ -212,8 +209,7 @@ export class AriaDescriber implements OnDestroy {
     messagesContainer.classList.add(containerClassName);
     messagesContainer.classList.add('cdk-visually-hidden');
 
-    // @breaking-change 14.0.0 Remove null check for `_platform`.
-    if (this._platform && !this._platform.isBrowser) {
+    if (!this._platform.isBrowser) {
       messagesContainer.setAttribute('platform', 'server');
     }
 

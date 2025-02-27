@@ -3,12 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CdkMenuModule} from '@angular/cdk/menu';
 import {ConnectedPosition} from '@angular/cdk/overlay';
-import {CommonModule} from '@angular/common';
 import {
   CdkMenuContextExample,
   CdkMenuInlineExample,
@@ -22,10 +21,8 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
 @Component({
   templateUrl: 'cdk-menu-demo.html',
   styleUrl: 'cdk-menu-demo.css',
-  standalone: true,
   imports: [
     CdkMenuModule,
-    CommonModule,
     CdkMenuStandaloneMenuExample,
     CdkMenuStandaloneStatefulMenuExample,
     CdkMenuMenubarExample,

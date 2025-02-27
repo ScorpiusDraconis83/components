@@ -10,7 +10,6 @@ import { AfterViewInit } from '@angular/core';
 import { ElementRef } from '@angular/core';
 import * as i0 from '@angular/core';
 import { InjectionToken } from '@angular/core';
-import { NgZone } from '@angular/core';
 import { Observable } from 'rxjs';
 import { OnChanges } from '@angular/core';
 import { OnDestroy } from '@angular/core';
@@ -24,13 +23,11 @@ export const YOUTUBE_PLAYER_CONFIG: InjectionToken<YouTubePlayerConfig>;
 
 // @public
 export class YouTubePlayer implements AfterViewInit, OnChanges, OnDestroy {
-    constructor(_ngZone: NgZone, platformId: Object);
-    // (undocumented)
+    constructor(...args: unknown[]);
     readonly apiChange: Observable<YT.PlayerEvent>;
     disableCookies: boolean;
     disablePlaceholder: boolean;
     endSeconds: number | undefined;
-    // (undocumented)
     readonly error: Observable<YT.OnErrorEvent>;
     getAvailablePlaybackRates(): number[];
     getAvailableQualityLevels(): YT.SuggestedVideoQuality[];
@@ -78,20 +75,18 @@ export class YouTubePlayer implements AfterViewInit, OnChanges, OnDestroy {
     pauseVideo(): void;
     placeholderButtonLabel: string;
     placeholderImageQuality: PlaceholderImageQuality;
-    // (undocumented)
     readonly playbackQualityChange: Observable<YT.OnPlaybackQualityChangeEvent>;
-    // (undocumented)
     readonly playbackRateChange: Observable<YT.OnPlaybackRateChangeEvent>;
     playerVars: YT.PlayerVars | undefined;
     playVideo(): void;
     readonly ready: Observable<YT.PlayerEvent>;
+    requestFullscreen(options?: FullscreenOptions): Promise<void>;
     seekTo(seconds: number, allowSeekAhead: boolean): void;
     setPlaybackRate(playbackRate: number): void;
     setVolume(volume: number): void;
     protected _shouldShowPlaceholder(): boolean;
     showBeforeIframeApiLoads: boolean;
     startSeconds: number | undefined;
-    // (undocumented)
     readonly stateChange: Observable<YT.OnStateChangeEvent>;
     stopVideo(): void;
     suggestedQuality: YT.SuggestedVideoQuality | undefined;

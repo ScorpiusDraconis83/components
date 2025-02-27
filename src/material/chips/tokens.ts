@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ENTER} from '@angular/cdk/keycodes';
@@ -14,7 +14,7 @@ export interface MatChipsDefaultOptions {
   /** The list of key codes that will trigger a chipEnd event. */
   separatorKeyCodes: readonly number[] | ReadonlySet<number>;
 
-  /** Wheter icon indicators should be hidden for single-selection. */
+  /** Whether icon indicators should be hidden for single-selection. */
   hideSingleSelectionIndicator?: boolean;
 }
 

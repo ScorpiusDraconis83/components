@@ -31,10 +31,10 @@ import {
   ViewChild,
   ViewChildren,
   ViewEncapsulation,
-  provideZoneChangeDetection,
+  inject,
   signal,
 } from '@angular/core';
-import {ComponentFixture, TestBed, fakeAsync, flush, inject} from '@angular/core/testing';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {
   AbstractControl,
   AsyncValidatorFn,
@@ -364,7 +364,7 @@ describe('MatStepper', () => {
       expect(stepperComponent._getIndicatorType(0)).toBe('done');
     });
 
-    it('should emit an event when the enter animation is done', fakeAsync(() => {
+    it('should emit an event when the enter animation is done', () => {
       const stepper = fixture.debugElement.query(By.directive(MatStepper))!.componentInstance;
       const selectionChangeSpy = jasmine.createSpy('selectionChange spy');
       const animationDoneSpy = jasmine.createSpy('animationDone spy');
@@ -375,16 +375,11 @@ describe('MatStepper', () => {
       fixture.detectChanges();
 
       expect(selectionChangeSpy).toHaveBeenCalledTimes(1);
-      expect(animationDoneSpy).not.toHaveBeenCalled();
-
-      flush();
-
-      expect(selectionChangeSpy).toHaveBeenCalledTimes(1);
       expect(animationDoneSpy).toHaveBeenCalledTimes(1);
 
       selectionChangeSubscription.unsubscribe();
       animationDoneSubscription.unsubscribe();
-    }));
+    });
 
     it('should set the correct aria-posinset and aria-setsize', () => {
       const headers = Array.from<HTMLElement>(
@@ -480,23 +475,20 @@ describe('MatStepper', () => {
       i18nFixture.detectChanges();
     });
 
-    it('should re-render when the i18n labels change', inject(
-      [MatStepperIntl],
-      (intl: MatStepperIntl) => {
-        const header = i18nFixture.debugElement.queryAll(By.css('mat-step-header'))[2]
-          .nativeElement;
-        const optionalLabel = header.querySelector('.mat-step-optional');
+    it('should re-render when the i18n labels change', () => {
+      const intl = TestBed.inject(MatStepperIntl);
+      const header = i18nFixture.debugElement.queryAll(By.css('mat-step-header'))[2].nativeElement;
+      const optionalLabel = header.querySelector('.mat-step-optional');
 
-        expect(optionalLabel).toBeTruthy();
-        expect(optionalLabel.textContent).toBe('Optional');
+      expect(optionalLabel).toBeTruthy();
+      expect(optionalLabel.textContent).toBe('Optional');
 
-        intl.optionalLabel = 'Valgfri';
-        intl.changes.next();
-        i18nFixture.detectChanges();
+      intl.optionalLabel = 'Valgfri';
+      intl.changes.next();
+      i18nFixture.detectChanges();
 
-        expect(optionalLabel.textContent).toBe('Valgfri');
-      },
-    ));
+      expect(optionalLabel.textContent).toBe('Valgfri');
+    });
   });
 
   describe('basic stepper with completed label change', () => {
@@ -507,29 +499,27 @@ describe('MatStepper', () => {
       fixture.detectChanges();
     });
 
-    it('should re-render when the completed labels change', inject(
-      [MatStepperIntl],
-      (intl: MatStepperIntl) => {
-        const stepperDebugElement = fixture.debugElement.query(By.directive(MatStepper))!;
-        const stepperComponent: MatStepper = stepperDebugElement.componentInstance;
+    it('should re-render when the completed labels change', () => {
+      const intl = TestBed.inject(MatStepperIntl);
+      const stepperDebugElement = fixture.debugElement.query(By.directive(MatStepper))!;
+      const stepperComponent: MatStepper = stepperDebugElement.componentInstance;
 
-        stepperComponent.steps.toArray()[0].editable = false;
-        stepperComponent.next();
-        fixture.detectChanges();
+      stepperComponent.steps.toArray()[0].editable = false;
+      stepperComponent.next();
+      fixture.detectChanges();
 
-        const header = stepperDebugElement.nativeElement.querySelector('mat-step-header');
-        const completedLabel = header.querySelector('.cdk-visually-hidden');
+      const header = stepperDebugElement.nativeElement.querySelector('mat-step-header');
+      const completedLabel = header.querySelector('.cdk-visually-hidden');
 
-        expect(completedLabel).toBeTruthy();
-        expect(completedLabel.textContent).toBe('Completed');
+      expect(completedLabel).toBeTruthy();
+      expect(completedLabel.textContent).toBe('Completed');
 
-        intl.completedLabel = 'Completada';
-        intl.changes.next();
-        fixture.detectChanges();
+      intl.completedLabel = 'Completada';
+      intl.changes.next();
+      fixture.detectChanges();
 
-        expect(completedLabel.textContent).toBe('Completada');
-      },
-    ));
+      expect(completedLabel.textContent).toBe('Completada');
+    });
   });
 
   describe('basic stepper with editable label change', () => {
@@ -540,29 +530,27 @@ describe('MatStepper', () => {
       fixture.detectChanges();
     });
 
-    it('should re-render when the editable label changes', inject(
-      [MatStepperIntl],
-      (intl: MatStepperIntl) => {
-        const stepperDebugElement = fixture.debugElement.query(By.directive(MatStepper))!;
-        const stepperComponent: MatStepper = stepperDebugElement.componentInstance;
+    it('should re-render when the editable label changes', () => {
+      const intl = TestBed.inject(MatStepperIntl);
+      const stepperDebugElement = fixture.debugElement.query(By.directive(MatStepper))!;
+      const stepperComponent: MatStepper = stepperDebugElement.componentInstance;
 
-        stepperComponent.steps.toArray()[0].editable = true;
-        stepperComponent.next();
-        fixture.detectChanges();
+      stepperComponent.steps.toArray()[0].editable = true;
+      stepperComponent.next();
+      fixture.detectChanges();
 
-        const header = stepperDebugElement.nativeElement.querySelector('mat-step-header');
-        const editableLabel = header.querySelector('.cdk-visually-hidden');
+      const header = stepperDebugElement.nativeElement.querySelector('mat-step-header');
+      const editableLabel = header.querySelector('.cdk-visually-hidden');
 
-        expect(editableLabel).toBeTruthy();
-        expect(editableLabel.textContent).toBe('Editable');
+      expect(editableLabel).toBeTruthy();
+      expect(editableLabel.textContent).toBe('Editable');
 
-        intl.editableLabel = 'Modificabile';
-        intl.changes.next();
-        fixture.detectChanges();
+      intl.editableLabel = 'Modificabile';
+      intl.changes.next();
+      fixture.detectChanges();
 
-        expect(editableLabel.textContent).toBe('Modificabile');
-      },
-    ));
+      expect(editableLabel.textContent).toBe('Modificabile');
+    });
   });
 
   describe('icon overrides', () => {
@@ -647,7 +635,7 @@ describe('MatStepper', () => {
     let stepperComponent: MatStepper;
 
     beforeEach(() => {
-      fixture = createComponent(LinearMatVerticalStepperApp);
+      fixture = createComponent(LinearMatVerticalStepperApp, [], [], undefined, []);
       fixture.detectChanges();
 
       testComponent = fixture.componentInstance;
@@ -920,6 +908,27 @@ describe('MatStepper', () => {
     });
 
     it('value of selectedIndex should be the pre-defined value', () => {
+      expect(stepper.selectedIndex).toBe(0);
+    });
+  });
+
+  describe('linear stepper with form already filled and on to the last step', () => {
+    let fixture: ComponentFixture<LinearMatVerticalStepperAppForAlreadyFilledForm>;
+    let stepper: MatStepper;
+
+    beforeEach(() => {
+      fixture = createComponent(LinearMatVerticalStepperAppForAlreadyFilledForm);
+      fixture.detectChanges();
+      stepper = fixture.debugElement.query(By.directive(MatStepper))!.componentInstance;
+    });
+
+    it('should navigate to previous steps', () => {
+      expect(stepper.selectedIndex).toBe(2);
+
+      stepper.previous();
+      expect(stepper.selectedIndex).toBe(1);
+
+      stepper.previous();
       expect(stepper.selectedIndex).toBe(0);
     });
   });
@@ -1792,15 +1801,12 @@ function createComponent<T>(
   providers: Provider[] = [],
   imports: any[] = [],
   encapsulation?: ViewEncapsulation,
+  declarations = [component],
 ): ComponentFixture<T> {
   TestBed.configureTestingModule({
     imports: [MatStepperModule, NoopAnimationsModule, ReactiveFormsModule, ...imports],
-    providers: [
-      provideZoneChangeDetection(),
-      {provide: Directionality, useFactory: () => dir},
-      ...providers,
-    ],
-    declarations: [component],
+    providers: [{provide: Directionality, useFactory: () => dir}, ...providers],
+    declarations,
   });
 
   if (encapsulation != null) {
@@ -1809,7 +1815,6 @@ function createComponent<T>(
     });
   }
 
-  TestBed.compileComponents();
   return TestBed.createComponent<T>(component);
 }
 
@@ -1841,14 +1846,15 @@ function createComponent<T>(
     </mat-stepper>
   </form>
   `,
+  standalone: false,
 })
 class MatHorizontalStepperWithErrorsApp {
+  private readonly _formBuilder = inject(FormBuilder);
+
   formGroup = this._formBuilder.group({
     firstNameCtrl: ['', Validators.required],
     lastNameCtrl: ['', Validators.required],
   });
-
-  constructor(private _formBuilder: FormBuilder) {}
 }
 
 @Component({
@@ -1882,6 +1888,7 @@ class MatHorizontalStepperWithErrorsApp {
       </mat-step>
     </mat-stepper>
   `,
+  standalone: false,
 })
 class SimpleMatHorizontalStepperApp {
   inputLabel = 'Step 3';
@@ -1921,6 +1928,7 @@ class SimpleMatHorizontalStepperApp {
       </mat-step>
     </mat-stepper>
   `,
+  standalone: false,
 })
 class SimpleMatVerticalStepperApp {
   inputLabel = signal('Step 3');
@@ -1938,8 +1946,8 @@ class SimpleMatVerticalStepperApp {
           <ng-template matStepLabel>Step one</ng-template>
           <input formControlName="oneCtrl" required>
           <div>
-            <button mat-button matStepperPrevious>Back</button>
-            <button mat-button matStepperNext>Next</button>
+            <button matStepperPrevious>Back</button>
+            <button matStepperNext>Next</button>
           </div>
         </form>
       </mat-step>
@@ -1948,8 +1956,8 @@ class SimpleMatVerticalStepperApp {
           <ng-template matStepLabel>Step two</ng-template>
           <input formControlName="twoCtrl" required>
           <div>
-            <button mat-button matStepperPrevious>Back</button>
-            <button mat-button matStepperNext>Next</button>
+            <button matStepperPrevious>Back</button>
+            <button matStepperNext>Next</button>
           </div>
         </form>
       </mat-step>
@@ -1958,8 +1966,8 @@ class SimpleMatVerticalStepperApp {
           <ng-template matStepLabel>Step two</ng-template>
           <input formControlName="threeCtrl">
           <div>
-            <button mat-button matStepperPrevious>Back</button>
-            <button mat-button matStepperNext>Next</button>
+            <button matStepperPrevious>Back</button>
+            <button matStepperNext>Next</button>
           </div>
         </form>
       </mat-step>
@@ -1968,6 +1976,7 @@ class SimpleMatVerticalStepperApp {
       </mat-step>
     </mat-stepper>
   `,
+  imports: [ReactiveFormsModule, MatStepperModule],
 })
 class LinearMatVerticalStepperApp {
   validationTrigger = new Subject<void>();
@@ -1990,9 +1999,65 @@ class LinearMatVerticalStepperApp {
       <mat-step label="Three"></mat-step>
     </mat-stepper>
   `,
+  standalone: false,
 })
 class SimplePreselectedMatHorizontalStepperApp {
   index = 0;
+}
+
+@Component({
+  template: `
+    <mat-stepper linear [selectedIndex]="selectedIndex()">
+      <mat-step [stepControl]="oneGroup">
+        <form [formGroup]="oneGroup">
+          <ng-template matStepLabel>Step one</ng-template>
+          <input formControlName="oneCtrl" required>
+          <div>
+            <button matStepperPrevious>Back</button>
+            <button matStepperNext>Next</button>
+          </div>
+        </form>
+      </mat-step>
+      <mat-step [stepControl]="twoGroup">
+        <form [formGroup]="twoGroup">
+          <ng-template matStepLabel>Step two</ng-template>
+          <input formControlName="twoCtrl" required>
+          <div>
+            <button matStepperPrevious>Back</button>
+            <button matStepperNext>Next</button>
+          </div>
+        </form>
+      </mat-step>
+      <mat-step [stepControl]="threeGroup" optional>
+        <form [formGroup]="threeGroup">
+          <ng-template matStepLabel>Step two</ng-template>
+          <input formControlName="threeCtrl">
+          <div>
+            <button matStepperPrevious>Back</button>
+            <button matStepperNext>Next</button>
+          </div>
+        </form>
+      </mat-step>
+      <mat-step>
+        Done
+      </mat-step>
+    </mat-stepper>
+  `,
+  imports: [ReactiveFormsModule, MatStepperModule],
+  standalone: false,
+})
+class LinearMatVerticalStepperAppForAlreadyFilledForm {
+  selectedIndex = signal(2);
+
+  oneGroup = new FormGroup({
+    oneCtrl: new FormControl('test 1', Validators.required),
+  });
+  twoGroup = new FormGroup({
+    twoCtrl: new FormControl('test 2', Validators.required),
+  });
+  threeGroup = new FormGroup({
+    threeCtrl: new FormControl('test 3', Validators.required),
+  });
 }
 
 @Component({
@@ -2003,6 +2068,7 @@ class SimplePreselectedMatHorizontalStepperApp {
       }
     </mat-stepper>
   `,
+  standalone: false,
 })
 class SimpleStepperWithoutStepControl {
   steps = [
@@ -2023,6 +2089,7 @@ class SimpleStepperWithoutStepControl {
       }
     </mat-stepper>
   `,
+  standalone: false,
 })
 class SimpleStepperWithStepControlAndCompletedBinding {
   steps = [
@@ -2046,6 +2113,7 @@ class SimpleStepperWithStepControlAndCompletedBinding {
       <mat-step>Content 3</mat-step>
     </mat-stepper>
 `,
+  standalone: false,
 })
 class IconOverridesStepper {
   getRomanNumeral(value: number) {
@@ -2081,6 +2149,7 @@ class IconOverridesStepper {
       <mat-step>Content 3</mat-step>
     </mat-stepper>
 `,
+  standalone: false,
 })
 class IndirectDescendantIconOverridesStepper extends IconOverridesStepper {}
 
@@ -2092,6 +2161,7 @@ class IndirectDescendantIconOverridesStepper extends IconOverridesStepper {}
       <mat-step label="Step 3" [stepControl]="controls[2]"></mat-step>
     </mat-stepper>
   `,
+  standalone: false,
 })
 class LinearStepperWithValidOptionalStep {
   controls = [0, 0, 0].map(() => new FormControl(''));
@@ -2104,6 +2174,7 @@ class LinearStepperWithValidOptionalStep {
       <mat-step [aria-label]="ariaLabel()" [aria-labelledby]="ariaLabelledby()" label="One"></mat-step>
     </mat-stepper>
   `,
+  standalone: false,
 })
 class StepperWithAriaInputs {
   ariaLabel = signal('');
@@ -2120,6 +2191,7 @@ class StepperWithAriaInputs {
       }
     </mat-stepper>
   `,
+  standalone: false,
 })
 class StepperWithIndirectDescendantSteps {}
 
@@ -2137,6 +2209,7 @@ class StepperWithIndirectDescendantSteps {}
       }
     </mat-stepper>
   `,
+  standalone: false,
 })
 class StepperWithNgIf {
   showStep2 = signal(false);
@@ -2155,6 +2228,7 @@ class StepperWithNgIf {
       </mat-step>
     </mat-stepper>
   `,
+  standalone: false,
 })
 class NestedSteppers {
   @ViewChildren(MatStepper) steppers: QueryList<MatStepper>;
@@ -2168,6 +2242,7 @@ class NestedSteppers {
       <mat-step label="Step 3">Content 3</mat-step>
     </mat-stepper>
   `,
+  standalone: false,
 })
 class StepperWithStaticOutOfBoundsIndex {
   @ViewChild(MatStepper) stepper: MatStepper;
@@ -2190,6 +2265,7 @@ class StepperWithStaticOutOfBoundsIndex {
       </mat-step>
     </mat-stepper>
   `,
+  standalone: false,
 })
 class StepperWithLazyContent {
   selectedIndex = signal(0);
@@ -2205,6 +2281,7 @@ class StepperWithLazyContent {
       <mat-step label="Step 3">Content 3</mat-step>
     </mat-stepper>
   `,
+  standalone: false,
 })
 class HorizontalStepperWithDelayedStep {
   renderSecondStep = signal(false);
@@ -2218,6 +2295,7 @@ class HorizontalStepperWithDelayedStep {
       <mat-step label="Three"></mat-step>
     </mat-stepper>
   `,
+  standalone: false,
 })
 class StepperWithTwoWayBindingOnSelectedIndex {
   index: number = 0;

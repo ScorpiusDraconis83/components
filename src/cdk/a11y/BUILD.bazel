@@ -19,10 +19,12 @@ ng_module(
     deps = [
         "//src:dev_mode_types",
         "//src/cdk/coercion",
+        "//src/cdk/coercion/private",
         "//src/cdk/keycodes",
         "//src/cdk/layout",
         "//src/cdk/observers",
         "//src/cdk/platform",
+        "//src/cdk/private",
         "@npm//@angular/core",
         "@npm//rxjs",
     ],

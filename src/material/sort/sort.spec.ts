@@ -1,18 +1,13 @@
 import {CollectionViewer, DataSource} from '@angular/cdk/collections';
 import {CdkTableModule} from '@angular/cdk/table';
-import {
-  createFakeEvent,
-  createMouseEvent,
-  dispatchMouseEvent,
-  wrappedErrorMessage,
-} from '@angular/cdk/testing/private';
-import {Component, ElementRef, ViewChild, provideZoneChangeDetection} from '@angular/core';
-import {waitForAsync, ComponentFixture, fakeAsync, TestBed, tick} from '@angular/core/testing';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {dispatchMouseEvent, wrappedErrorMessage} from '@angular/cdk/testing/private';
+import {Component, ElementRef, ViewChild, inject} from '@angular/core';
+import {ComponentFixture, TestBed, fakeAsync, tick, waitForAsync} from '@angular/core/testing';
+import {MatTableModule} from '@angular/material/table';
 import {By} from '@angular/platform-browser';
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
-import {MatTableModule} from '@angular/material/table';
 import {
   MAT_SORT_DEFAULT_OPTIONS,
   MatSort,
@@ -29,11 +24,6 @@ import {
 } from './sort-errors';
 
 describe('MatSort', () => {
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      providers: [provideZoneChangeDetection()],
-    });
-  });
   describe('without default options', () => {
     let fixture: ComponentFixture<SimpleMatSortApp>;
     let component: SimpleMatSortApp;
@@ -55,7 +45,7 @@ describe('MatSort', () => {
           MatSortableInvalidDirection,
           MatSortWithArrowPosition,
         ],
-      }).compileComponents();
+      });
     }));
 
     beforeEach(() => {
@@ -108,132 +98,28 @@ describe('MatSort', () => {
       expect(sortables.has('column_c')).toBe(true);
     });
 
-    describe('checking correct arrow direction and view state for its various states', () => {
-      let expectedStates: Map<string, {viewState: string; arrowDirection: string}>;
-
-      beforeEach(() => {
-        // Starting state for the view and directions - note that overrideStart is reversed to be
-        // desc
-        expectedStates = new Map<string, {viewState: string; arrowDirection: string}>([
-          ['defaultA', {viewState: 'asc', arrowDirection: 'asc'}],
-          ['defaultB', {viewState: 'asc', arrowDirection: 'asc'}],
-          ['overrideStart', {viewState: 'desc', arrowDirection: 'desc'}],
-          ['overrideDisableClear', {viewState: 'asc', arrowDirection: 'asc'}],
-        ]);
-        component.expectViewAndDirectionStates(expectedStates);
-      });
-
-      it('should be correct when mousing over headers and leaving on mouseleave', () => {
-        // Mousing over the first sort should set the view state to hint (asc)
-        component.dispatchMouseEvent('defaultA', 'mouseenter');
-        expectedStates.set('defaultA', {viewState: 'asc-to-hint', arrowDirection: 'asc'});
-        component.expectViewAndDirectionStates(expectedStates);
-
-        // Mousing away from the first sort should hide the arrow
-        component.dispatchMouseEvent('defaultA', 'mouseleave');
-        expectedStates.set('defaultA', {viewState: 'hint-to-asc', arrowDirection: 'asc'});
-        component.expectViewAndDirectionStates(expectedStates);
-
-        // Mousing over another sort should set the view state to hint (desc)
-        component.dispatchMouseEvent('overrideStart', 'mouseenter');
-        expectedStates.set('overrideStart', {viewState: 'desc-to-hint', arrowDirection: 'desc'});
-        component.expectViewAndDirectionStates(expectedStates);
-      });
-
-      it('should be correct when mousing over header and then sorting', () => {
-        // Mousing over the first sort should set the view state to hint
-        component.dispatchMouseEvent('defaultA', 'mouseenter');
-        expectedStates.set('defaultA', {viewState: 'asc-to-hint', arrowDirection: 'asc'});
-        component.expectViewAndDirectionStates(expectedStates);
-
-        // Clicking sort on the header should set it to be active immediately
-        // (since it was already hinted)
-        component.dispatchMouseEvent('defaultA', 'click');
-        expectedStates.set('defaultA', {viewState: 'active', arrowDirection: 'active-asc'});
-        component.expectViewAndDirectionStates(expectedStates);
-      });
-
-      it('should be correct when cycling through a default sort header', () => {
-        // Sort the header to set it to the active start state
-        component.sort('defaultA');
-        expectedStates.set('defaultA', {viewState: 'asc-to-active', arrowDirection: 'active-asc'});
-        component.expectViewAndDirectionStates(expectedStates);
-
-        // Sorting again will reverse its direction
-        component.dispatchMouseEvent('defaultA', 'click');
-        expectedStates.set('defaultA', {viewState: 'active', arrowDirection: 'active-desc'});
-        component.expectViewAndDirectionStates(expectedStates);
-
-        // Sorting again will remove the sort and animate away the view
-        component.dispatchMouseEvent('defaultA', 'click');
-        expectedStates.set('defaultA', {viewState: 'active-to-desc', arrowDirection: 'desc'});
-        component.expectViewAndDirectionStates(expectedStates);
-      });
-
-      it('should not enter sort with animations if an animations is disabled', () => {
-        // Sort the header to set it to the active start state
-        component.defaultA._disableViewStateAnimation = true;
-        component.sort('defaultA');
-        expectedStates.set('defaultA', {viewState: 'active', arrowDirection: 'active-asc'});
-        component.expectViewAndDirectionStates(expectedStates);
-
-        // Sorting again will reverse its direction
-        component.defaultA._disableViewStateAnimation = true;
-        component.dispatchMouseEvent('defaultA', 'click');
-        expectedStates.set('defaultA', {viewState: 'active', arrowDirection: 'active-desc'});
-        component.expectViewAndDirectionStates(expectedStates);
-      });
-
-      it('should be correct when sort has changed while a header is active', () => {
-        // Sort the first header to set up
-        component.sort('defaultA');
-        expectedStates.set('defaultA', {viewState: 'asc-to-active', arrowDirection: 'active-asc'});
-        component.expectViewAndDirectionStates(expectedStates);
-
-        // Sort the second header and verify that the first header animated away
-        component.dispatchMouseEvent('defaultB', 'click');
-        expectedStates.set('defaultA', {viewState: 'active-to-asc', arrowDirection: 'asc'});
-        expectedStates.set('defaultB', {viewState: 'asc-to-active', arrowDirection: 'active-asc'});
-        component.expectViewAndDirectionStates(expectedStates);
-      });
-
-      it('should be correct when sort has been disabled', () => {
-        // Mousing over the first sort should set the view state to hint
-        component.disabledColumnSort = true;
-        fixture.detectChanges();
-
-        component.dispatchMouseEvent('defaultA', 'mouseenter');
-        component.expectViewAndDirectionStates(expectedStates);
-      });
-
-      it('should be correct when sorting programmatically', () => {
-        component.active = 'defaultB';
-        component.direction = 'asc';
-        fixture.detectChanges();
-
-        expectedStates.set('defaultB', {viewState: 'asc-to-active', arrowDirection: 'active-asc'});
-        component.expectViewAndDirectionStates(expectedStates);
-      });
-    });
-
     it('should be able to cycle from asc -> desc from either start point', () => {
       component.disableClear = true;
 
       component.start = 'asc';
+      fixture.changeDetectorRef.markForCheck();
       testSingleColumnSortDirectionSequence(fixture, ['asc', 'desc']);
 
       // Reverse directions
       component.start = 'desc';
+      fixture.changeDetectorRef.markForCheck();
       testSingleColumnSortDirectionSequence(fixture, ['desc', 'asc']);
     });
 
     it('should be able to cycle asc -> desc -> [none]', () => {
       component.start = 'asc';
+      fixture.changeDetectorRef.markForCheck();
       testSingleColumnSortDirectionSequence(fixture, ['asc', 'desc', '']);
     });
 
     it('should be able to cycle desc -> asc -> [none]', () => {
       component.start = 'desc';
+      fixture.changeDetectorRef.markForCheck();
       testSingleColumnSortDirectionSequence(fixture, ['desc', 'asc', '']);
     });
 
@@ -246,6 +132,7 @@ describe('MatSort', () => {
       expect(container.getAttribute('role')).toBe('button');
 
       component.disabledColumnSort = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       component.sort('defaultA');
@@ -263,6 +150,7 @@ describe('MatSort', () => {
       expect(container.getAttribute('tabindex')).toBe('0');
 
       component.disableAllSort = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       component.sort('defaultA');
@@ -325,54 +213,6 @@ describe('MatSort', () => {
       testSingleColumnSortDirectionSequence(fixture, ['asc', 'desc'], 'overrideDisableClear');
     });
 
-    it('should toggle indicator hint on button focus/blur and hide on click', () => {
-      const header = fixture.componentInstance.defaultA;
-      const container = fixture.nativeElement.querySelector('#defaultA .mat-sort-header-container');
-      const focusEvent = createFakeEvent('focus');
-      const blurEvent = createFakeEvent('blur');
-
-      // Should start without a displayed hint
-      expect(header._showIndicatorHint).toBeFalsy();
-
-      // Focusing the button should show the hint, blurring should hide it
-      container.dispatchEvent(focusEvent);
-      expect(header._showIndicatorHint).toBeTruthy();
-
-      container.dispatchEvent(blurEvent);
-      expect(header._showIndicatorHint).toBeFalsy();
-
-      // Show the indicator hint. On click the hint should be hidden
-      container.dispatchEvent(focusEvent);
-      expect(header._showIndicatorHint).toBeTruthy();
-
-      header._handleClick();
-      expect(header._showIndicatorHint).toBeFalsy();
-    });
-
-    it('should toggle indicator hint on mouseenter/mouseleave and hide on click', () => {
-      const header = fixture.componentInstance.defaultA;
-      const headerElement = fixture.nativeElement.querySelector('#defaultA');
-      const mouseenterEvent = createMouseEvent('mouseenter');
-      const mouseleaveEvent = createMouseEvent('mouseleave');
-
-      // Should start without a displayed hint
-      expect(header._showIndicatorHint).toBeFalsy();
-
-      // Mouse enter should show the hint, blurring should hide it
-      headerElement.dispatchEvent(mouseenterEvent);
-      expect(header._showIndicatorHint).toBeTruthy();
-
-      headerElement.dispatchEvent(mouseleaveEvent);
-      expect(header._showIndicatorHint).toBeFalsy();
-
-      // Show the indicator hint. On click the hint should be hidden
-      headerElement.dispatchEvent(mouseenterEvent);
-      expect(header._showIndicatorHint).toBeTruthy();
-
-      header._handleClick();
-      expect(header._showIndicatorHint).toBeFalsy();
-    });
-
     it('should apply the aria-sort label to the header when sorted', () => {
       const sortHeaderElement = fixture.nativeElement.querySelector('#defaultA');
       expect(sortHeaderElement.getAttribute('aria-sort')).toBe('none');
@@ -396,6 +236,7 @@ describe('MatSort', () => {
       // Switch sorting to a different column before asserting.
       component.sort('defaultB');
       fixture.componentInstance.disabledColumnSort = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
       tick();
       fixture.detectChanges();
@@ -408,6 +249,7 @@ describe('MatSort', () => {
 
       component.sort('defaultA');
       fixture.componentInstance.disabledColumnSort = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
       tick();
       fixture.detectChanges();
@@ -444,6 +286,7 @@ describe('MatSort', () => {
       expect(descriptionElement?.textContent).toBe('Sort second column');
 
       fixture.componentInstance.secondColumnDescription = 'Sort 2nd column';
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
       descriptionId = sortButton.getAttribute('aria-describedby');
       descriptionElement = document.getElementById(descriptionId);
@@ -501,6 +344,7 @@ describe('MatSort', () => {
       expect(containerB.classList.contains('mat-sort-header-position-before')).toBe(false);
 
       matSortWithArrowPositionComponent.arrowPosition = 'before';
+      matSortWithArrowPositionFixture.changeDetectorRef.markForCheck();
 
       matSortWithArrowPositionFixture.detectChanges();
 
@@ -530,7 +374,7 @@ describe('MatSort', () => {
             },
           },
         ],
-      }).compileComponents();
+      });
     }));
 
     beforeEach(() => {
@@ -570,7 +414,7 @@ describe('MatSort', () => {
             },
           },
         ],
-      }).compileComponents();
+      });
     }));
 
     beforeEach(() => {
@@ -666,12 +510,11 @@ type SimpleMatSortAppColumnIds = 'defaultA' | 'defaultB' | 'overrideStart' | 'ov
       </div>
     </div>
   `,
-  standalone: true,
   imports: [MatSortModule, MatTableModule, CdkTableModule],
 })
 class SimpleMatSortApp {
+  elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
   latestSortEvent: Sort;
-
   active: string;
   start: SortDirection = 'asc';
   direction: SortDirection = '';
@@ -686,8 +529,6 @@ class SimpleMatSortApp {
   @ViewChild('overrideStart') overrideStart: MatSortHeader;
   @ViewChild('overrideDisableClear') overrideDisableClear: MatSortHeader;
 
-  constructor(public elementRef: ElementRef<HTMLElement>) {}
-
   sort(id: SimpleMatSortAppColumnIds) {
     this.dispatchMouseEvent(id, 'click');
   }
@@ -695,27 +536,6 @@ class SimpleMatSortApp {
   dispatchMouseEvent(id: SimpleMatSortAppColumnIds, event: string) {
     const sortElement = this.elementRef.nativeElement.querySelector(`#${id}`)!;
     dispatchMouseEvent(sortElement, event);
-  }
-
-  /**
-   * Checks expectations for each sort header's view state and arrow direction states. Receives a
-   * map that is keyed by each sort header's ID and contains the expectation for that header's
-   * states.
-   */
-  expectViewAndDirectionStates(
-    viewStates: Map<string, {viewState: string; arrowDirection: string}>,
-  ) {
-    const sortHeaders = new Map([
-      ['defaultA', this.defaultA],
-      ['defaultB', this.defaultB],
-      ['overrideStart', this.overrideStart],
-      ['overrideDisableClear', this.overrideDisableClear],
-    ]);
-
-    viewStates.forEach((viewState, id) => {
-      expect(sortHeaders.get(id)!._getArrowViewState()).toEqual(viewState.viewState);
-      expect(sortHeaders.get(id)!._getArrowDirectionState()).toEqual(viewState.arrowDirection);
-    });
   }
 }
 
@@ -748,7 +568,6 @@ class FakeDataSource extends DataSource<any> {
       <cdk-row *cdkRowDef="let row; columns: columnsToRender"></cdk-row>
     </cdk-table>
   `,
-  standalone: true,
   imports: [MatSortModule, MatTableModule, CdkTableModule],
 })
 class CdkTableMatSortApp {
@@ -780,7 +599,6 @@ class CdkTableMatSortApp {
       <mat-row *matRowDef="let row; columns: columnsToRender"></mat-row>
     </mat-table>
   `,
-  standalone: true,
   imports: [MatSortModule, MatTableModule, CdkTableModule],
 })
 class MatTableMatSortApp {
@@ -792,7 +610,6 @@ class MatTableMatSortApp {
 
 @Component({
   template: `<div mat-sort-header="a"> A </div>`,
-  standalone: true,
   imports: [MatSortModule, MatTableModule, CdkTableModule],
 })
 class MatSortHeaderMissingMatSortApp {}
@@ -804,7 +621,6 @@ class MatSortHeaderMissingMatSortApp {}
       <div mat-sort-header="duplicateId"> A </div>
     </div>
   `,
-  standalone: true,
   imports: [MatSortModule, MatTableModule, CdkTableModule],
 })
 class MatSortDuplicateMatSortableIdsApp {}
@@ -815,7 +631,6 @@ class MatSortDuplicateMatSortableIdsApp {}
       <div mat-sort-header> A </div>
     </div>
   `,
-  standalone: true,
   imports: [MatSortModule, MatTableModule, CdkTableModule],
 })
 class MatSortableMissingIdApp {}
@@ -826,7 +641,6 @@ class MatSortableMissingIdApp {}
       <div mat-sort-header="a"> A </div>
     </div>
   `,
-  standalone: true,
   imports: [MatSortModule, MatTableModule, CdkTableModule],
 })
 class MatSortableInvalidDirection {}
@@ -842,19 +656,16 @@ class MatSortableInvalidDirection {}
       </div>
     </div>
   `,
-  standalone: true,
   imports: [MatSortModule, MatTableModule, CdkTableModule],
 })
 class MatSortWithoutExplicitInputs {
+  elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
   latestSortEvent: Sort;
-
   active: string;
   start: SortDirection = 'asc';
 
   @ViewChild(MatSort) matSort: MatSort;
   @ViewChild('defaultA') defaultA: MatSortHeader;
-
-  constructor(public elementRef: ElementRef<HTMLElement>) {}
 
   sort(id: SimpleMatSortAppColumnIds) {
     this.dispatchMouseEvent(id, 'click');
@@ -877,7 +688,6 @@ class MatSortWithoutExplicitInputs {
       </div>
     </div>
   `,
-  standalone: true,
   imports: [MatSortModule, MatTableModule, CdkTableModule],
 })
 class MatSortWithArrowPosition {
@@ -898,7 +708,6 @@ class MatSortWithArrowPosition {
       </div>
     </div>
   `,
-  standalone: true,
   imports: [MatSortModule, MatTableModule, CdkTableModule],
 })
 class MatSortWithoutInputs {

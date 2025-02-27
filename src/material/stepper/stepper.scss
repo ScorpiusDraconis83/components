@@ -6,7 +6,7 @@
 
 // Gets the `calc` expression for the vertical padding of the stepper header.
 @function _get-vertical-padding-calc() {
-  $height: var(#{token-utils.get-token-variable(header-height)});
+  $height: token-utils.get-token-variable(header-height);
   @return calc(calc(#{$height} - #{stepper-variables.$label-header-height}) / 2);
 }
 
@@ -77,6 +77,11 @@
   align-items: center;
   padding: 0 stepper-variables.$side-gap;
 
+  @include token-utils.use-tokens(
+    tokens-mat-stepper.$prefix, tokens-mat-stepper.get-token-slots()) {
+    @include token-utils.create-token-slot(height, header-height);
+  }
+
   .mat-step-icon {
     margin-right: stepper-variables.$line-gap;
     flex: none;
@@ -90,7 +95,6 @@
   @include token-utils.use-tokens(
     tokens-mat-stepper.$prefix, tokens-mat-stepper.get-token-slots()) {
     $vertical-padding: _get-vertical-padding-calc();
-    @include token-utils.create-token-slot(height, header-height);
 
     &::before,
     &::after {
@@ -174,30 +178,44 @@
 }
 
 .mat-horizontal-stepper-content {
+  visibility: hidden;
+  overflow: hidden;
   outline: 0;
+  height: 0;
 
-  &.mat-horizontal-stepper-content-inactive {
-    height: 0;
-    overflow: hidden;
+  .mat-stepper-animations-enabled & {
+    transition: transform var(--mat-stepper-animation-duration, 0) cubic-bezier(0.35, 0, 0.25, 1);
   }
 
-  // Used to avoid an issue where when the stepper is nested inside a component that
-  // changes the `visibility` as a part of an Angular animation, the stepper's content
-  // stays hidden (see #25925). The value has to be `!important` to override the incorrect
-  // `visibility` from the animations package. This can also be solved using `visibility: visible`
-  // on `.mat-horizontal-stepper-content`, but it can allow tabbing into hidden content.
-  &:not(.mat-horizontal-stepper-content-inactive) {
-    visibility: inherit !important;
+  &.mat-horizontal-stepper-content-previous {
+    transform: translate3d(-100%, 0, 0);
+  }
+
+  &.mat-horizontal-stepper-content-next {
+    transform: translate3d(100%, 0, 0);
+  }
+
+  &.mat-horizontal-stepper-content-current {
+    // TODO(crisbeto): the height and visibility switches are a bit jarring, but that's how the
+    // animation was set up when we still used the Animations module. We should be able to make
+    // it a bit smoother.
+    visibility: visible;
+    transform: none;
+    height: auto;
+  }
+
+  .mat-stepper-horizontal:not(.mat-stepper-animating) &.mat-horizontal-stepper-content-current {
+    overflow: visible;
   }
 }
 
 .mat-horizontal-content-container {
-  @include cdk.high-contrast(active, off) {
-    outline: solid 1px;
-  }
-
   overflow: hidden;
   padding: 0 stepper-variables.$side-gap stepper-variables.$side-gap stepper-variables.$side-gap;
+
+  @include cdk.high-contrast {
+    outline: solid 1px;
+  }
 
   .mat-stepper-header-position-bottom & {
     padding: stepper-variables.$side-gap stepper-variables.$side-gap 0 stepper-variables.$side-gap;
@@ -205,18 +223,47 @@
 }
 
 .mat-vertical-content-container {
-  @include cdk.high-contrast(active, off) {
-    outline: solid 1px;
-  }
-
+  display: grid;
+  grid-template-rows: 0fr;
+  grid-template-columns: 100%;
   margin-left: stepper-variables.$vertical-stepper-content-margin;
   border: 0;
   position: relative;
+
+  .mat-stepper-animations-enabled & {
+    transition: grid-template-rows var(--mat-stepper-animation-duration, 0)
+      cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  &.mat-vertical-content-container-active {
+    grid-template-rows: 1fr;
+  }
+
+  .mat-step:last-child & {
+    border: none;
+  }
+
+  @include cdk.high-contrast {
+    outline: solid 1px;
+  }
 
   [dir='rtl'] & {
     margin-left: 0;
     margin-right: stepper-variables.$vertical-stepper-content-margin;
   }
+
+
+  // All the browsers we support have support for `grid` as well, but given that these styles are
+  // load-bearing for the stepper, we have a fallback to height which doesn't animate, just in case.
+  // stylelint-disable material/no-prefixes
+  @supports not (grid-template-rows: 0fr) {
+    height: 0;
+
+    &.mat-vertical-content-container-active {
+      height: auto;
+    }
+  }
+  // stylelint-enable material/no-prefixes
 }
 
 .mat-stepper-vertical-line::before {
@@ -248,23 +295,17 @@
 .mat-vertical-stepper-content {
   overflow: hidden;
   outline: 0;
+  visibility: hidden;
 
-  // Used to avoid an issue where when the stepper is nested inside a component that
-  // changes the `visibility` as a part of an Angular animation, the stepper's content
-  // stays hidden (see #25925). The value has to be `!important` to override the incorrect
-  // `visibility` from the animations package. This can also be solved using `visibility: visible`
-  // on `.mat-vertical-stepper-content`, but it can allow tabbing into hidden content.
-  &:not(.mat-vertical-stepper-content-inactive) {
-    visibility: inherit !important;
+  .mat-stepper-animations-enabled & {
+    transition: visibility var(--mat-stepper-animation-duration, 0) linear;
+  }
+
+  .mat-vertical-content-container-active > & {
+    visibility: visible;
   }
 }
 
 .mat-vertical-content {
   padding: 0 stepper-variables.$side-gap stepper-variables.$side-gap stepper-variables.$side-gap;
-}
-
-.mat-step:last-child {
-  .mat-vertical-content-container {
-    border: none;
-  }
 }

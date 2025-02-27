@@ -3,10 +3,9 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {CommonModule} from '@angular/common';
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatDividerModule} from '@angular/material/divider';
@@ -18,15 +17,7 @@ import {MatToolbarModule} from '@angular/material/toolbar';
   selector: 'menu-demo',
   templateUrl: 'menu-demo.html',
   styleUrl: 'menu-demo.css',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatMenuModule,
-    MatButtonModule,
-    MatToolbarModule,
-    MatIconModule,
-    MatDividerModule,
-  ],
+  imports: [MatMenuModule, MatButtonModule, MatToolbarModule, MatIconModule, MatDividerModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MenuDemo {

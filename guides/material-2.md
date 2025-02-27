@@ -108,19 +108,6 @@ custom theme with Sass, or by importing a pre-built theme CSS file.
 A **theme file** is a Sass file that calls Angular Material Sass mixins to output color,
 typography, and density CSS styles.
 
-#### The `core` mixin
-
-Angular Material defines a mixin named `core` that includes prerequisite styles for common
-features used by multiple components, such as ripples. The `core` mixin must be included exactly
-once for your application, even if you define multiple themes. Including the `core` mixin multiple
-times will result in duplicate CSS in your application.
-
-```scss
-@use '@angular/material' as mat;
-
-@include mat.core();
-```
-
 #### Defining a theme
 
 Angular Material represents a theme as a Sass map that contains your color, typography, and density
@@ -190,8 +177,6 @@ theme Sass mixins.
 ```scss
 @use '@angular/material' as mat;
 
-@include mat.core();
-
 $my-primary: mat.m2-define-palette(mat.$m2-indigo-palette, 500);
 $my-accent: mat.m2-define-palette(mat.$m2-pink-palette, A200, A100, A400);
 
@@ -225,8 +210,6 @@ uses every single component, this will produce unnecessary CSS.
 ```scss
 @use '@angular/material' as mat;
 
-@include mat.core();
-
 $my-primary: mat.m2-define-palette(mat.$m2-indigo-palette, 500);
 $my-accent: mat.m2-define-palette(mat.$m2-pink-palette, A200, A100, A400);
 
@@ -245,7 +228,7 @@ $my-theme: mat.m2-define-light-theme((
 To include the emitted styles in your application, [add your theme file to the `styles` array of
 your project's `angular.json` file][adding-styles].
 
-[adding-styles]: https://angular.io/guide/workspace-config#styles-and-scripts-configuration
+[adding-styles]: https://angular.dev/reference/configs/workspace-config#styles-and-scripts-configuration
 
 #### Theming dimensions
 
@@ -336,8 +319,6 @@ CSS rule declaration. See the [documentation for Sass mixins][sass-mixins] for f
 
 ```scss
 @use '@angular/material' as mat;
-
-@include mat.core();
 
 // Define a dark theme
 $dark-theme: mat.m2-define-dark-theme((
@@ -470,7 +451,6 @@ the custom theme API.
 ```scss
 @use '@angular/material' as mat;
 
-@include mat.core();
 @include mat.strong-focus-indicators();
 
 $my-primary: mat.m2-define-palette(mat.$m2-indigo-palette, 500);
@@ -502,7 +482,6 @@ of the custom theme API.
 ```scss
 @use '@angular/material' as mat;
 
-@include mat.core();
 @include mat.strong-focus-indicators((
   border-style: dotted,
   border-width: 4px,
@@ -735,7 +714,7 @@ requests][font-inlining].
 
 [roboto]: https://fonts.google.com/share?selection.family=Roboto:wght@300;400;500
 [fonts-api]: https://developers.google.com/fonts/docs/getting_started
-[font-inlining]: https://angular.io/guide/workspace-config#fonts-optimization-options
+[font-inlining]: https://angular.dev/reference/configs/workspace-config#fonts-optimization-options
 
 ### Typography levels
 
@@ -811,8 +790,6 @@ defining multiple themes](#defining-multiple-themes).
 
 ```scss
 @use '@angular/material' as mat;
-
-@include mat.core();
 
 $my-primary: mat.m2-define-palette(mat.$indigo-palette, 500);
 $my-accent: mat.m2-define-palette(mat.$pink-palette, A200, A100, A400);
@@ -1064,8 +1041,6 @@ the other theme mixins in your application.
 @use '@angular/material' as mat;
 @use './path/to/carousel-theme' as carousel;
 
-@include mat.core();
-
 $my-primary: mat.m2-define-palette(mat.$m2-indigo-palette, 500);
 $my-accent: mat.m2-define-palette(mat.$m2-pink-palette, A200, A100, A400);
 
@@ -1128,7 +1103,7 @@ the APIs for both are largely the same. However, there are a few differences to 
   mixins should be wrapped in a selector. If your app includes such an `@include` at the root level,
   we recommend wrapping it in `html { ... }`
 - M3 has a different API for setting the color variant of a component (see
-  [using component color variants](https://material.angular.io/guide/theming#using-component-color-variants)
+  [using component color variants](#optional-add-backwards-compatibility-styles-for-color-variants)
   for more).
 - The `backgroundColor` property of `<mat-tab-group>` is not supported, and should not be used with
   M3 themes.

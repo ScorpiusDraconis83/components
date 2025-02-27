@@ -3,21 +3,15 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {ComponentType, Overlay, OverlayContainer, ScrollStrategy} from '@angular/cdk/overlay';
-import {Location} from '@angular/common';
+import {ComponentType, Overlay, ScrollStrategy} from '@angular/cdk/overlay';
 import {
-  ANIMATION_MODULE_TYPE,
   ComponentRef,
-  Inject,
   Injectable,
   InjectionToken,
-  Injector,
   OnDestroy,
-  Optional,
-  SkipSelf,
   TemplateRef,
   Type,
   inject,
@@ -28,6 +22,7 @@ import {MatDialogRef} from './dialog-ref';
 import {defer, Observable, Subject} from 'rxjs';
 import {Dialog, DialogConfig} from '@angular/cdk/dialog';
 import {startWith} from 'rxjs/operators';
+import {_IdGenerator} from '@angular/cdk/a11y';
 
 /** Injection token that can be used to access the data that was passed in to a dialog. */
 export const MAT_DIALOG_DATA = new InjectionToken<any>('MatMdcDialogData');
@@ -71,18 +66,21 @@ export const MAT_DIALOG_SCROLL_STRATEGY_PROVIDER = {
   useFactory: MAT_DIALOG_SCROLL_STRATEGY_PROVIDER_FACTORY,
 };
 
-// Counter for unique dialog ids.
-let uniqueId = 0;
-
 /**
  * Service to open Material Design modal dialogs.
  */
 @Injectable({providedIn: 'root'})
 export class MatDialog implements OnDestroy {
+  private _overlay = inject(Overlay);
+  private _defaultOptions = inject<MatDialogConfig>(MAT_DIALOG_DEFAULT_OPTIONS, {optional: true});
+  private _scrollStrategy = inject(MAT_DIALOG_SCROLL_STRATEGY);
+  private _parentDialog = inject(MatDialog, {optional: true, skipSelf: true});
+  private _idGenerator = inject(_IdGenerator);
+  protected _dialog = inject(Dialog);
+
   private readonly _openDialogsAtThisLevel: MatDialogRef<any>[] = [];
   private readonly _afterAllClosedAtThisLevel = new Subject<void>();
   private readonly _afterOpenedAtThisLevel = new Subject<MatDialogRef<any>>();
-  protected _dialog: Dialog;
   protected dialogConfigClass = MatDialogConfig;
 
   private readonly _dialogRefConstructor: Type<MatDialogRef<any>>;
@@ -114,32 +112,9 @@ export class MatDialog implements OnDestroy {
       : this._getAfterAllClosed().pipe(startWith(undefined)),
   ) as Observable<any>;
 
-  constructor(
-    private _overlay: Overlay,
-    injector: Injector,
-    /**
-     * @deprecated `_location` parameter to be removed.
-     * @breaking-change 10.0.0
-     */
-    @Optional() location: Location,
-    @Optional() @Inject(MAT_DIALOG_DEFAULT_OPTIONS) private _defaultOptions: MatDialogConfig,
-    @Inject(MAT_DIALOG_SCROLL_STRATEGY) private _scrollStrategy: any,
-    @Optional() @SkipSelf() private _parentDialog: MatDialog,
-    /**
-     * @deprecated No longer used. To be removed.
-     * @breaking-change 15.0.0
-     */
-    _overlayContainer: OverlayContainer,
-    /**
-     * @deprecated No longer used. To be removed.
-     * @breaking-change 14.0.0
-     */
-    @Optional()
-    @Inject(ANIMATION_MODULE_TYPE)
-    _animationMode?: 'NoopAnimations' | 'BrowserAnimations',
-  ) {
-    this._dialog = injector.get(Dialog);
+  constructor(...args: unknown[]);
 
+  constructor() {
     this._dialogRefConstructor = MatDialogRef;
     this._dialogContainerType = MatDialogContainer;
     this._dialogDataToken = MAT_DIALOG_DATA;
@@ -178,7 +153,7 @@ export class MatDialog implements OnDestroy {
   ): MatDialogRef<T, R> {
     let dialogRef: MatDialogRef<T, R>;
     config = {...(this._defaultOptions || new MatDialogConfig()), ...config};
-    config.id = config.id || `mat-mdc-dialog-${uniqueId++}`;
+    config.id = config.id || this._idGenerator.getId('mat-mdc-dialog-');
     config.scrollStrategy = config.scrollStrategy || this._scrollStrategy();
 
     const cdkRef = this._dialog.open<R, D, T>(componentOrTemplateRef, {

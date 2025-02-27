@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ElementRef, NgZone} from '@angular/core';
@@ -20,6 +20,8 @@ import {ParentPositionTracker} from './dom/parent-position-tracker';
 import {DragCSSStyleDeclaration} from './dom/styling';
 import {DropListSortStrategy} from './sorting/drop-list-sort-strategy';
 import {SingleAxisSortStrategy} from './sorting/single-axis-sort-strategy';
+import {MixedSortStrategy} from './sorting/mixed-sort-strategy';
+import {DropListOrientation} from './directives/config';
 
 /**
  * Proximity, as a ratio to width/height, at which a
@@ -46,13 +48,6 @@ enum AutoScrollHorizontalDirection {
   LEFT,
   RIGHT,
 }
-
-type RootNode = DocumentOrShadowRoot & {
-  // As of TS 4.4 the built in DOM typings don't include `elementFromPoint` on `ShadowRoot`,
-  // even though it exists (see https://developer.mozilla.org/en-US/docs/Web/API/ShadowRoot).
-  // This type is a utility to avoid having to add casts everywhere.
-  elementFromPoint(x: number, y: number): Element | null;
-};
 
 /**
  * Reference to a drop list. Used to manipulate or dispose of the container.
@@ -139,6 +134,9 @@ export class DropListRef<T = any> {
   /** Arbitrary data that can be attached to the drop list. */
   data: T;
 
+  /** Element that is the direct parent of the drag items. */
+  private _container: HTMLElement;
+
   /** Whether an item in the list is being dragged. */
   private _isDragging = false;
 
@@ -146,7 +144,7 @@ export class DropListRef<T = any> {
   private _parentPositions: ParentPositionTracker;
 
   /** Strategy being used to sort items within the list. */
-  private _sortStrategy: DropListSortStrategy<DragRef>;
+  private _sortStrategy: DropListSortStrategy;
 
   /** Cached `DOMRect` of the drop list. */
   private _domRect: DOMRect | undefined;
@@ -176,31 +174,32 @@ export class DropListRef<T = any> {
   private readonly _stopScrollTimers = new Subject<void>();
 
   /** Shadow root of the current element. Necessary for `elementFromPoint` to resolve correctly. */
-  private _cachedShadowRoot: RootNode | null = null;
+  private _cachedShadowRoot: DocumentOrShadowRoot | null = null;
 
   /** Reference to the document. */
   private _document: Document;
 
   /** Elements that can be scrolled while the user is dragging. */
-  private _scrollableElements: HTMLElement[];
+  private _scrollableElements: HTMLElement[] = [];
 
   /** Initial value for the element's `scroll-snap-type` style. */
   private _initialScrollSnap: string;
 
+  /** Direction of the list's layout. */
+  private _direction: Direction = 'ltr';
+
   constructor(
     element: ElementRef<HTMLElement> | HTMLElement,
-    private _dragDropRegistry: DragDropRegistry<DragRef, DropListRef>,
+    private _dragDropRegistry: DragDropRegistry,
     _document: any,
     private _ngZone: NgZone,
     private _viewportRuler: ViewportRuler,
   ) {
-    this.element = coerceElement(element);
+    const coercedElement = (this.element = coerceElement(element));
     this._document = _document;
-    this.withScrollableParents([this.element]);
+    this.withOrientation('vertical').withElementContainer(coercedElement);
     _dragDropRegistry.registerDropContainer(this);
     this._parentPositions = new ParentPositionTracker(_document);
-    this._sortStrategy = new SingleAxisSortStrategy(this.element, _dragDropRegistry);
-    this._sortStrategy.withSortPredicate((index, item) => this.sortPredicate(index, item, this));
   }
 
   /** Removes the drop list functionality from the DOM element. */
@@ -332,7 +331,10 @@ export class DropListRef<T = any> {
 
   /** Sets the layout direction of the drop list. */
   withDirection(direction: Direction): this {
-    this._sortStrategy.direction = direction;
+    this._direction = direction;
+    if (this._sortStrategy instanceof SingleAxisSortStrategy) {
+      this._sortStrategy.direction = direction;
+    }
     return this;
   }
 
@@ -350,10 +352,17 @@ export class DropListRef<T = any> {
    * Sets the orientation of the container.
    * @param orientation New orientation for the container.
    */
-  withOrientation(orientation: 'vertical' | 'horizontal'): this {
-    // TODO(crisbeto): eventually we should be constructing the new sort strategy here based on
-    // the new orientation. For now we can assume that it'll always be `SingleAxisSortStrategy`.
-    (this._sortStrategy as SingleAxisSortStrategy<DragRef>).orientation = orientation;
+  withOrientation(orientation: DropListOrientation): this {
+    if (orientation === 'mixed') {
+      this._sortStrategy = new MixedSortStrategy(this._document, this._dragDropRegistry);
+    } else {
+      const strategy = new SingleAxisSortStrategy(this._dragDropRegistry);
+      strategy.direction = this._direction;
+      strategy.orientation = orientation;
+      this._sortStrategy = strategy;
+    }
+    this._sortStrategy.withElementContainer(this._container);
+    this._sortStrategy.withSortPredicate((index, item) => this.sortPredicate(index, item, this));
     return this;
   }
 
@@ -362,12 +371,57 @@ export class DropListRef<T = any> {
    * @param elements Elements that can be scrolled.
    */
   withScrollableParents(elements: HTMLElement[]): this {
-    const element = coerceElement(this.element);
+    const element = this._container;
 
     // We always allow the current element to be scrollable
     // so we need to ensure that it's in the array.
     this._scrollableElements =
       elements.indexOf(element) === -1 ? [element, ...elements] : elements.slice();
+    return this;
+  }
+
+  /**
+   * Configures the drop list so that a different element is used as the container for the
+   * dragged items. This is useful for the cases when one might not have control over the
+   * full DOM that sets up the dragging.
+   * Note that the alternate container needs to be a descendant of the drop list.
+   * @param container New element container to be assigned.
+   */
+  withElementContainer(container: HTMLElement): this {
+    if (container === this._container) {
+      return this;
+    }
+
+    const element = coerceElement(this.element);
+
+    if (
+      (typeof ngDevMode === 'undefined' || ngDevMode) &&
+      container !== element &&
+      !element.contains(container)
+    ) {
+      throw new Error(
+        'Invalid DOM structure for drop list. Alternate container element must be a descendant of the drop list.',
+      );
+    }
+
+    const oldContainerIndex = this._scrollableElements.indexOf(this._container);
+    const newContainerIndex = this._scrollableElements.indexOf(container);
+
+    if (oldContainerIndex > -1) {
+      this._scrollableElements.splice(oldContainerIndex, 1);
+    }
+
+    if (newContainerIndex > -1) {
+      this._scrollableElements.splice(newContainerIndex, 1);
+    }
+
+    if (this._sortStrategy) {
+      this._sortStrategy.withElementContainer(container);
+    }
+
+    this._cachedShadowRoot = null;
+    this._scrollableElements.unshift(container);
+    this._container = container;
     return this;
   }
 
@@ -455,7 +509,7 @@ export class DropListRef<T = any> {
         [verticalScrollDirection, horizontalScrollDirection] = getElementScrollDirections(
           element as HTMLElement,
           position.clientRect,
-          this._sortStrategy.direction,
+          this._direction,
           pointerX,
           pointerY,
         );
@@ -507,9 +561,24 @@ export class DropListRef<T = any> {
 
   /** Starts the dragging sequence within the list. */
   private _draggingStarted() {
-    const styles = coerceElement(this.element).style as DragCSSStyleDeclaration;
+    const styles = this._container.style as DragCSSStyleDeclaration;
     this.beforeStarted.next();
     this._isDragging = true;
+
+    if (
+      (typeof ngDevMode === 'undefined' || ngDevMode) &&
+      // Prevent the check from running on apps not using an alternate container. Ideally we
+      // would always run it, but introducing it at this stage would be a breaking change.
+      this._container !== coerceElement(this.element)
+    ) {
+      for (const drag of this._draggables) {
+        if (!drag.isDragging() && drag.getVisibleElement().parentNode !== this._container) {
+          throw new Error(
+            'Invalid DOM structure for drop list. All items must be placed directly inside of the element container.',
+          );
+        }
+      }
+    }
 
     // We need to disable scroll snapping while the user is dragging, because it breaks automatic
     // scrolling. The browser seems to round the value based on the snapping points which means
@@ -524,19 +593,17 @@ export class DropListRef<T = any> {
 
   /** Caches the positions of the configured scrollable parents. */
   private _cacheParentPositions() {
-    const element = coerceElement(this.element);
     this._parentPositions.cache(this._scrollableElements);
 
     // The list element is always in the `scrollableElements`
     // so we can take advantage of the cached `DOMRect`.
-    this._domRect = this._parentPositions.positions.get(element)!.clientRect!;
+    this._domRect = this._parentPositions.positions.get(this._container)!.clientRect!;
   }
 
   /** Resets the container to its initial state. */
   private _reset() {
     this._isDragging = false;
-
-    const styles = coerceElement(this.element).style as DragCSSStyleDeclaration;
+    const styles = this._container.style as DragCSSStyleDeclaration;
     styles.scrollSnapType = styles.msScrollSnapType = this._initialScrollSnap;
 
     this._siblings.forEach(sibling => sibling._stopReceiving(this));
@@ -613,15 +680,13 @@ export class DropListRef<T = any> {
       return false;
     }
 
-    const nativeElement = coerceElement(this.element);
-
     // The `DOMRect`, that we're using to find the container over which the user is
     // hovering, doesn't give us any information on whether the element has been scrolled
     // out of the view or whether it's overlapping with other containers. This means that
     // we could end up transferring the item into a container that's invisible or is positioned
     // below another one. We use the result from `elementFromPoint` to get the top-most element
     // at the pointer position and to find whether it's one of the intersecting drop containers.
-    return elementFromPoint === nativeElement || nativeElement.contains(elementFromPoint);
+    return elementFromPoint === this._container || this._container.contains(elementFromPoint);
   }
 
   /**
@@ -688,10 +753,10 @@ export class DropListRef<T = any> {
    * in order to ensure that the element has been moved into the shadow DOM. Doing it inside the
    * constructor might be too early if the element is inside of something like `ngFor` or `ngIf`.
    */
-  private _getShadowRoot(): RootNode {
+  private _getShadowRoot(): DocumentOrShadowRoot {
     if (!this._cachedShadowRoot) {
-      const shadowRoot = _getShadowRoot(coerceElement(this.element));
-      this._cachedShadowRoot = (shadowRoot || this._document) as RootNode;
+      const shadowRoot = _getShadowRoot(this._container);
+      this._cachedShadowRoot = shadowRoot || this._document;
     }
 
     return this._cachedShadowRoot;

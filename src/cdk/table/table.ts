@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Direction, Directionality} from '@angular/cdk/bidi';
@@ -25,7 +25,6 @@ import {DOCUMENT} from '@angular/common';
 import {
   AfterContentChecked,
   AfterContentInit,
-  Attribute,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
@@ -35,26 +34,22 @@ import {
   ElementRef,
   EmbeddedViewRef,
   EventEmitter,
-  Inject,
   Input,
   IterableChangeRecord,
   IterableDiffer,
   IterableDiffers,
-  NgZone,
   OnDestroy,
   OnInit,
-  Optional,
   Output,
   QueryList,
-  SkipSelf,
   TemplateRef,
   TrackByFunction,
   ViewContainerRef,
   ViewEncapsulation,
   booleanAttribute,
   inject,
-  afterNextRender,
   Injector,
+  HostAttributeToken,
 } from '@angular/core';
 import {
   BehaviorSubject,
@@ -96,7 +91,6 @@ import {CDK_TABLE} from './tokens';
 @Directive({
   selector: 'cdk-table[recycleRows], table[cdk-table][recycleRows]',
   providers: [{provide: _VIEW_REPEATER_STRATEGY, useClass: _RecycleViewRepeaterStrategy}],
-  standalone: true,
 })
 export class CdkRecycleRows {}
 
@@ -114,13 +108,14 @@ export type CdkTableDataSourceInput<T> = readonly T[] | DataSource<T> | Observab
  */
 @Directive({
   selector: '[rowOutlet]',
-  standalone: true,
 })
 export class DataRowOutlet implements RowOutlet {
-  constructor(
-    public viewContainer: ViewContainerRef,
-    public elementRef: ElementRef,
-  ) {
+  viewContainer = inject(ViewContainerRef);
+  elementRef = inject(ElementRef);
+
+  constructor(...args: unknown[]);
+
+  constructor() {
     const table = inject<CdkTable<unknown>>(CDK_TABLE);
     table._rowOutlet = this;
     table._outletAssigned();
@@ -133,13 +128,14 @@ export class DataRowOutlet implements RowOutlet {
  */
 @Directive({
   selector: '[headerRowOutlet]',
-  standalone: true,
 })
 export class HeaderRowOutlet implements RowOutlet {
-  constructor(
-    public viewContainer: ViewContainerRef,
-    public elementRef: ElementRef,
-  ) {
+  viewContainer = inject(ViewContainerRef);
+  elementRef = inject(ElementRef);
+
+  constructor(...args: unknown[]);
+
+  constructor() {
     const table = inject<CdkTable<unknown>>(CDK_TABLE);
     table._headerRowOutlet = this;
     table._outletAssigned();
@@ -152,13 +148,14 @@ export class HeaderRowOutlet implements RowOutlet {
  */
 @Directive({
   selector: '[footerRowOutlet]',
-  standalone: true,
 })
 export class FooterRowOutlet implements RowOutlet {
-  constructor(
-    public viewContainer: ViewContainerRef,
-    public elementRef: ElementRef,
-  ) {
+  viewContainer = inject(ViewContainerRef);
+  elementRef = inject(ElementRef);
+
+  constructor(...args: unknown[]);
+
+  constructor() {
     const table = inject<CdkTable<unknown>>(CDK_TABLE);
     table._footerRowOutlet = this;
     table._outletAssigned();
@@ -172,13 +169,14 @@ export class FooterRowOutlet implements RowOutlet {
  */
 @Directive({
   selector: '[noDataRowOutlet]',
-  standalone: true,
 })
 export class NoDataRowOutlet implements RowOutlet {
-  constructor(
-    public viewContainer: ViewContainerRef,
-    public elementRef: ElementRef,
-  ) {
+  viewContainer = inject(ViewContainerRef);
+  elementRef = inject(ElementRef);
+
+  constructor(...args: unknown[]);
+
+  constructor() {
     const table = inject<CdkTable<unknown>>(CDK_TABLE);
     table._noDataRowOutlet = this;
     table._outletAssigned();
@@ -285,13 +283,28 @@ export interface RenderRow<T> {
     // Prevent nested tables from seeing this table's StickyPositioningListener.
     {provide: STICKY_POSITIONING_LISTENER, useValue: null},
   ],
-  standalone: true,
   imports: [HeaderRowOutlet, DataRowOutlet, NoDataRowOutlet, FooterRowOutlet],
 })
 export class CdkTable<T>
   implements AfterContentInit, AfterContentChecked, CollectionViewer, OnDestroy, OnInit
 {
-  private _document: Document;
+  protected readonly _differs = inject(IterableDiffers);
+  protected readonly _changeDetectorRef = inject(ChangeDetectorRef);
+  protected readonly _elementRef = inject(ElementRef);
+  protected readonly _dir = inject(Directionality, {optional: true});
+  private _platform = inject(Platform);
+  protected readonly _viewRepeater =
+    inject<_ViewRepeater<T, RenderRow<T>, RowContext<T>>>(_VIEW_REPEATER_STRATEGY);
+  protected readonly _coalescedStyleScheduler = inject<_CoalescedStyleScheduler>(
+    _COALESCED_STYLE_SCHEDULER,
+  );
+  private readonly _viewportRuler = inject(ViewportRuler);
+  protected readonly _stickyPositioningListener = inject<StickyPositioningListener>(
+    STICKY_POSITIONING_LISTENER,
+    {optional: true, skipSelf: true},
+  )!;
+
+  private _document = inject(DOCUMENT);
 
   /** Latest data provided by the data source. */
   protected _data: readonly T[];
@@ -445,11 +458,12 @@ export class CdkTable<T>
 
   /** Aria role to apply to the table's cells based on the table's own role. */
   _getCellRole(): string | null {
+    // Perform this lazily in case the table's role was updated by a directive after construction.
     if (this._cellRoleInternal === undefined) {
-      // Perform this lazily in case the table's role was updated by a directive after construction.
-      const role = this._elementRef.nativeElement.getAttribute('role');
-      const cellRole = role === 'grid' || role === 'treegrid' ? 'gridcell' : 'cell';
-      this._cellRoleInternal = this._isNativeHtmlTable && cellRole === 'cell' ? null : cellRole;
+      // Note that we set `role="cell"` even on native `td` elements,
+      // because some browsers seem to require it. See #29784.
+      const tableRole = this._elementRef.nativeElement.getAttribute('role');
+      return tableRole === 'grid' || tableRole === 'treegrid' ? 'gridcell' : 'cell';
     }
 
     return this._cellRoleInternal;
@@ -596,40 +610,17 @@ export class CdkTable<T>
 
   private _injector = inject(Injector);
 
-  constructor(
-    protected readonly _differs: IterableDiffers,
-    protected readonly _changeDetectorRef: ChangeDetectorRef,
-    protected readonly _elementRef: ElementRef,
-    @Attribute('role') role: string,
-    @Optional() protected readonly _dir: Directionality,
-    @Inject(DOCUMENT) _document: any,
-    private _platform: Platform,
-    @Inject(_VIEW_REPEATER_STRATEGY)
-    protected readonly _viewRepeater: _ViewRepeater<T, RenderRow<T>, RowContext<T>>,
-    @Inject(_COALESCED_STYLE_SCHEDULER)
-    protected readonly _coalescedStyleScheduler: _CoalescedStyleScheduler,
-    private readonly _viewportRuler: ViewportRuler,
-    /**
-     * @deprecated `_stickyPositioningListener` parameter to become required.
-     * @breaking-change 13.0.0
-     */
-    @Optional()
-    @SkipSelf()
-    @Inject(STICKY_POSITIONING_LISTENER)
-    protected readonly _stickyPositioningListener: StickyPositioningListener,
-    /**
-     * @deprecated `_unusedNgZone` parameter to be removed.
-     * @breaking-change 19.0.0
-     */
-    @Optional() _unusedNgZone?: NgZone,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const role = inject(new HostAttributeToken('role'), {optional: true});
+
     if (!role) {
-      _elementRef.nativeElement.setAttribute('role', 'table');
+      this._elementRef.nativeElement.setAttribute('role', 'table');
     }
 
-    this._document = _document;
-    this._isServer = !_platform.isBrowser;
-    this._isNativeHtmlTable = _elementRef.nativeElement.nodeName === 'TABLE';
+    this._isServer = !this._platform.isBrowser;
+    this._isNativeHtmlTable = this._elementRef.nativeElement.nodeName === 'TABLE';
   }
 
   ngOnInit() {
@@ -662,6 +653,8 @@ export class CdkTable<T>
   }
 
   ngOnDestroy() {
+    this._stickyStyler?.destroy();
+
     [
       this._rowOutlet?.viewContainer,
       this._headerRowOutlet?.viewContainer,
@@ -735,14 +728,8 @@ export class CdkTable<T>
 
     this._updateNoDataRow();
 
-    afterNextRender(
-      () => {
-        this.updateStickyColumnStyles();
-      },
-      {injector: this._injector},
-    );
-
     this.contentChanged.next();
+    this.updateStickyColumnStyles();
   }
 
   /** Adds a column definition that was not included as part of the content children. */
@@ -1093,7 +1080,12 @@ export class CdkTable<T>
    * re-render that section.
    */
   private _renderUpdatedColumns(): boolean {
-    const columnsDiffReducer = (acc: boolean, def: BaseRowDef) => acc || !!def.getColumnsDiff();
+    const columnsDiffReducer = (acc: boolean, def: BaseRowDef) => {
+      // The differ should be run for every column, even if `acc` is already
+      // true (see #29922)
+      const diff = !!def.getColumnsDiff();
+      return acc || diff;
+    };
 
     // Force re-render data rows if the list of column definitions have changed.
     const dataColumnsChanged = this._rowDefs.reduce(columnsDiffReducer, false);
@@ -1204,7 +1196,7 @@ export class CdkTable<T>
 
   /** Adds the sticky column styles for the rows according to the columns' stick states. */
   private _addStickyColumnStyles(rows: HTMLElement[], rowDef: BaseRowDef) {
-    const columnDefs = Array.from(rowDef.columns || []).map(columnName => {
+    const columnDefs = Array.from(rowDef?.columns || []).map(columnName => {
       const columnDef = this._columnDefsByName.get(columnName);
       if (!columnDef && (typeof ngDevMode === 'undefined' || ngDevMode)) {
         throw getTableUnknownColumnError(columnName);
@@ -1399,6 +1391,7 @@ export class CdkTable<T>
       this._platform.isBrowser,
       this.needsPositionStickyOnElement,
       this._stickyPositioningListener,
+      this._injector,
     );
     (this._dir ? this._dir.change : observableOf<Direction>())
       .pipe(takeUntil(this._onDestroy))

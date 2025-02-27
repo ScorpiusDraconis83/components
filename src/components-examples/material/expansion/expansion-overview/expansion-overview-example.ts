@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component, signal} from '@angular/core';
 import {MatExpansionModule} from '@angular/material/expansion';
 
 /**
@@ -7,9 +7,9 @@ import {MatExpansionModule} from '@angular/material/expansion';
 @Component({
   selector: 'expansion-overview-example',
   templateUrl: 'expansion-overview-example.html',
-  standalone: true,
   imports: [MatExpansionModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ExpansionOverviewExample {
-  panelOpenState = false;
+  readonly panelOpenState = signal(false);
 }

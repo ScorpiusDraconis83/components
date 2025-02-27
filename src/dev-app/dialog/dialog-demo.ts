@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {DragDropModule} from '@angular/cdk/drag-drop';
@@ -12,7 +12,6 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  Inject,
   TemplateRef,
   ViewChild,
   ViewEncapsulation,
@@ -43,8 +42,8 @@ import {MatSelectModule} from '@angular/material/select';
   // View encapsulation is disabled since we add the legacy dialog padding
   // styles that need to target the dialog (not only the projected content).
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   imports: [
+    JsonPipe,
     FormsModule,
     MatButtonModule,
     MatCardModule,
@@ -57,6 +56,8 @@ import {MatSelectModule} from '@angular/material/select';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DialogDemo {
+  dialog = inject(MatDialog);
+
   dialogRef: MatDialogRef<JazzDialog> | null;
   lastAfterClosedResult: string;
   lastBeforeCloseResult: string;
@@ -90,10 +91,10 @@ export class DialogDemo {
 
   readonly cdr = inject(ChangeDetectorRef);
 
-  constructor(
-    public dialog: MatDialog,
-    @Inject(DOCUMENT) doc: any,
-  ) {
+  constructor() {
+    const dialog = this.dialog;
+    const doc = inject(DOCUMENT);
+
     // Possible useful example for the open and closeAll events.
     // Adding a class to the body if a dialog opens and
     // removing it after all open dialogs are closed
@@ -175,17 +176,14 @@ export class DialogDemo {
   `,
   encapsulation: ViewEncapsulation.None,
   styles: `.hidden-dialog { opacity: 0; }`,
-  standalone: true,
   imports: [DragDropModule, MatInputModule, MatSelectModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class JazzDialog {
-  private _dimensionToggle = false;
+  dialogRef = inject<MatDialogRef<JazzDialog>>(MatDialogRef<JazzDialog>);
+  data = inject(MAT_DIALOG_DATA);
 
-  constructor(
-    public dialogRef: MatDialogRef<JazzDialog>,
-    @Inject(MAT_DIALOG_DATA) public data: any,
-  ) {}
+  private _dimensionToggle = false;
 
   togglePosition(): void {
     this._dimensionToggle = !this._dimensionToggle;
@@ -253,15 +251,14 @@ export class JazzDialog {
         Show in Dialog</button>
     </mat-dialog-actions>
   `,
-  standalone: true,
   imports: [MatButtonModule, MatDialogTitle, MatDialogContent, MatDialogClose, MatDialogActions],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ContentElementDialog {
+  dialog = inject(MatDialog);
+
   actionsAlignment?: 'start' | 'center' | 'end';
   isScrollable: boolean;
-
-  constructor(public dialog: MatDialog) {}
 
   showInStackedDialog() {
     this.dialog.open(IFrameDialog, {maxWidth: '80vw'});
@@ -290,7 +287,6 @@ export class ContentElementDialog {
         mat-dialog-close>Close</button>
     </mat-dialog-actions>
   `,
-  standalone: true,
   imports: [MatButtonModule, MatDialogTitle, MatDialogContent, MatDialogClose, MatDialogActions],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

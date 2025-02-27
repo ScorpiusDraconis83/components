@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CdkSelectAll} from '@angular/cdk-experimental/selection';
@@ -23,6 +23,5 @@ import {Directive} from '@angular/core';
   selector: '[matSelectAll]',
   exportAs: 'matSelectAll',
   providers: [{provide: CdkSelectAll, useExisting: MatSelectAll}],
-  standalone: true,
 })
 export class MatSelectAll<T> extends CdkSelectAll<T> {}

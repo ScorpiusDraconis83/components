@@ -157,9 +157,21 @@ directive:
 
 ### List orientation
 The `cdkDropList` directive assumes that lists are vertical by default. This can be
-changed by setting the `orientation` property to `"horizontal".
+changed by setting the `cdkDropListOrientation` property to `horizontal`.
 
 <!-- example(cdk-drag-drop-horizontal-sorting) -->
+
+### List wrapping
+By default the `cdkDropList` sorts the items by moving them around using a CSS `transform`. This
+allows for the sorting to be animated which provides a better user experience, but comes with the
+drawback that it works only one direction: vertically or horizontally.
+
+If you have a sortable list that needs to wrap, you can set `cdkDropListOrientation="mixed"` which
+will use a different strategy of sorting the elements that works by moving them in the DOM. It has
+the advantage of allowing the items to wrap to the next line, but it **cannot** animate the
+sorting action.
+
+<!-- example(cdk-drag-drop-mixed-sorting) -->
 
 ### Restricting movement within an element
 
@@ -239,10 +251,13 @@ item will be moved into the new index, otherwise it will keep its current positi
 
 <!-- example(cdk-drag-drop-sort-predicate) -->
 
-### Reordering table rows
-Angular Material provides seamless integration of drag-and-drop functionality into tables,
-by adding the `cdkDropList` directive to your mat-table and handling the `(cdkDropListDropped)`
-event, you can enable drag-and-drop interactions within your table. This allows users to reorder
-rows or perform other custom actions with ease.
+### Integrations with Angular Material
+The CDK's drag&drop functionality can be integrated with different parts of Angular Material.
 
+#### Sortable table
+This example shows how you can set up a table which supports re-ordering of tabs.
 <!-- example(cdk-drag-drop-table) -->
+
+#### Sortable tabs
+Example of how to add sorting support to a `mat-tab-group`.
+<!-- example(cdk-drag-drop-tabs) -->

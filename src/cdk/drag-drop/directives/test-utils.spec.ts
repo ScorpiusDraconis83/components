@@ -46,7 +46,6 @@ export function createComponent<T>(
     });
   }
 
-  TestBed.compileComponents();
   return TestBed.createComponent<T>(componentType);
 }
 
@@ -153,7 +152,7 @@ export function makeScrollable(
   const veryTallElement = document.createElement('div');
   veryTallElement.style.width = direction === 'vertical' ? '100%' : '4000px';
   veryTallElement.style.height = direction === 'vertical' ? '2000px' : '5px';
-  element.appendChild(veryTallElement);
+  element.prepend(veryTallElement);
 
   return () => {
     scrollTo(0, 0);

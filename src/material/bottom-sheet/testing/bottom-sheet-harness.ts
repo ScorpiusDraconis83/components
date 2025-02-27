@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ContentContainerComponentHarness, HarnessPredicate, TestKey} from '@angular/cdk/testing';
@@ -13,7 +13,7 @@ import {BottomSheetHarnessFilters} from './bottom-sheet-harness-filters';
 export class MatBottomSheetHarness extends ContentContainerComponentHarness<string> {
   // Developers can provide a custom component or template for the
   // bottom sheet. The canonical parent is the ".mat-bottom-sheet-container".
-  static hostSelector = '.mat-bottom-sheet-container';
+  static hostSelector = '.mat-bottom-sheet-container:not([mat-exit])';
 
   /**
    * Gets a `HarnessPredicate` that can be used to search for a bottom sheet with

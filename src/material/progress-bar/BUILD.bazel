@@ -1,5 +1,6 @@
 load(
     "//tools:defaults.bzl",
+    "extract_tokens",
     "markdown_to_html",
     "ng_module",
     "ng_test_library",
@@ -29,7 +30,6 @@ sass_library(
     name = "progress_bar_scss_lib",
     srcs = glob(["**/_*.scss"]),
     deps = [
-        "//:mdc_sass_lib",
         "//src/material/core:core_scss_lib",
     ],
 )
@@ -38,7 +38,6 @@ sass_binary(
     name = "progress_bar_scss",
     src = "progress-bar.scss",
     deps = [
-        "//:mdc_sass_lib",
         "//src/material/core:core_scss_lib",
     ],
 )
@@ -65,6 +64,11 @@ ng_web_test_suite(
 markdown_to_html(
     name = "overview",
     srcs = [":progress-bar.md"],
+)
+
+extract_tokens(
+    name = "tokens",
+    srcs = [":progress_bar_scss_lib"],
 )
 
 filegroup(

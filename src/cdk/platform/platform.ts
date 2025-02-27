@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Inject, Injectable, PLATFORM_ID} from '@angular/core';
+import {inject, Injectable, PLATFORM_ID} from '@angular/core';
 import {isPlatformBrowser} from '@angular/common';
 
 // Whether the current platform supports the V8 Break Iterator. The V8 check
@@ -30,6 +30,8 @@ try {
  */
 @Injectable({providedIn: 'root'})
 export class Platform {
+  private _platformId = inject(PLATFORM_ID);
+
   // We want to use the Angular platform check because if the Document is shimmed
   // without the navigator, the following checks will fail. This is preferred because
   // sometimes the Document may be shimmed without the user's knowledge or intention
@@ -84,5 +86,8 @@ export class Platform {
   /** Whether the current browser is Safari. */
   SAFARI: boolean = this.isBrowser && /safari/i.test(navigator.userAgent) && this.WEBKIT;
 
-  constructor(@Inject(PLATFORM_ID) private _platformId: Object) {}
+  /** Backwards-compatible constructor. */
+  constructor(..._args: unknown[]);
+
+  constructor() {}
 }

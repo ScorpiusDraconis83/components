@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Directive, forwardRef, Provider} from '@angular/core';
@@ -34,6 +34,5 @@ export const MAT_SLIDE_TOGGLE_REQUIRED_VALIDATOR: Provider = {
   selector: `mat-slide-toggle[required][formControlName],
              mat-slide-toggle[required][formControl], mat-slide-toggle[required][ngModel]`,
   providers: [MAT_SLIDE_TOGGLE_REQUIRED_VALIDATOR],
-  standalone: true,
 })
 export class MatSlideToggleRequiredValidator extends CheckboxRequiredValidator {}

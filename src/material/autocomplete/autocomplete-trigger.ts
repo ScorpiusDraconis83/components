@@ -3,12 +3,13 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {addAriaReferencedId, removeAriaReferencedId} from '@angular/cdk/a11y';
 import {Directionality} from '@angular/cdk/bidi';
 import {DOWN_ARROW, ENTER, ESCAPE, TAB, UP_ARROW, hasModifierKey} from '@angular/cdk/keycodes';
+import {BreakpointObserver, Breakpoints} from '@angular/cdk/layout';
 import {
   ConnectedPosition,
   FlexibleConnectedPositionStrategy,
@@ -27,15 +28,13 @@ import {
   ChangeDetectorRef,
   Directive,
   ElementRef,
-  Host,
-  Inject,
+  EnvironmentInjector,
   InjectionToken,
-  Injector,
   Input,
   NgZone,
   OnChanges,
   OnDestroy,
-  Optional,
+  Renderer2,
   SimpleChanges,
   ViewContainerRef,
   afterNextRender,
@@ -51,7 +50,7 @@ import {
   _getOptionScrollPosition,
 } from '@angular/material/core';
 import {MAT_FORM_FIELD, MatFormField} from '@angular/material/form-field';
-import {Observable, Subject, Subscription, defer, fromEvent, merge, of as observableOf} from 'rxjs';
+import {Observable, Subject, Subscription, defer, merge, of as observableOf} from 'rxjs';
 import {delay, filter, map, startWith, switchMap, take, tap} from 'rxjs/operators';
 import {
   MAT_AUTOCOMPLETE_DEFAULT_OPTIONS,
@@ -128,17 +127,34 @@ export const MAT_AUTOCOMPLETE_SCROLL_STRATEGY_FACTORY_PROVIDER = {
   },
   exportAs: 'matAutocompleteTrigger',
   providers: [MAT_AUTOCOMPLETE_VALUE_ACCESSOR],
-  standalone: true,
 })
 export class MatAutocompleteTrigger
   implements ControlValueAccessor, AfterViewInit, OnChanges, OnDestroy
 {
+  private _environmentInjector = inject(EnvironmentInjector);
+  private _element = inject<ElementRef<HTMLInputElement>>(ElementRef);
+  private _overlay = inject(Overlay);
+  private _viewContainerRef = inject(ViewContainerRef);
+  private _zone = inject(NgZone);
+  private _changeDetectorRef = inject(ChangeDetectorRef);
+  private _dir = inject(Directionality, {optional: true});
+  private _formField = inject<MatFormField | null>(MAT_FORM_FIELD, {optional: true, host: true});
+  private _document = inject(DOCUMENT);
+  private _viewportRuler = inject(ViewportRuler);
+  private _scrollStrategy = inject(MAT_AUTOCOMPLETE_SCROLL_STRATEGY);
+  private _renderer = inject(Renderer2);
+  private _defaults = inject<MatAutocompleteDefaultOptions | null>(
+    MAT_AUTOCOMPLETE_DEFAULT_OPTIONS,
+    {optional: true},
+  );
+
   private _overlayRef: OverlayRef | null;
   private _portal: TemplatePortal;
   private _componentDestroyed = false;
-  private _scrollStrategy: () => ScrollStrategy;
+  private _initialized = new Subject();
   private _keydownSubscription: Subscription | null;
   private _outsideClickSubscription: Subscription | null;
+  private _cleanupWindowBlur: (() => void) | undefined;
 
   /** Old value of the native input. Used to work around issues with the `input` event on IE. */
   private _previousValue: string | number | null;
@@ -160,6 +176,10 @@ export class MatAutocompleteTrigger
 
   /** Subscription to viewport size changes. */
   private _viewportSubscription = Subscription.EMPTY;
+
+  /** Implements BreakpointObserver to be used to detect handset landscape */
+  private _breakpointObserver = inject(BreakpointObserver);
+  private _handsetLandscapeSubscription = Subscription.EMPTY;
 
   /**
    * Whether the autocomplete can open the next time it is focused. Used to prevent a focused,
@@ -229,27 +249,8 @@ export class MatAutocompleteTrigger
   @Input({alias: 'matAutocompleteDisabled', transform: booleanAttribute})
   autocompleteDisabled: boolean;
 
-  private _initialized = new Subject();
-
-  private _injector = inject(Injector);
-
-  constructor(
-    private _element: ElementRef<HTMLInputElement>,
-    private _overlay: Overlay,
-    private _viewContainerRef: ViewContainerRef,
-    private _zone: NgZone,
-    private _changeDetectorRef: ChangeDetectorRef,
-    @Inject(MAT_AUTOCOMPLETE_SCROLL_STRATEGY) scrollStrategy: any,
-    @Optional() private _dir: Directionality | null,
-    @Optional() @Inject(MAT_FORM_FIELD) @Host() private _formField: MatFormField | null,
-    @Optional() @Inject(DOCUMENT) private _document: any,
-    private _viewportRuler: ViewportRuler,
-    @Optional()
-    @Inject(MAT_AUTOCOMPLETE_DEFAULT_OPTIONS)
-    private _defaults?: MatAutocompleteDefaultOptions | null,
-  ) {
-    this._scrollStrategy = scrollStrategy;
-  }
+  constructor(...args: unknown[]);
+  constructor() {}
 
   /** Class to apply to the panel when it's above the input. */
   private _aboveClass = 'mat-mdc-autocomplete-panel-above';
@@ -257,12 +258,7 @@ export class MatAutocompleteTrigger
   ngAfterViewInit() {
     this._initialized.next();
     this._initialized.complete();
-
-    const window = this._getWindow();
-
-    if (typeof window !== 'undefined') {
-      this._zone.runOutsideAngular(() => window.addEventListener('blur', this._windowBlurHandler));
-    }
+    this._cleanupWindowBlur = this._renderer.listen('window', 'blur', this._windowBlurHandler);
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -276,12 +272,8 @@ export class MatAutocompleteTrigger
   }
 
   ngOnDestroy() {
-    const window = this._getWindow();
-
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('blur', this._windowBlurHandler);
-    }
-
+    this._cleanupWindowBlur?.();
+    this._handsetLandscapeSubscription.unsubscribe();
     this._viewportSubscription.unsubscribe();
     this._componentDestroyed = true;
     this._destroyPanel();
@@ -407,12 +399,8 @@ export class MatAutocompleteTrigger
 
   /** Stream of clicks outside of the autocomplete panel. */
   private _getOutsideClickStream(): Observable<any> {
-    return merge(
-      fromEvent(this._document, 'click') as Observable<MouseEvent>,
-      fromEvent(this._document, 'auxclick') as Observable<MouseEvent>,
-      fromEvent(this._document, 'touchend') as Observable<TouchEvent>,
-    ).pipe(
-      filter(event => {
+    return new Observable(observer => {
+      const listener = (event: MouseEvent | TouchEvent) => {
         // If we're in the Shadow DOM, the event target will be the shadow root, so we have to
         // fall back to check the first element in the path of the click event.
         const clickTarget = _getEventTarget<HTMLElement>(event)!;
@@ -421,7 +409,7 @@ export class MatAutocompleteTrigger
           : null;
         const customOrigin = this.connectedTo ? this.connectedTo.elementRef.nativeElement : null;
 
-        return (
+        if (
           this._overlayAttached &&
           clickTarget !== this._element.nativeElement &&
           // Normally focus moves inside `mousedown` so this condition will almost always be
@@ -433,9 +421,21 @@ export class MatAutocompleteTrigger
           (!customOrigin || !customOrigin.contains(clickTarget)) &&
           !!this._overlayRef &&
           !this._overlayRef.overlayElement.contains(clickTarget)
-        );
-      }),
-    );
+        ) {
+          observer.next(event);
+        }
+      };
+
+      const cleanups = [
+        this._renderer.listen('document', 'click', listener),
+        this._renderer.listen('document', 'auxclick', listener),
+        this._renderer.listen('document', 'touchend', listener),
+      ];
+
+      return () => {
+        cleanups.forEach(current => current());
+      };
+    });
   }
 
   // Implemented as part of ControlValueAccessor.
@@ -456,7 +456,6 @@ export class MatAutocompleteTrigger
   // Implemented as part of ControlValueAccessor.
   setDisabledState(isDisabled: boolean) {
     this._element.nativeElement.disabled = isDisabled;
-    this._changeDetectorRef.markForCheck();
   }
 
   _handleKeydown(event: KeyboardEvent): void {
@@ -610,7 +609,7 @@ export class MatAutocompleteTrigger
         () => {
           subscriber.next();
         },
-        {injector: this._injector},
+        {injector: this._environmentInjector},
       );
     });
     const optionChanges = this.autocomplete.options.changes.pipe(
@@ -737,13 +736,7 @@ export class MatAutocompleteTrigger
     ) {
       this._clearPreviousSelectedOption(null);
       this._assignOptionValue(null);
-      // Wait for the animation to finish before clearing the form control value, otherwise
-      // the options might change while the animation is running which looks glitchy.
-      if (panel._animationDone) {
-        panel._animationDone.pipe(take(1)).subscribe(() => this._onChange(null));
-      } else {
-        this._onChange(null);
-      }
+      this._onChange(null);
     }
 
     this.closePanel();
@@ -790,6 +783,26 @@ export class MatAutocompleteTrigger
           overlayRef.updateSize({width: this._getPanelWidth()});
         }
       });
+      // Subscribe to the breakpoint events stream to detect when screen is in
+      // handsetLandscape.
+      this._handsetLandscapeSubscription = this._breakpointObserver
+        .observe(Breakpoints.HandsetLandscape)
+        .subscribe(result => {
+          const isHandsetLandscape = result.matches;
+          // Check if result.matches Breakpoints.HandsetLandscape. Apply HandsetLandscape
+          // settings to prevent overlay cutoff in that breakpoint. Fixes b/284148377
+          if (isHandsetLandscape) {
+            this._positionStrategy
+              .withFlexibleDimensions(true)
+              .withGrowAfterOpen(true)
+              .withViewportMargin(8);
+          } else {
+            this._positionStrategy
+              .withFlexibleDimensions(false)
+              .withGrowAfterOpen(false)
+              .withViewportMargin(0);
+          }
+        });
     } else {
       // Update the trigger, panel width and direction, in case anything has changed.
       this._positionStrategy.setOrigin(this._getConnectedElement());
@@ -881,6 +894,7 @@ export class MatAutocompleteTrigger
   }
 
   private _getOverlayPosition(): PositionStrategy {
+    // Set default Overlay Position
     const strategy = this._overlay
       .position()
       .flexibleConnectedTo(this._getConnectedElement())
@@ -973,11 +987,6 @@ export class MatAutocompleteTrigger
   private _canOpen(): boolean {
     const element = this._element.nativeElement;
     return !element.readOnly && !element.disabled && !this.autocompleteDisabled;
-  }
-
-  /** Use defaultView of injected document if available or fallback to global window reference */
-  private _getWindow(): Window {
-    return this._document?.defaultView || window;
   }
 
   /** Scrolls to a particular option in the list. */

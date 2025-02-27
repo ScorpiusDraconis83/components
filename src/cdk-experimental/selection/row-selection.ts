@@ -3,11 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {coerceNumberProperty, NumberInput} from '@angular/cdk/coercion';
-import {Directive, Input} from '@angular/core';
+import {Directive, Input, inject} from '@angular/core';
 
 import {CdkSelection} from './selection';
 
@@ -24,9 +24,10 @@ import {CdkSelection} from './selection';
     '[class.cdk-selected]': '_selection.isSelected(this.value, this.index)',
     '[attr.aria-selected]': '_selection.isSelected(this.value, this.index)',
   },
-  standalone: true,
 })
 export class CdkRowSelection<T> {
+  readonly _selection = inject<CdkSelection<T>>(CdkSelection);
+
   // We need an initializer here to avoid a TS error.
   @Input('cdkRowSelectionValue') value: T = undefined!;
 
@@ -38,6 +39,4 @@ export class CdkRowSelection<T> {
     this._index = coerceNumberProperty(index);
   }
   protected _index?: number;
-
-  constructor(readonly _selection: CdkSelection<T>) {}
 }

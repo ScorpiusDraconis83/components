@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -15,7 +15,7 @@ import {OptgroupHarnessFilters} from './optgroup-harness-filters';
 import {MatOptionHarness} from './option-harness';
 import {OptionHarnessFilters} from './option-harness-filters';
 
-/** Harness for interacting with an MDC-based `mat-optgroup` in tests. */
+/** Harness for interacting with a `mat-optgroup` in tests. */
 export class MatOptgroupHarness extends ComponentHarness {
   /** Selector used to locate option group instances. */
   static hostSelector = '.mat-mdc-optgroup';

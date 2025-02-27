@@ -54,7 +54,7 @@ import {
   getMatAutocompleteMissingPanelError,
 } from './index';
 
-describe('MDC-based MatAutocomplete', () => {
+describe('MatAutocomplete', () => {
   let overlayContainerElement: HTMLElement;
 
   // Creates a test component fixture.
@@ -72,8 +72,6 @@ describe('MDC-based MatAutocomplete', () => {
       providers,
       declarations: [component],
     });
-
-    TestBed.compileComponents();
 
     inject([OverlayContainer], (oc: OverlayContainer) => {
       overlayContainerElement = oc.getContainerElement();
@@ -160,21 +158,6 @@ describe('MDC-based MatAutocomplete', () => {
         .toContain('California');
     });
 
-    it('should show the panel when the first open is after the initial zone stabilization', waitForAsync(() => {
-      // Note that we're running outside the Angular zone, in order to be able
-      // to test properly without the subscription from `_subscribeToClosingActions`
-      // giving us a false positive.
-      fixture.ngZone!.runOutsideAngular(() => {
-        fixture.componentInstance.trigger.openPanel();
-
-        Promise.resolve().then(() => {
-          expect(fixture.componentInstance.panel.showPanel)
-            .withContext(`Expected panel to be visible.`)
-            .toBe(true);
-        });
-      });
-    }));
-
     it('should close the panel when the user clicks away', waitForAsync(async () => {
       dispatchFakeEvent(input, 'focusin');
       fixture.detectChanges();
@@ -190,7 +173,7 @@ describe('MDC-based MatAutocomplete', () => {
         .toEqual('');
     }));
 
-    it('should close the panel when the user clicks away via auxilliary button', waitForAsync(async () => {
+    it('should close the panel when the user clicks away via auxiliary button', waitForAsync(async () => {
       dispatchFakeEvent(input, 'focusin');
       fixture.detectChanges();
       await new Promise(r => setTimeout(r));
@@ -373,6 +356,7 @@ describe('MDC-based MatAutocomplete', () => {
       ) as NodeListOf<HTMLElement>;
       options[1].click();
       fixture.detectChanges();
+      flush();
 
       expect(fixture.componentInstance.formField.floatLabel)
         .withContext('Expected label to stay in static state after close.')
@@ -396,6 +380,7 @@ describe('MDC-based MatAutocomplete', () => {
       ) as NodeListOf<HTMLElement>;
       options[1].click();
       fixture.detectChanges();
+      flush();
 
       expect(fixture.componentInstance.formField.floatLabel)
         .withContext('Expected label to stay elevated after close.')
@@ -1199,6 +1184,7 @@ describe('MDC-based MatAutocomplete', () => {
 
       fixture.componentInstance.trigger._handleKeydown(ENTER_EVENT);
       fixture.detectChanges();
+      flush();
       expect(input.value)
         .withContext(`Expected text field to fill with selected value on ENTER.`)
         .toContain('Alabama');
@@ -1209,6 +1195,7 @@ describe('MDC-based MatAutocomplete', () => {
       flush();
 
       fixture.componentInstance.trigger._handleKeydown(ENTER_EVENT);
+      flush();
 
       expect(ENTER_EVENT.defaultPrevented)
         .withContext('Expected the default action to have been prevented.')
@@ -1274,6 +1261,7 @@ describe('MDC-based MatAutocomplete', () => {
       flush();
       fixture.componentInstance.trigger._handleKeydown(ENTER_EVENT);
       fixture.detectChanges();
+      flush();
 
       expect(fixture.componentInstance.stateCtrl.dirty)
         .withContext(`Expected control to become dirty when option was selected by ENTER.`)
@@ -1461,6 +1449,7 @@ describe('MDC-based MatAutocomplete', () => {
 
       dispatchKeyboardEvent(document.body, 'keydown', ESCAPE);
       fixture.detectChanges();
+      flush();
 
       expect(document.activeElement)
         .withContext('Expected input to continue to be focused.')
@@ -1468,12 +1457,12 @@ describe('MDC-based MatAutocomplete', () => {
       expect(trigger.panelOpen).withContext('Expected panel to be closed.').toBe(false);
     }));
 
-    it('should prevent the default action when pressing escape', fakeAsync(() => {
+    it('should prevent the default action when pressing escape', () => {
       const escapeEvent = dispatchKeyboardEvent(input, 'keydown', ESCAPE);
       fixture.detectChanges();
 
       expect(escapeEvent.defaultPrevented).toBe(true);
-    }));
+    });
 
     it('should not close the panel when pressing escape with a modifier', fakeAsync(() => {
       const trigger = fixture.componentInstance.trigger;
@@ -1511,6 +1500,7 @@ describe('MDC-based MatAutocomplete', () => {
 
       dispatchEvent(document.body, upArrowEvent);
       fixture.detectChanges();
+      flush();
 
       expect(document.activeElement)
         .withContext('Expected input to continue to be focused.')
@@ -1624,7 +1614,7 @@ describe('MDC-based MatAutocomplete', () => {
         fixture.detectChanges();
 
         expect(event.defaultPrevented)
-          .withContext(`Expected autocompete not to block ${name} key`)
+          .withContext(`Expected autocomplete not to block ${name} key`)
           .toBe(false);
       });
     });
@@ -2183,7 +2173,7 @@ describe('MDC-based MatAutocomplete', () => {
         let inputReference = fixture.debugElement.query(By.css('.mdc-text-field'))!.nativeElement;
 
         // Push the element down so it has a little bit of space, but not enough to render.
-        inputReference.style.bottom = '75px';
+        inputReference.style.bottom = '100px';
         inputReference.style.position = 'fixed';
 
         dispatchFakeEvent(inputEl, 'focusin');
@@ -2993,7 +2983,7 @@ describe('MDC-based MatAutocomplete', () => {
   });
 
   describe('with panel classes in the default options', () => {
-    it('should apply them if provided as string', fakeAsync(() => {
+    it('should apply them if provided as string', () => {
       const fixture = createComponent(SimpleAutocomplete, [
         {provide: MAT_AUTOCOMPLETE_DEFAULT_OPTIONS, useValue: {overlayPanelClass: 'default1'}},
       ]);
@@ -3004,9 +2994,9 @@ describe('MDC-based MatAutocomplete', () => {
 
       const panelClassList = overlayContainerElement.querySelector('.cdk-overlay-pane')!.classList;
       expect(panelClassList).toContain('default1');
-    }));
+    });
 
-    it('should apply them if provided as array', fakeAsync(() => {
+    it('should apply them if provided as array', () => {
       const fixture = createComponent(SimpleAutocomplete, [
         {
           provide: MAT_AUTOCOMPLETE_DEFAULT_OPTIONS,
@@ -3021,7 +3011,7 @@ describe('MDC-based MatAutocomplete', () => {
       const panelClassList = overlayContainerElement.querySelector('.cdk-overlay-pane')!.classList;
       expect(panelClassList).toContain('default1');
       expect(panelClassList).toContain('default2');
-    }));
+    });
   });
 
   describe('misc', () => {
@@ -3187,7 +3177,7 @@ describe('MDC-based MatAutocomplete', () => {
       expect(trigger.panelOpen).withContext('Expected panel to be closed.').toBe(false);
     }));
 
-    it('should handle autocomplete being attached to number inputs', fakeAsync(() => {
+    it('should handle autocomplete being attached to number inputs', () => {
       const fixture = createComponent(AutocompleteWithNumberInputAndNgModel);
       fixture.detectChanges();
       const input = fixture.debugElement.query(By.css('input'))!.nativeElement;
@@ -3196,9 +3186,9 @@ describe('MDC-based MatAutocomplete', () => {
       fixture.detectChanges();
 
       expect(fixture.componentInstance.selectedValue).toBe(1337);
-    }));
+    });
 
-    it('should not focus the option when DOWN key is pressed', fakeAsync(() => {
+    it('should not focus the option when DOWN key is pressed', () => {
       const fixture = createComponent(SimpleAutocomplete);
       const input = fixture.debugElement.query(By.css('input'))!.nativeElement;
       fixture.detectChanges();
@@ -3211,7 +3201,7 @@ describe('MDC-based MatAutocomplete', () => {
       // Note: for some reason the error here gets logged using console.error, rather than being
       // thrown, hence why we use a spy to assert against it, rather than `.not.toThrow`.
       expect(spy).not.toHaveBeenCalled();
-    }));
+    });
   });
 
   describe('automatically selecting the active option', () => {
@@ -3455,7 +3445,7 @@ describe('MDC-based MatAutocomplete', () => {
     widthFixture.detectChanges();
 
     const overlayPane = overlayContainerElement.querySelector('.cdk-overlay-pane') as HTMLElement;
-    // Firefox, edge return a decimal value for width, so we need to parse and round it to verify
+    // Firefox, Edge return a decimal value for width, so we need to parse and round it to verify
     expect(Math.ceil(parseFloat(overlayPane.style.width as string))).toBe(300);
 
     widthFixture.componentInstance.trigger.closePanel();
@@ -3468,7 +3458,7 @@ describe('MDC-based MatAutocomplete', () => {
     widthFixture.componentInstance.trigger.openPanel();
     widthFixture.detectChanges();
 
-    // Firefox, edge return a decimal value for width, so we need to parse and round it to verify
+    // Firefox, Edge return a decimal value for width, so we need to parse and round it to verify
     expect(Math.ceil(parseFloat(overlayPane.style.width as string))).toBe(500);
   });
 
@@ -3601,32 +3591,27 @@ describe('MDC-based MatAutocomplete', () => {
     expect(Math.ceil(parseFloat(overlayPane.style.width as string))).toBe(400);
   });
 
-  it(
-    'should show the panel when the options are initialized later within a component with ' +
-      'OnPush change detection',
-    fakeAsync(() => {
-      let fixture = createComponent(AutocompleteWithOnPushDelay);
+  it('should show the panel when the options are initialized later within a component with OnPush change detection', fakeAsync(() => {
+    let fixture = createComponent(AutocompleteWithOnPushDelay);
+    fixture.detectChanges();
+    flush();
+    dispatchFakeEvent(fixture.debugElement.query(By.css('input'))!.nativeElement, 'focusin');
+    tick(1000);
 
+    fixture.detectChanges();
+    tick();
+
+    Promise.resolve().then(() => {
+      let panel = overlayContainerElement.querySelector(
+        '.mat-mdc-autocomplete-panel',
+      ) as HTMLElement;
+      let visibleClass = 'mat-mdc-autocomplete-visible';
+
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
-      dispatchFakeEvent(fixture.debugElement.query(By.css('input'))!.nativeElement, 'focusin');
-      tick(1000);
-
-      fixture.detectChanges();
-      tick();
-
-      Promise.resolve().then(() => {
-        let panel = overlayContainerElement.querySelector(
-          '.mat-mdc-autocomplete-panel',
-        ) as HTMLElement;
-        let visibleClass = 'mat-mdc-autocomplete-visible';
-
-        fixture.detectChanges();
-        expect(panel.classList)
-          .withContext(`Expected panel to be visible.`)
-          .toContain(visibleClass);
-      });
-    }),
-  );
+      expect(panel.classList).withContext(`Expected panel to be visible.`).toContain(visibleClass);
+    });
+  }));
 
   it('should emit an event when an option is selected', waitForAsync(async () => {
     let fixture = createComponent(AutocompleteWithSelectEvent);
@@ -3864,8 +3849,10 @@ describe('MDC-based MatAutocomplete', () => {
 
       dispatchFakeEvent(document.querySelector('mat-option')!, 'click');
       fixture.detectChanges();
+      fixture.componentInstance.trigger.openPanel();
+      fixture.detectChanges();
 
-      const selectedOption = document.querySelector('mat-option[aria-selected="true"');
+      const selectedOption = document.querySelector('mat-option[aria-selected="true"]');
       expect(selectedOption).withContext('Expected an option to be selected.').not.toBeNull();
       expect(selectedOption?.querySelector('.mat-pseudo-checkbox.mat-pseudo-checkbox-minimal'))
         .withContext(
@@ -3890,8 +3877,10 @@ describe('MDC-based MatAutocomplete', () => {
 
       dispatchFakeEvent(document.querySelector('mat-option')!, 'click');
       fixture.detectChanges();
+      fixture.componentInstance.trigger.openPanel();
+      fixture.detectChanges();
 
-      const selectedOption = document.querySelector('mat-option[aria-selected="true"');
+      const selectedOption = document.querySelector('mat-option[aria-selected="true"]');
       expect(selectedOption).withContext('Expected an option to be selected.').not.toBeNull();
       expect(document.querySelectorAll('.mat-pseudo-checkbox').length).toBe(0);
     });
@@ -3900,12 +3889,12 @@ describe('MDC-based MatAutocomplete', () => {
   describe('when used inside a modal', () => {
     let fixture: ComponentFixture<AutocompleteInsideAModal>;
 
-    beforeEach(fakeAsync(() => {
+    beforeEach(() => {
       fixture = createComponent(AutocompleteInsideAModal);
       fixture.detectChanges();
-    }));
+    });
 
-    it('should add the id of the autocomplete panel to the aria-owns of the modal', fakeAsync(() => {
+    it('should add the id of the autocomplete panel to the aria-owns of the modal', () => {
       fixture.componentInstance.trigger.openPanel();
       fixture.detectChanges();
 
@@ -3915,9 +3904,9 @@ describe('MDC-based MatAutocomplete', () => {
       expect(modalElement.getAttribute('aria-owns')?.split(' '))
         .withContext('expecting modal to own the autocommplete panel')
         .toContain(panelId);
-    }));
+    });
 
-    it('should remove the aria-owns attribute of the modal when the autocomplete panel closes', fakeAsync(() => {
+    it('should remove the aria-owns attribute of the modal when the autocomplete panel closes', () => {
       fixture.componentInstance.trigger.openPanel();
       fixture.componentInstance.trigger.closePanel();
       fixture.detectChanges();
@@ -3925,9 +3914,9 @@ describe('MDC-based MatAutocomplete', () => {
       const modalElement = fixture.componentInstance.modal.nativeElement;
 
       expect(modalElement.getAttribute('aria-owns')).toBeFalsy();
-    }));
+    });
 
-    it('should readd the aria-owns attribute of the modal when the autocomplete panel opens again', fakeAsync(() => {
+    it('should readd the aria-owns attribute of the modal when the autocomplete panel opens again', () => {
       fixture.componentInstance.trigger.openPanel();
       fixture.componentInstance.trigger.closePanel();
       fixture.componentInstance.trigger.openPanel();
@@ -3939,7 +3928,7 @@ describe('MDC-based MatAutocomplete', () => {
       expect(modalElement.getAttribute('aria-owns')?.split(' '))
         .withContext('expecting modal to own the autocommplete panel')
         .toContain(panelId);
-    }));
+    });
   });
 });
 
@@ -3977,7 +3966,7 @@ const SIMPLE_AUTOCOMPLETE_TEMPLATE = `
   </mat-autocomplete>
 `;
 
-@Component({template: SIMPLE_AUTOCOMPLETE_TEMPLATE})
+@Component({template: SIMPLE_AUTOCOMPLETE_TEMPLATE, standalone: false})
 class SimpleAutocomplete implements OnDestroy {
   stateCtrl = new FormControl<{name: string; code: string} | string | null>(null);
   filteredStates: any[];
@@ -4033,7 +4022,11 @@ class SimpleAutocomplete implements OnDestroy {
   }
 }
 
-@Component({template: SIMPLE_AUTOCOMPLETE_TEMPLATE, encapsulation: ViewEncapsulation.ShadowDom})
+@Component({
+  template: SIMPLE_AUTOCOMPLETE_TEMPLATE,
+  encapsulation: ViewEncapsulation.ShadowDom,
+  standalone: false,
+})
 class SimpleAutocompleteShadowDom extends SimpleAutocomplete {}
 
 @Component({
@@ -4052,6 +4045,7 @@ class SimpleAutocompleteShadowDom extends SimpleAutocomplete {}
 }
     </mat-autocomplete>
   `,
+  standalone: false,
 })
 class NgIfAutocomplete {
   optionCtrl = new FormControl('');
@@ -4089,6 +4083,7 @@ class NgIfAutocomplete {
       }
     </mat-autocomplete>
   `,
+  standalone: false,
 })
 class AutocompleteWithoutForms {
   filteredStates: any[];
@@ -4118,6 +4113,7 @@ class AutocompleteWithoutForms {
       }
     </mat-autocomplete>
   `,
+  standalone: false,
 })
 class AutocompleteWithNgModel {
   filteredStates: any[];
@@ -4149,6 +4145,7 @@ class AutocompleteWithNgModel {
       }
     </mat-autocomplete>
   `,
+  standalone: false,
 })
 class AutocompleteWithNumbers {
   selectedNumber: number;
@@ -4168,6 +4165,7 @@ class AutocompleteWithNumbers {
       }
     </mat-autocomplete>
   `,
+  standalone: false,
 })
 class AutocompleteWithOnPushDelay implements OnInit {
   @ViewChild(MatAutocompleteTrigger) trigger: MatAutocompleteTrigger;
@@ -4190,6 +4188,7 @@ class AutocompleteWithOnPushDelay implements OnInit {
       }
     </mat-autocomplete>
   `,
+  standalone: false,
 })
 class AutocompleteWithNativeInput {
   optionCtrl = new FormControl('');
@@ -4213,6 +4212,7 @@ class AutocompleteWithNativeInput {
 
 @Component({
   template: `<input placeholder="Choose" [matAutocomplete]="auto" [formControl]="control">`,
+  standalone: false,
 })
 class AutocompleteWithoutPanel {
   @ViewChild(MatAutocompleteTrigger) trigger: MatAutocompleteTrigger;
@@ -4227,7 +4227,7 @@ class AutocompleteWithoutPanel {
 
     <mat-autocomplete #auto="matAutocomplete">
       @for (group of stateGroups; track group) {
-        <mat-optgroup [label]="group.label">
+        <mat-optgroup [label]="group.title">
           @for (state of group.states; track state) {
             <mat-option [value]="state">
               <span>{{ state }}</span>
@@ -4237,6 +4237,7 @@ class AutocompleteWithoutPanel {
       }
     </mat-autocomplete>
   `,
+  standalone: false,
 })
 class AutocompleteWithGroups {
   @ViewChild(MatAutocompleteTrigger) trigger: MatAutocompleteTrigger;
@@ -4266,7 +4267,7 @@ class AutocompleteWithGroups {
     <mat-autocomplete #auto="matAutocomplete">
       @if (true) {
         @for (group of stateGroups; track group) {
-          <mat-optgroup [label]="group.label">
+          <mat-optgroup [label]="group.title">
             @for (state of group.states; track state) {
               <mat-option [value]="state">
                 <span>{{ state }}</span>
@@ -4277,6 +4278,7 @@ class AutocompleteWithGroups {
       }
     </mat-autocomplete>
   `,
+  standalone: false,
 })
 class AutocompleteWithIndirectGroups extends AutocompleteWithGroups {}
 
@@ -4294,6 +4296,7 @@ class AutocompleteWithIndirectGroups extends AutocompleteWithGroups {}
       }
     </mat-autocomplete>
   `,
+  standalone: false,
 })
 class AutocompleteWithSelectEvent {
   selectedState: string;
@@ -4309,6 +4312,7 @@ class AutocompleteWithSelectEvent {
     <input [formControl]="formControl" [matAutocomplete]="auto"/>
     <mat-autocomplete #auto="matAutocomplete"></mat-autocomplete>
   `,
+  standalone: false,
 })
 class PlainAutocompleteInputWithFormControl {
   formControl = new FormControl('');
@@ -4326,6 +4330,7 @@ class PlainAutocompleteInputWithFormControl {
       }
     </mat-autocomplete>
   `,
+  standalone: false,
 })
 class AutocompleteWithNumberInputAndNgModel {
   selectedValue: number;
@@ -4358,6 +4363,7 @@ class AutocompleteWithNumberInputAndNgModel {
       }
     </mat-autocomplete>
   `,
+  standalone: false,
 })
 class AutocompleteWithDifferentOrigin {
   @ViewChild(MatAutocompleteTrigger) trigger: MatAutocompleteTrigger;
@@ -4372,6 +4378,7 @@ class AutocompleteWithDifferentOrigin {
     <input autocomplete="changed" [(ngModel)]="value" [matAutocomplete]="auto"/>
     <mat-autocomplete #auto="matAutocomplete"></mat-autocomplete>
   `,
+  standalone: false,
 })
 class AutocompleteWithNativeAutocompleteAttribute {
   value: string;
@@ -4379,6 +4386,7 @@ class AutocompleteWithNativeAutocompleteAttribute {
 
 @Component({
   template: '<input [matAutocomplete]="null" matAutocompleteDisabled>',
+  standalone: false,
 })
 class InputWithoutAutocompleteAndDisabled {}
 
@@ -4394,6 +4402,7 @@ class InputWithoutAutocompleteAndDisabled {}
       }
     </mat-autocomplete>
   `,
+  standalone: false,
 })
 class AutocompleteWithActivatedEvent {
   states = ['California', 'West Virginia', 'Florida'];
@@ -4423,6 +4432,7 @@ class AutocompleteWithActivatedEvent {
       </div>
     </ng-template>
   `,
+  standalone: false,
 })
 class AutocompleteInsideAModal {
   foods = [

@@ -3,17 +3,27 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import {CdkTreeModule} from '@angular/cdk/tree';
-import {CommonModule} from '@angular/common';
-import {CdkTreeFlatExample, CdkTreeNestedExample} from '@angular/components-examples/cdk/tree';
+import {
+  CdkTreeFlatExample,
+  CdkTreeNestedExample,
+  CdkTreeFlatLevelAccessorExample,
+  CdkTreeNestedLevelAccessorExample,
+  CdkTreeNestedChildrenAccessorExample,
+  CdkTreeFlatChildrenAccessorExample,
+  CdkTreeComplexExample,
+  CdkTreeCustomKeyManagerExample,
+} from '@angular/components-examples/cdk/tree';
 import {
   TreeDynamicExample,
   TreeFlatOverviewExample,
-  TreeHarnessExample,
+  TreeLegacyKeyboardInterfaceExample,
   TreeLoadmoreExample,
   TreeNestedOverviewExample,
+  TreeNestedChildAccessorOverviewExample,
+  TreeFlatChildAccessorOverviewExample,
 } from '@angular/components-examples/material/tree';
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {FormsModule} from '@angular/forms';
@@ -30,17 +40,23 @@ import {MatTreeModule} from '@angular/material/tree';
   selector: 'tree-demo',
   templateUrl: 'tree-demo.html',
   styleUrl: 'tree-demo.css',
-  standalone: true,
   imports: [
     CdkTreeModule,
+    CdkTreeCustomKeyManagerExample,
     CdkTreeFlatExample,
     CdkTreeNestedExample,
-    CommonModule,
+    CdkTreeFlatChildrenAccessorExample,
+    CdkTreeFlatLevelAccessorExample,
+    CdkTreeNestedChildrenAccessorExample,
+    CdkTreeNestedLevelAccessorExample,
+    CdkTreeComplexExample,
     FormsModule,
     TreeDynamicExample,
+    TreeFlatChildAccessorOverviewExample,
     TreeFlatOverviewExample,
-    TreeHarnessExample,
+    TreeLegacyKeyboardInterfaceExample,
     TreeLoadmoreExample,
+    TreeNestedChildAccessorOverviewExample,
     TreeNestedOverviewExample,
     MatButtonModule,
     MatExpansionModule,

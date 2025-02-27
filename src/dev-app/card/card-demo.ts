@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ChangeDetectionStrategy, Component, ViewEncapsulation} from '@angular/core';
@@ -17,7 +17,6 @@ import {MatCheckboxModule} from '@angular/material/checkbox';
   templateUrl: 'card-demo.html',
   styleUrl: 'card-demo.css',
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   imports: [MatCardModule, MatButtonModule, MatCheckboxModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

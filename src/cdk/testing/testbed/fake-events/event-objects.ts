@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ModifierKeys} from '@angular/cdk/testing';
@@ -133,18 +133,20 @@ export function createKeyboardEvent(
   keyCode: number = 0,
   key: string = '',
   modifiers: ModifierKeys = {},
+  code: string = '',
 ) {
   return new KeyboardEvent(type, {
     bubbles: true,
     cancelable: true,
     composed: true, // Required for shadow DOM events.
     view: window,
-    keyCode: keyCode,
-    key: key,
+    keyCode,
+    key,
     shiftKey: modifiers.shift,
     metaKey: modifiers.meta,
     altKey: modifiers.alt,
     ctrlKey: modifiers.control,
+    code,
   });
 }
 

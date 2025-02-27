@@ -12,6 +12,7 @@
             [color]="color"
             class="mat-mdc-paginator-page-size-select">
             <mat-select
+              #selectRef
               [value]="pageSize"
               [disabled]="disabled"
               [aria-labelledby]="_pageSizeLabelId"
@@ -25,6 +26,7 @@
                 </mat-option>
               }
             </mat-select>
+          <div class="mat-mdc-paginator-touch-target" (click)="selectRef.open()"></div>
           </mat-form-field>
         }
 
@@ -42,12 +44,13 @@
       @if (showFirstLastButtons) {
         <button mat-icon-button type="button"
                 class="mat-mdc-paginator-navigation-first"
-                (click)="firstPage()"
+                (click)="_buttonClicked(0, _previousButtonsDisabled())"
                 [attr.aria-label]="_intl.firstPageLabel"
                 [matTooltip]="_intl.firstPageLabel"
                 [matTooltipDisabled]="_previousButtonsDisabled()"
-                [matTooltipPosition]="'above'"
-                [disabled]="_previousButtonsDisabled()">
+                matTooltipPosition="above"
+                [disabled]="_previousButtonsDisabled()"
+                disabledInteractive>
           <svg class="mat-mdc-paginator-icon"
               viewBox="0 0 24 24"
               focusable="false"
@@ -58,12 +61,13 @@
       }
       <button mat-icon-button type="button"
               class="mat-mdc-paginator-navigation-previous"
-              (click)="previousPage()"
+              (click)="_buttonClicked(pageIndex - 1, _previousButtonsDisabled())"
               [attr.aria-label]="_intl.previousPageLabel"
               [matTooltip]="_intl.previousPageLabel"
               [matTooltipDisabled]="_previousButtonsDisabled()"
-              [matTooltipPosition]="'above'"
-              [disabled]="_previousButtonsDisabled()">
+              matTooltipPosition="above"
+              [disabled]="_previousButtonsDisabled()"
+              disabledInteractive>
         <svg class="mat-mdc-paginator-icon"
              viewBox="0 0 24 24"
              focusable="false"
@@ -73,12 +77,13 @@
       </button>
       <button mat-icon-button type="button"
               class="mat-mdc-paginator-navigation-next"
-              (click)="nextPage()"
+              (click)="_buttonClicked(pageIndex + 1, _nextButtonsDisabled())"
               [attr.aria-label]="_intl.nextPageLabel"
               [matTooltip]="_intl.nextPageLabel"
               [matTooltipDisabled]="_nextButtonsDisabled()"
-              [matTooltipPosition]="'above'"
-              [disabled]="_nextButtonsDisabled()">
+              matTooltipPosition="above"
+              [disabled]="_nextButtonsDisabled()"
+              disabledInteractive>
         <svg class="mat-mdc-paginator-icon"
              viewBox="0 0 24 24"
              focusable="false"
@@ -89,12 +94,13 @@
       @if (showFirstLastButtons) {
         <button mat-icon-button type="button"
                 class="mat-mdc-paginator-navigation-last"
-                (click)="lastPage()"
+                (click)="_buttonClicked(getNumberOfPages() - 1, _nextButtonsDisabled())"
                 [attr.aria-label]="_intl.lastPageLabel"
                 [matTooltip]="_intl.lastPageLabel"
                 [matTooltipDisabled]="_nextButtonsDisabled()"
-                [matTooltipPosition]="'above'"
-                [disabled]="_nextButtonsDisabled()">
+                matTooltipPosition="above"
+                [disabled]="_nextButtonsDisabled()"
+                disabledInteractive>
           <svg class="mat-mdc-paginator-icon"
               viewBox="0 0 24 24"
               focusable="false"

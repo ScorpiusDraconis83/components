@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {RippleOverviewExample} from '@angular/components-examples/material/core';
@@ -19,7 +19,6 @@ import {MatInputModule} from '@angular/material/input';
   selector: 'ripple-demo',
   templateUrl: 'ripple-demo.html',
   styleUrl: 'ripple-demo.css',
-  standalone: true,
   imports: [
     RippleOverviewExample,
     FormsModule,

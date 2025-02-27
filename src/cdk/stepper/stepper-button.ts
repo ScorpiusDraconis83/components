@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Directive, Input} from '@angular/core';
+import {Directive, Input, inject} from '@angular/core';
 
 import {CdkStepper} from './stepper';
 
@@ -17,13 +17,15 @@ import {CdkStepper} from './stepper';
     '[type]': 'type',
     '(click)': '_stepper.next()',
   },
-  standalone: true,
 })
 export class CdkStepperNext {
+  _stepper = inject(CdkStepper);
+
   /** Type of the next button. Defaults to "submit" if not specified. */
   @Input() type: string = 'submit';
 
-  constructor(public _stepper: CdkStepper) {}
+  constructor(...args: unknown[]);
+  constructor() {}
 }
 
 /** Button that moves to the previous step in a stepper workflow. */
@@ -33,11 +35,13 @@ export class CdkStepperNext {
     '[type]': 'type',
     '(click)': '_stepper.previous()',
   },
-  standalone: true,
 })
 export class CdkStepperPrevious {
+  _stepper = inject(CdkStepper);
+
   /** Type of the previous button. Defaults to "button" if not specified. */
   @Input() type: string = 'button';
 
-  constructor(public _stepper: CdkStepper) {}
+  constructor(...args: unknown[]);
+  constructor() {}
 }

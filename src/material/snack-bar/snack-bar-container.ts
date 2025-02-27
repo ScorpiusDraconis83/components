@@ -3,10 +3,13 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
+  afterRender,
+  AfterRenderRef,
+  ANIMATION_MODULE_TYPE,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
@@ -20,7 +23,6 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 import {DOCUMENT} from '@angular/common';
-import {matSnackBarAnimations} from './snack-bar-animations';
 import {
   BasePortalOutlet,
   CdkPortalOutlet,
@@ -28,13 +30,14 @@ import {
   DomPortal,
   TemplatePortal,
 } from '@angular/cdk/portal';
-import {Observable, Subject} from 'rxjs';
-import {AriaLivePoliteness} from '@angular/cdk/a11y';
+import {Observable, Subject, of} from 'rxjs';
+import {_IdGenerator, AriaLivePoliteness} from '@angular/cdk/a11y';
 import {Platform} from '@angular/cdk/platform';
-import {AnimationEvent} from '@angular/animations';
 import {MatSnackBarConfig} from './snack-bar-config';
+import {take} from 'rxjs/operators';
 
-let uniqueId = 0;
+const ENTER_ANIMATION = '_mat-snack-bar-enter';
+const EXIT_ANIMATION = '_mat-snack-bar-exit';
 
 /**
  * Internal component that wraps user-provided snack bar content.
@@ -50,24 +53,37 @@ let uniqueId = 0;
   // tslint:disable-next-line:validate-decorators
   changeDetection: ChangeDetectionStrategy.Default,
   encapsulation: ViewEncapsulation.None,
-  animations: [matSnackBarAnimations.snackBarState],
-  standalone: true,
   imports: [CdkPortalOutlet],
   host: {
     'class': 'mdc-snackbar mat-mdc-snack-bar-container',
-    '[@state]': '_animationState',
-    '(@state.done)': 'onAnimationEnd($event)',
+    '[class.mat-snack-bar-container-enter]': '_animationState === "visible"',
+    '[class.mat-snack-bar-container-exit]': '_animationState === "hidden"',
+    '[class.mat-snack-bar-container-animations-enabled]': '!_animationsDisabled',
+    '(animationend)': 'onAnimationEnd($event.animationName)',
+    '(animationcancel)': 'onAnimationEnd($event.animationName)',
   },
 })
 export class MatSnackBarContainer extends BasePortalOutlet implements OnDestroy {
+  private _ngZone = inject(NgZone);
+  private _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  private _changeDetectorRef = inject(ChangeDetectorRef);
+  private _platform = inject(Platform);
+  private _rendersRef: AfterRenderRef;
+  protected _animationsDisabled =
+    inject(ANIMATION_MODULE_TYPE, {optional: true}) === 'NoopAnimations';
+  snackBarConfig = inject(MatSnackBarConfig);
+
   private _document = inject(DOCUMENT);
   private _trackedModals = new Set<Element>();
+  private _enterFallback: ReturnType<typeof setTimeout> | undefined;
+  private _exitFallback: ReturnType<typeof setTimeout> | undefined;
+  private _renders = new Subject<void>();
 
   /** The number of milliseconds to wait before announcing the snack bar's content. */
   private readonly _announceDelay: number = 150;
 
   /** The timeout for announcing the snack bar's content. */
-  private _announceTimeoutId: number;
+  private _announceTimeoutId: ReturnType<typeof setTimeout>;
 
   /** Whether the component has been destroyed. */
   private _destroyed = false;
@@ -104,23 +120,19 @@ export class MatSnackBarContainer extends BasePortalOutlet implements OnDestroy 
   _role?: 'status' | 'alert';
 
   /** Unique ID of the aria-live element. */
-  readonly _liveElementId = `mat-snack-bar-container-live-${uniqueId++}`;
+  readonly _liveElementId = inject(_IdGenerator).getId('mat-snack-bar-container-live-');
 
-  constructor(
-    private _ngZone: NgZone,
-    private _elementRef: ElementRef<HTMLElement>,
-    private _changeDetectorRef: ChangeDetectorRef,
-    private _platform: Platform,
-    /** The snack bar configuration. */
-    public snackBarConfig: MatSnackBarConfig,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
     super();
+    const config = this.snackBarConfig;
 
     // Use aria-live rather than a live role like 'alert' or 'status'
     // because NVDA and JAWS have show inconsistent behavior with live roles.
-    if (snackBarConfig.politeness === 'assertive' && !snackBarConfig.announcementMessage) {
+    if (config.politeness === 'assertive' && !config.announcementMessage) {
       this._live = 'assertive';
-    } else if (snackBarConfig.politeness === 'off') {
+    } else if (config.politeness === 'off') {
       this._live = 'off';
     } else {
       this._live = 'polite';
@@ -136,6 +148,11 @@ export class MatSnackBarContainer extends BasePortalOutlet implements OnDestroy 
         this._role = 'alert';
       }
     }
+
+    // Note: ideally we'd just do an `afterNextRender` in the places where we need to delay
+    // something, however in some cases (TestBed teardown) the injector can be destroyed at an
+    // unexpected time, causing the `afterRender` to fail.
+    this._rendersRef = afterRender(() => this._renders.next(), {manualCleanup: true});
   }
 
   /** Attach a component portal as content to this snack bar container. */
@@ -167,21 +184,14 @@ export class MatSnackBarContainer extends BasePortalOutlet implements OnDestroy 
   };
 
   /** Handle end of animations, updating the state of the snackbar. */
-  onAnimationEnd(event: AnimationEvent) {
-    const {fromState, toState} = event;
-
-    if ((toState === 'void' && fromState !== 'void') || toState === 'hidden') {
+  onAnimationEnd(animationName: string) {
+    if (animationName === EXIT_ANIMATION) {
       this._completeExit();
-    }
-
-    if (toState === 'visible') {
-      // Note: we shouldn't use `this` inside the zone callback,
-      // because it can cause a memory leak.
-      const onEnter = this._onEnter;
-
+    } else if (animationName === ENTER_ANIMATION) {
+      clearTimeout(this._enterFallback);
       this._ngZone.run(() => {
-        onEnter.next();
-        onEnter.complete();
+        this._onEnter.next();
+        this._onEnter.complete();
       });
     }
   }
@@ -195,11 +205,29 @@ export class MatSnackBarContainer extends BasePortalOutlet implements OnDestroy 
       this._changeDetectorRef.markForCheck();
       this._changeDetectorRef.detectChanges();
       this._screenReaderAnnounce();
+
+      if (this._animationsDisabled) {
+        this._renders.pipe(take(1)).subscribe(() => {
+          this._ngZone.run(() => queueMicrotask(() => this.onAnimationEnd(ENTER_ANIMATION)));
+        });
+      } else {
+        clearTimeout(this._enterFallback);
+        this._enterFallback = setTimeout(() => {
+          // The snack bar will stay invisible if it fails to animate. Add a fallback class so it
+          // becomes visible. This can happen in some apps that do `* {animation: none !important}`.
+          this._elementRef.nativeElement.classList.add('mat-snack-bar-fallback-visible');
+          this.onAnimationEnd(ENTER_ANIMATION);
+        }, 200);
+      }
     }
   }
 
   /** Begin animation of the snack bar exiting from view. */
   exit(): Observable<void> {
+    if (this._destroyed) {
+      return of(undefined);
+    }
+
     // It's common for snack bars to be opened by random outside calls like HTTP requests or
     // errors. Run inside the NgZone to ensure that it functions correctly.
     this._ngZone.run(() => {
@@ -217,6 +245,15 @@ export class MatSnackBarContainer extends BasePortalOutlet implements OnDestroy 
       // If the snack bar hasn't been announced by the time it exits it wouldn't have been open
       // long enough to visually read it either, so clear the timeout for announcing.
       clearTimeout(this._announceTimeoutId);
+
+      if (this._animationsDisabled) {
+        this._renders.pipe(take(1)).subscribe(() => {
+          this._ngZone.run(() => queueMicrotask(() => this.onAnimationEnd(EXIT_ANIMATION)));
+        });
+      } else {
+        clearTimeout(this._exitFallback);
+        this._exitFallback = setTimeout(() => this.onAnimationEnd(EXIT_ANIMATION), 200);
+      }
     });
 
     return this._onExit;
@@ -227,13 +264,12 @@ export class MatSnackBarContainer extends BasePortalOutlet implements OnDestroy 
     this._destroyed = true;
     this._clearFromModals();
     this._completeExit();
+    this._renders.complete();
+    this._rendersRef.destroy();
   }
 
-  /**
-   * Removes the element in a microtask. Helps prevent errors where we end up
-   * removing an element which is in the middle of an animation.
-   */
   private _completeExit() {
+    clearTimeout(this._exitFallback);
     queueMicrotask(() => {
       this._onExit.next();
       this._onExit.complete();
@@ -327,33 +363,40 @@ export class MatSnackBarContainer extends BasePortalOutlet implements OnDestroy 
    * announce it.
    */
   private _screenReaderAnnounce() {
-    if (!this._announceTimeoutId) {
-      this._ngZone.runOutsideAngular(() => {
-        this._announceTimeoutId = setTimeout(() => {
-          const inertElement = this._elementRef.nativeElement.querySelector('[aria-hidden]');
-          const liveElement = this._elementRef.nativeElement.querySelector('[aria-live]');
-
-          if (inertElement && liveElement) {
-            // If an element in the snack bar content is focused before being moved
-            // track it and restore focus after moving to the live region.
-            let focusedElement: HTMLElement | null = null;
-            if (
-              this._platform.isBrowser &&
-              document.activeElement instanceof HTMLElement &&
-              inertElement.contains(document.activeElement)
-            ) {
-              focusedElement = document.activeElement;
-            }
-
-            inertElement.removeAttribute('aria-hidden');
-            liveElement.appendChild(inertElement);
-            focusedElement?.focus();
-
-            this._onAnnounce.next();
-            this._onAnnounce.complete();
-          }
-        }, this._announceDelay);
-      });
+    if (this._announceTimeoutId) {
+      return;
     }
+
+    this._ngZone.runOutsideAngular(() => {
+      this._announceTimeoutId = setTimeout(() => {
+        if (this._destroyed) {
+          return;
+        }
+
+        const element = this._elementRef.nativeElement;
+        const inertElement = element.querySelector('[aria-hidden]');
+        const liveElement = element.querySelector('[aria-live]');
+
+        if (inertElement && liveElement) {
+          // If an element in the snack bar content is focused before being moved
+          // track it and restore focus after moving to the live region.
+          let focusedElement: HTMLElement | null = null;
+          if (
+            this._platform.isBrowser &&
+            document.activeElement instanceof HTMLElement &&
+            inertElement.contains(document.activeElement)
+          ) {
+            focusedElement = document.activeElement;
+          }
+
+          inertElement.removeAttribute('aria-hidden');
+          liveElement.appendChild(inertElement);
+          focusedElement?.focus();
+
+          this._onAnnounce.next();
+          this._onAnnounce.complete();
+        }
+      }, this._announceDelay);
+    });
   }
 }

@@ -4,13 +4,9 @@
 
 ```ts
 
-import { AnimationEvent as AnimationEvent_2 } from '@angular/animations';
-import { AnimationTriggerMetadata } from '@angular/animations';
 import { AriaLivePoliteness } from '@angular/cdk/a11y';
 import { BasePortalOutlet } from '@angular/cdk/portal';
-import { BreakpointObserver } from '@angular/cdk/layout';
 import { CdkPortalOutlet } from '@angular/cdk/portal';
-import { ChangeDetectorRef } from '@angular/core';
 import { ComponentPortal } from '@angular/cdk/portal';
 import { ComponentRef } from '@angular/core';
 import { ComponentType } from '@angular/cdk/overlay';
@@ -24,14 +20,9 @@ import * as i2 from '@angular/cdk/portal';
 import * as i3 from '@angular/material/button';
 import * as i4 from '@angular/material/core';
 import { InjectionToken } from '@angular/core';
-import { Injector } from '@angular/core';
-import { LiveAnnouncer } from '@angular/cdk/a11y';
-import { NgZone } from '@angular/core';
 import { Observable } from 'rxjs';
 import { OnDestroy } from '@angular/core';
-import { Overlay } from '@angular/cdk/overlay';
 import { OverlayRef } from '@angular/cdk/overlay';
-import { Platform } from '@angular/cdk/platform';
 import { Subject } from 'rxjs';
 import { TemplatePortal } from '@angular/cdk/portal';
 import { TemplateRef } from '@angular/core';
@@ -48,7 +39,7 @@ export function MAT_SNACK_BAR_DEFAULT_OPTIONS_FACTORY(): MatSnackBarConfig;
 
 // @public
 export class MatSnackBar implements OnDestroy {
-    constructor(_overlay: Overlay, _live: LiveAnnouncer, _injector: Injector, _breakpointObserver: BreakpointObserver, _parentSnackBar: MatSnackBar, _defaultConfig: MatSnackBarConfig);
+    constructor(...args: unknown[]);
     dismiss(): void;
     handsetCssClass: string;
     // (undocumented)
@@ -61,7 +52,7 @@ export class MatSnackBar implements OnDestroy {
     simpleSnackBarComponent: typeof SimpleSnackBar;
     snackBarContainerComponent: typeof MatSnackBarContainer;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatSnackBar, [null, null, null, null, { optional: true; skipSelf: true; }, null]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatSnackBar, never>;
     // (undocumented)
     static ɵprov: i0.ɵɵInjectableDeclaration<MatSnackBar>;
 }
@@ -82,9 +73,9 @@ export class MatSnackBarActions {
     static ɵfac: i0.ɵɵFactoryDeclaration<MatSnackBarActions, never>;
 }
 
-// @public
+// @public @deprecated
 export const matSnackBarAnimations: {
-    readonly snackBarState: AnimationTriggerMetadata;
+    readonly snackBarState: any;
 };
 
 // @public
@@ -102,8 +93,9 @@ export class MatSnackBarConfig<D = any> {
 
 // @public
 export class MatSnackBarContainer extends BasePortalOutlet implements OnDestroy {
-    constructor(_ngZone: NgZone, _elementRef: ElementRef<HTMLElement>, _changeDetectorRef: ChangeDetectorRef, _platform: Platform,
-    snackBarConfig: MatSnackBarConfig);
+    constructor(...args: unknown[]);
+    // (undocumented)
+    protected _animationsDisabled: boolean;
     _animationState: string;
     attachComponentPortal<T>(portal: ComponentPortal<T>): ComponentRef<T>;
     // @deprecated
@@ -115,13 +107,14 @@ export class MatSnackBarContainer extends BasePortalOutlet implements OnDestroy 
     _live: AriaLivePoliteness;
     readonly _liveElementId: string;
     ngOnDestroy(): void;
-    onAnimationEnd(event: AnimationEvent_2): void;
+    onAnimationEnd(animationName: string): void;
     readonly _onAnnounce: Subject<void>;
     readonly _onEnter: Subject<void>;
     readonly _onExit: Subject<void>;
     _portalOutlet: CdkPortalOutlet;
     _role?: 'status' | 'alert';
-    snackBarConfig: MatSnackBarConfig;
+    // (undocumented)
+    snackBarConfig: MatSnackBarConfig<any>;
     // (undocumented)
     static ɵcmp: i0.ɵɵComponentDeclaration<MatSnackBarContainer, "mat-snack-bar-container", never, {}, {}, never, never, true, never>;
     // (undocumented)
@@ -175,16 +168,10 @@ export type MatSnackBarVerticalPosition = 'top' | 'bottom';
 
 // @public (undocumented)
 export class SimpleSnackBar implements TextOnlySnackBar {
-    constructor(snackBarRef: MatSnackBarRef<SimpleSnackBar>, data: {
-        message: string;
-        action: string;
-    });
+    constructor(...args: unknown[]);
     action(): void;
     // (undocumented)
-    data: {
-        message: string;
-        action: string;
-    };
+    data: any;
     get hasAction(): boolean;
     // (undocumented)
     snackBarRef: MatSnackBarRef<SimpleSnackBar>;

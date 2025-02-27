@@ -1,5 +1,5 @@
-import {waitForAsync, fakeAsync, TestBed} from '@angular/core/testing';
-import {Component, ViewChild, signal} from '@angular/core';
+import {waitForAsync, fakeAsync, TestBed, flush} from '@angular/core/testing';
+import {Component, ViewChild, signal, inject} from '@angular/core';
 import {By} from '@angular/platform-browser';
 import {BidiModule, Directionality, Dir, Direction, DIR_DOCUMENT} from './index';
 
@@ -18,7 +18,7 @@ describe('Directionality', () => {
         ElementWithPredefinedUppercaseDir,
       ],
       providers: [{provide: DIR_DOCUMENT, useFactory: () => fakeDocument}],
-    }).compileComponents();
+    });
   }));
 
   describe('Service', () => {
@@ -121,6 +121,7 @@ describe('Directionality', () => {
       fixture.destroy();
       expect(spy).toHaveBeenCalled();
       subscription.unsubscribe();
+      flush();
     }));
 
     it('should default to ltr if an invalid value is passed in', () => {
@@ -161,11 +162,10 @@ describe('Directionality', () => {
 @Component({
   selector: 'injects-directionality',
   template: `<div></div>`,
-  standalone: true,
   imports: [BidiModule],
 })
 class InjectsDirectionality {
-  constructor(public dir: Directionality) {}
+  dir = inject(Directionality);
 }
 
 @Component({
@@ -174,7 +174,6 @@ class InjectsDirectionality {
       <injects-directionality></injects-directionality>
     </div>
   `,
-  standalone: true,
   imports: [Dir, InjectsDirectionality],
 })
 class ElementWithDir {
@@ -185,7 +184,6 @@ class ElementWithDir {
 
 @Component({
   template: '<div dir="auto"></div>',
-  standalone: true,
   imports: [Dir],
 })
 class ElementWithPredefinedAutoDir {
@@ -194,7 +192,6 @@ class ElementWithPredefinedAutoDir {
 
 @Component({
   template: '<div dir="RTL"></div>',
-  standalone: true,
   imports: [Dir],
 })
 class ElementWithPredefinedUppercaseDir {

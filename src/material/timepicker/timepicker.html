@@ -1,0 +1,17 @@
+<ng-template #panelTemplate>
+  <div
+    role="listbox"
+    class="mat-timepicker-panel"
+    [class.mat-timepicker-panel-animations-enabled]="!_animationsDisabled"
+    [class.mat-timepicker-panel-exit]="!isOpen()"
+    [attr.aria-label]="ariaLabel() || null"
+    [attr.aria-labelledby]="_getAriaLabelledby()"
+    [id]="panelId"
+    (animationend)="_handleAnimationEnd($event)">
+    @for (option of _timeOptions; track option.value) {
+      <mat-option
+        [value]="option.value"
+        (onSelectionChange)="_selectValue($event.source)">{{option.label}}</mat-option>
+    }
+  </div>
+</ng-template>

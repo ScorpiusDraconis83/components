@@ -1,4 +1,4 @@
-import {Component, ElementRef} from '@angular/core';
+import {Component, ElementRef, inject} from '@angular/core';
 import {TestBed, fakeAsync} from '@angular/core/testing';
 import {DragDrop} from './drag-drop';
 import {DragDropModule} from './drag-drop-module';
@@ -13,7 +13,6 @@ describe('DragDrop', () => {
       imports: [DragDropModule, TestComponent],
     });
 
-    TestBed.compileComponents();
     service = TestBed.inject(DragDrop);
   }));
 
@@ -36,8 +35,7 @@ describe('DragDrop', () => {
 
 @Component({
   template: '<div></div>',
-  standalone: true,
 })
 class TestComponent {
-  constructor(public elementRef: ElementRef<HTMLElement>) {}
+  elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
 }

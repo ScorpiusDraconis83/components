@@ -3,11 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 // Workaround for: https://github.com/bazelbuild/rules_nodejs/issues/1265
-/// <reference types="google.maps" />
+/// <reference types="google.maps" preserve="true" />
 
 import {Directive, EventEmitter, NgZone, OnDestroy, OnInit, Output, inject} from '@angular/core';
 
@@ -21,7 +21,6 @@ import {GoogleMap} from '../google-map/google-map';
 @Directive({
   selector: 'map-bicycling-layer',
   exportAs: 'mapBicyclingLayer',
-  standalone: true,
 })
 export class MapBicyclingLayer implements OnInit, OnDestroy {
   private _map = inject(GoogleMap);

@@ -3,11 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 // Workaround for: https://github.com/bazelbuild/rules_nodejs/issues/1265
-/// <reference types="google.maps" />
+/// <reference types="google.maps" preserve="true" />
 
 import {
   Input,
@@ -24,8 +24,10 @@ import {
 
 import {GoogleMap} from '../google-map/google-map';
 import {MapEventManager} from '../map-event-manager';
-import {Observable} from 'rxjs';
 import {MapAnchorPoint} from '../map-anchor-point';
+import {MAP_MARKER, MarkerDirective} from '../marker-utilities';
+import {Observable} from 'rxjs';
+import {take} from 'rxjs/operators';
 
 /**
  * Default options for the Google Maps marker component. Displays a marker
@@ -43,9 +45,18 @@ export const DEFAULT_MARKER_OPTIONS = {
 @Directive({
   selector: 'map-advanced-marker',
   exportAs: 'mapAdvancedMarker',
-  standalone: true,
+  providers: [
+    {
+      provide: MAP_MARKER,
+      useExisting: MapAdvancedMarker,
+    },
+  ],
 })
-export class MapAdvancedMarker implements OnInit, OnChanges, OnDestroy, MapAnchorPoint {
+export class MapAdvancedMarker
+  implements OnInit, OnChanges, OnDestroy, MapAnchorPoint, MarkerDirective
+{
+  private readonly _googleMap = inject(GoogleMap);
+  private _ngZone = inject(NgZone);
   private _eventManager = new MapEventManager(inject(NgZone));
 
   /**
@@ -125,6 +136,36 @@ export class MapAdvancedMarker implements OnInit, OnChanges, OnDestroy, MapAncho
     this._eventManager.getLazyEmitter<google.maps.MapMouseEvent>('click');
 
   /**
+   * This event is fired when the AdvancedMarkerElement is double-clicked.
+   */
+  @Output() readonly mapDblclick: Observable<google.maps.MapMouseEvent> =
+    this._eventManager.getLazyEmitter<google.maps.MapMouseEvent>('dblclick');
+
+  /**
+   * This event is fired when the mouse moves out of the AdvancedMarkerElement.
+   */
+  @Output() readonly mapMouseout: Observable<google.maps.MapMouseEvent> =
+    this._eventManager.getLazyEmitter<google.maps.MapMouseEvent>('mouseout');
+
+  /**
+   * This event is fired when the mouse moves over the AdvancedMarkerElement.
+   */
+  @Output() readonly mapMouseover: Observable<google.maps.MapMouseEvent> =
+    this._eventManager.getLazyEmitter<google.maps.MapMouseEvent>('mouseover');
+
+  /**
+   * This event is fired when the mouse button is released over the AdvancedMarkerElement.
+   */
+  @Output() readonly mapMouseup: Observable<google.maps.MapMouseEvent> =
+    this._eventManager.getLazyEmitter<google.maps.MapMouseEvent>('mouseup');
+
+  /**
+   * This event is fired when the AdvancedMarkerElement is right-clicked.
+   */
+  @Output() readonly mapRightclick: Observable<google.maps.MapMouseEvent> =
+    this._eventManager.getLazyEmitter<google.maps.MapMouseEvent>('rightclick');
+
+  /**
    * This event is repeatedly fired while the user drags the AdvancedMarkerElement.
    * https://developers.google.com/maps/documentation/javascript/reference/advanced-markers#AdvancedMarkerElement.drag
    */
@@ -156,10 +197,8 @@ export class MapAdvancedMarker implements OnInit, OnChanges, OnDestroy, MapAncho
    */
   advancedMarker: google.maps.marker.AdvancedMarkerElement;
 
-  constructor(
-    private readonly _googleMap: GoogleMap,
-    private _ngZone: NgZone,
-  ) {}
+  constructor(...args: unknown[]);
+  constructor() {}
 
   ngOnInit() {
     if (!this._googleMap._isBrowser) {
@@ -201,10 +240,6 @@ export class MapAdvancedMarker implements OnInit, OnChanges, OnDestroy, MapAncho
         advancedMarker.title = _title;
       }
 
-      if (changes['content']) {
-        advancedMarker.content = _content;
-      }
-
       if (changes['gmpDraggable']) {
         advancedMarker.gmpDraggable = _draggable;
       }
@@ -235,6 +270,13 @@ export class MapAdvancedMarker implements OnInit, OnChanges, OnDestroy, MapAncho
   getAnchor(): google.maps.marker.AdvancedMarkerElement {
     this._assertInitialized();
     return this.advancedMarker;
+  }
+
+  /** Returns a promise that resolves when the marker has been initialized. */
+  _resolveMarker(): Promise<google.maps.marker.AdvancedMarkerElement> {
+    return this.advancedMarker
+      ? Promise.resolve(this.advancedMarker)
+      : this.markerInitialized.pipe(take(1)).toPromise();
   }
 
   /** Creates a combined options object using the passed-in options and the individual inputs. */

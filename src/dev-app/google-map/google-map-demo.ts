@@ -3,10 +3,9 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {CommonModule} from '@angular/common';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -26,13 +25,12 @@ import {
   MapHeatmapLayer,
   MapInfoWindow,
   MapKmlLayer,
-  MapMarker,
-  MapMarkerClusterer,
   MapPolygon,
   MapPolyline,
   MapRectangle,
   MapTrafficLayer,
   MapTransitLayer,
+  MapMarkerClusterer,
 } from '@angular/google-maps';
 
 const POLYLINE_PATH: google.maps.LatLngLiteral[] = [
@@ -67,9 +65,7 @@ let apiLoadingPromise: Promise<unknown> | null = null;
   selector: 'google-map-demo',
   templateUrl: 'google-map-demo.html',
   styleUrl: 'google-map-demo.css',
-  standalone: true,
   imports: [
-    CommonModule,
     GoogleMap,
     MapBicyclingLayer,
     MapCircle,
@@ -78,7 +74,6 @@ let apiLoadingPromise: Promise<unknown> | null = null;
     MapHeatmapLayer,
     MapInfoWindow,
     MapKmlLayer,
-    MapMarker,
     MapMarkerClusterer,
     MapAdvancedMarker,
     MapPolygon,
@@ -91,6 +86,8 @@ let apiLoadingPromise: Promise<unknown> | null = null;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GoogleMapDemo {
+  private readonly _mapDirectionsService = inject(MapDirectionsService);
+
   @ViewChild(MapPolyline) polyline: MapPolyline;
   @ViewChild(MapPolygon) polygon: MapPolygon;
   @ViewChild(MapRectangle) rectangle: MapRectangle;
@@ -99,7 +96,6 @@ export class GoogleMapDemo {
 
   center = {lat: 24, lng: 12};
   mapAdvancedMarkerPosition = {lat: 22, lng: 21};
-  markerOptions = {draggable: false};
   markerPositions: google.maps.LatLngLiteral[] = [];
   zoom = 4;
   display?: google.maps.LatLngLiteral;
@@ -154,20 +150,16 @@ export class GoogleMapDemo {
   isTrafficLayerDisplayed = false;
   isTransitLayerDisplayed = false;
   isBicyclingLayerDisplayed = false;
-  hasAdvancedMarker = false;
-  hasAdvancedMarkerCustomContent = true;
+  hasCustomContentMarker = false;
   // This is necessary for testing advanced markers. It seems like any value works locally.
   mapId = '123';
 
   mapTypeId: google.maps.MapTypeId;
   mapTypeIds = ['hybrid', 'roadmap', 'satellite', 'terrain'] as google.maps.MapTypeId[];
 
-  markerClustererImagePath =
-    'https://developers.google.com/maps/documentation/javascript/examples/markerclusterer/m';
-
   directionsResult?: google.maps.DirectionsResult;
 
-  constructor(private readonly _mapDirectionsService: MapDirectionsService) {
+  constructor() {
     this._loadApi();
   }
 
@@ -263,7 +255,7 @@ export class GoogleMapDemo {
 
     if (!apiLoadingPromise) {
       apiLoadingPromise = this._loadScript(
-        'https://unpkg.com/@googlemaps/markerclustererplus/dist/index.min.js',
+        'https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js',
       );
     }
 

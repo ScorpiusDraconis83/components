@@ -3,13 +3,12 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Directive, ElementRef, Inject, Input, OnInit} from '@angular/core';
+import {Directive, ElementRef, Input, OnInit, inject} from '@angular/core';
+import {_IdGenerator} from '@angular/cdk/a11y';
 import {AriaHasPopupValue, CDK_COMBOBOX, CdkCombobox} from './combobox';
-
-let nextId = 0;
 
 @Directive({
   selector: '[cdkComboboxPopup]',
@@ -21,9 +20,11 @@ let nextId = 0;
     'tabindex': '-1',
     '(focus)': 'focusFirstElement()',
   },
-  standalone: true,
 })
 export class CdkComboboxPopup<T = unknown> implements OnInit {
+  private readonly _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly _combobox = inject<CdkCombobox>(CDK_COMBOBOX);
+
   @Input()
   get role(): AriaHasPopupValue {
     return this._role;
@@ -42,12 +43,7 @@ export class CdkComboboxPopup<T = unknown> implements OnInit {
   }
   private _firstFocusElement: HTMLElement;
 
-  @Input() id = `cdk-combobox-popup-${nextId++}`;
-
-  constructor(
-    private readonly _elementRef: ElementRef<HTMLElement>,
-    @Inject(CDK_COMBOBOX) private readonly _combobox: CdkCombobox,
-  ) {}
+  @Input() id: string = inject(_IdGenerator).getId('cdk-combobox-popup-');
 
   ngOnInit() {
     this.registerWithPanel();

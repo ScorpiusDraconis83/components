@@ -3,40 +3,32 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   ContentChild,
   ContentChildren,
-  forwardRef,
-  Inject,
   Input,
   ViewEncapsulation,
   QueryList,
-  ElementRef,
-  NgZone,
 } from '@angular/core';
 import {MatDrawer, MatDrawerContainer, MatDrawerContent, MAT_DRAWER_CONTAINER} from './drawer';
-import {matDrawerAnimations} from './drawer-animations';
 import {
   BooleanInput,
   coerceBooleanProperty,
   coerceNumberProperty,
   NumberInput,
 } from '@angular/cdk/coercion';
-import {ScrollDispatcher, CdkScrollable} from '@angular/cdk/scrolling';
+import {CdkScrollable} from '@angular/cdk/scrolling';
 
 @Component({
   selector: 'mat-sidenav-content',
   template: '<ng-content></ng-content>',
   host: {
     'class': 'mat-drawer-content mat-sidenav-content',
-    '[style.margin-left.px]': '_container._contentMargins.left',
-    '[style.margin-right.px]': '_container._contentMargins.right',
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
@@ -46,25 +38,13 @@ import {ScrollDispatcher, CdkScrollable} from '@angular/cdk/scrolling';
       useExisting: MatSidenavContent,
     },
   ],
-  standalone: true,
 })
-export class MatSidenavContent extends MatDrawerContent {
-  constructor(
-    changeDetectorRef: ChangeDetectorRef,
-    @Inject(forwardRef(() => MatSidenavContainer)) container: MatSidenavContainer,
-    elementRef: ElementRef<HTMLElement>,
-    scrollDispatcher: ScrollDispatcher,
-    ngZone: NgZone,
-  ) {
-    super(changeDetectorRef, container, elementRef, scrollDispatcher, ngZone);
-  }
-}
+export class MatSidenavContent extends MatDrawerContent {}
 
 @Component({
   selector: 'mat-sidenav',
   exportAs: 'matSidenav',
   templateUrl: 'drawer.html',
-  animations: [matDrawerAnimations.transformDrawer],
   host: {
     'class': 'mat-drawer mat-sidenav',
     'tabIndex': '-1',
@@ -74,15 +54,14 @@ export class MatSidenavContent extends MatDrawerContent {
     '[class.mat-drawer-over]': 'mode === "over"',
     '[class.mat-drawer-push]': 'mode === "push"',
     '[class.mat-drawer-side]': 'mode === "side"',
-    '[class.mat-drawer-opened]': 'opened',
     '[class.mat-sidenav-fixed]': 'fixedInViewport',
     '[style.top.px]': 'fixedInViewport ? fixedTopGap : null',
     '[style.bottom.px]': 'fixedInViewport ? fixedBottomGap : null',
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   imports: [CdkScrollable],
+  providers: [{provide: MatDrawer, useExisting: MatSidenav}],
 })
 export class MatSidenav extends MatDrawer {
   /** Whether the sidenav is fixed in the viewport. */
@@ -138,8 +117,11 @@ export class MatSidenav extends MatDrawer {
       provide: MAT_DRAWER_CONTAINER,
       useExisting: MatSidenavContainer,
     },
+    {
+      provide: MatDrawerContainer,
+      useExisting: MatSidenavContainer,
+    },
   ],
-  standalone: true,
   imports: [MatSidenavContent],
 })
 export class MatSidenavContainer extends MatDrawerContainer {

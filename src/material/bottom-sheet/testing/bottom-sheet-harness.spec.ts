@@ -1,4 +1,4 @@
-import {Component, TemplateRef, ViewChild} from '@angular/core';
+import {Component, TemplateRef, ViewChild, inject} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
@@ -14,10 +14,10 @@ describe('MatBottomSheetHarness', () => {
   let fixture: ComponentFixture<BottomSheetHarnessTest>;
   let loader: HarnessLoader;
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
+  beforeEach(() => {
+    TestBed.configureTestingModule({
       imports: [MatBottomSheetModule, NoopAnimationsModule, BottomSheetHarnessTest],
-    }).compileComponents();
+    });
 
     fixture = TestBed.createComponent(BottomSheetHarnessTest);
     fixture.detectChanges();
@@ -54,13 +54,12 @@ describe('MatBottomSheetHarness', () => {
       Hello from the bottom sheet!
     </ng-template>
   `,
-  standalone: true,
   imports: [MatBottomSheetModule],
 })
 class BottomSheetHarnessTest {
-  @ViewChild(TemplateRef) template: TemplateRef<any>;
+  readonly bottomSheet = inject(MatBottomSheet);
 
-  constructor(readonly bottomSheet: MatBottomSheet) {}
+  @ViewChild(TemplateRef) template: TemplateRef<any>;
 
   open(config?: MatBottomSheetConfig) {
     return this.bottomSheet.open(this.template, config);

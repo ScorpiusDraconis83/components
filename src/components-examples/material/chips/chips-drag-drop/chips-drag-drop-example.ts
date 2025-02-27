@@ -1,5 +1,5 @@
-import {Component} from '@angular/core';
-import {CdkDragDrop, moveItemInArray, CdkDrag, CdkDropList} from '@angular/cdk/drag-drop';
+import {CdkDrag, CdkDragDrop, CdkDropList, moveItemInArray} from '@angular/cdk/drag-drop';
+import {ChangeDetectionStrategy, Component, signal} from '@angular/core';
 import {MatChipsModule} from '@angular/material/chips';
 
 export interface Vegetable {
@@ -13,20 +13,23 @@ export interface Vegetable {
   selector: 'chips-drag-drop-example',
   templateUrl: 'chips-drag-drop-example.html',
   styleUrl: 'chips-drag-drop-example.css',
-  standalone: true,
   imports: [MatChipsModule, CdkDropList, CdkDrag],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ChipsDragDropExample {
-  vegetables: Vegetable[] = [
+  readonly vegetables = signal<Vegetable[]>([
     {name: 'apple'},
     {name: 'banana'},
     {name: 'strawberry'},
     {name: 'orange'},
     {name: 'kiwi'},
     {name: 'cherry'},
-  ];
+  ]);
 
   drop(event: CdkDragDrop<Vegetable[]>) {
-    moveItemInArray(this.vegetables, event.previousIndex, event.currentIndex);
+    this.vegetables.update(vegetables => {
+      moveItemInArray(vegetables, event.previousIndex, event.currentIndex);
+      return [...vegetables];
+    });
   }
 }

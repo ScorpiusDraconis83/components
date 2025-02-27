@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, inject} from '@angular/core';
 import {
   MatSnackBar,
   MatSnackBarHorizontalPosition,
@@ -15,14 +15,13 @@ import {MatFormFieldModule} from '@angular/material/form-field';
   selector: 'snack-bar-position-example',
   templateUrl: 'snack-bar-position-example.html',
   styleUrl: 'snack-bar-position-example.css',
-  standalone: true,
   imports: [MatFormFieldModule, MatSelectModule, MatButtonModule],
 })
 export class SnackBarPositionExample {
+  private _snackBar = inject(MatSnackBar);
+
   horizontalPosition: MatSnackBarHorizontalPosition = 'start';
   verticalPosition: MatSnackBarVerticalPosition = 'bottom';
-
-  constructor(private _snackBar: MatSnackBar) {}
 
   openSnackBar() {
     this._snackBar.open('Cannonball!!', 'Splash', {

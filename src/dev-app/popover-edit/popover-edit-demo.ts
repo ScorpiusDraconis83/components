@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -45,7 +45,6 @@ import {FormsModule} from '@angular/forms';
     <h3 id="mat-popover-edit-tabout">Material popover-edit with mat-table and tab out</h3>
     <popover-edit-tab-out-mat-table-example></popover-edit-tab-out-mat-table-example>
   `,
-  standalone: true,
   imports: [
     CdkPopoverEditCdkTableFlexExample,
     CdkPopoverEditCdkTableExample,

@@ -4,18 +4,11 @@ This guide explains how to set up your Angular project to begin using Angular Ma
 information on prerequisites, installing Angular Material, and optionally displaying a sample
 Material component in your application to verify your setup.
 
-*Angular Resources*
-
-If you are new to Angular or getting started with a new Angular application, see
-[Angular's full Getting Started Guide](https://angular.io/start) and
-[Setting up your environment](https://angular.io/guide/setup-local).
-
-For existing applications, follow the steps below to begin using Angular Material.
+This guide assumes that the [Angular CLI](https://angular.dev/tools/cli/setup-local#install-the-angular-cli) has already been installed.
 
 ## Install Angular Material
 
-Use the Angular CLI's installation [schematic](https://material.angular.io/guide/schematics) to set
-up your Angular Material project by running the following command:
+Add Angular Material to your application by running the following command:
 
 ```bash
 ng add @angular/material
@@ -23,20 +16,16 @@ ng add @angular/material
 
 The `ng add` command will install Angular Material, the
 [Component Dev Kit (CDK)](https://material.angular.io/cdk/categories),
-[Angular Animations](https://angular.io/guide/animations) and ask you the following questions to
+[Angular Animations](https://angular.dev/guide/animations) and ask you the following questions to
 determine which features to include:
 
 1. Choose a prebuilt theme name, or "custom" for a custom theme:
 
-   You can choose from [prebuilt material design themes](https://material.angular.io/guide/theming#using-a-pre-built-theme) or set up an extensible [custom theme](https://material.angular.io/guide/theming#defining-a-theme).
+   You can choose from [prebuilt material design themes](https://material.angular.io/guide/theming#pre-built-themes) or set up an extensible [custom theme](https://material.angular.io/guide/theming#defining-a-theme).
 
 2. Set up global Angular Material typography styles:
 
    Whether to apply the global [typography](https://material.angular.io/guide/typography) styles to your application.
-
-3. Set up browser animations for Angular Material:
-
-   Importing the [`BrowserAnimationsModule`](https://angular.io/api/platform-browser/animations/BrowserAnimationsModule) into your application enables Angular's [animation system](https://angular.io/guide/animations). Declining this will disable most of Angular Material's animations.
 
 The `ng add` command will additionally perform the following actions:
 
@@ -50,23 +39,22 @@ The `ng add` command will additionally perform the following actions:
 
 You're done! Angular Material is now configured to be used in your application.
 
-
 ### Display a component
 
 Let's display a slide toggle component in your app and verify that everything works.
 
 You need to import the `MatSlideToggleModule` that you want to display by adding the following lines to
-your `app.module.ts` file.
+your standalone component's imports, or otherwise your component's `NgModule`.
 
 ```ts
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
-@NgModule ({
+@Component ({
   imports: [
     MatSlideToggleModule,
   ]
 })
-class AppModule {}
+class AppComponent {}
 ```
 
 Add the `<mat-slide-toggle>` tag to the `app.component.html` like so:

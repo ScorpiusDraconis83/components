@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import * as ts from 'typescript';
@@ -194,7 +194,7 @@ export class UpdateProject<Context> {
   }
 
   /**
-   * Creates a program form the specified tsconfig and patches the host
+   * Creates a program from the specified tsconfig and patches the host
    * to read files and directories through the given file system.
    *
    * @throws {TsconfigParseError} If the tsconfig could not be parsed.

@@ -3,11 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 // Workaround for: https://github.com/bazelbuild/rules_nodejs/issues/1265
-/// <reference types="google.maps" />
+/// <reference types="google.maps" preserve="true" />
 
 import {
   Input,
@@ -27,6 +27,7 @@ import {take} from 'rxjs/operators';
 import {GoogleMap} from '../google-map/google-map';
 import {MapEventManager} from '../map-event-manager';
 import {MapAnchorPoint} from '../map-anchor-point';
+import {MAP_MARKER, MarkerDirective} from '../marker-utilities';
 
 /**
  * Default options for the Google Maps marker component. Displays a marker
@@ -44,9 +45,16 @@ export const DEFAULT_MARKER_OPTIONS = {
 @Directive({
   selector: 'map-marker',
   exportAs: 'mapMarker',
-  standalone: true,
+  providers: [
+    {
+      provide: MAP_MARKER,
+      useExisting: MapMarker,
+    },
+  ],
 })
-export class MapMarker implements OnInit, OnChanges, OnDestroy, MapAnchorPoint {
+export class MapMarker implements OnInit, OnChanges, OnDestroy, MapAnchorPoint, MarkerDirective {
+  private readonly _googleMap = inject(GoogleMap);
+  private _ngZone = inject(NgZone);
   private _eventManager = new MapEventManager(inject(NgZone));
 
   /**
@@ -277,10 +285,8 @@ export class MapMarker implements OnInit, OnChanges, OnDestroy, MapAnchorPoint {
    */
   marker?: google.maps.Marker;
 
-  constructor(
-    private readonly _googleMap: GoogleMap,
-    private _ngZone: NgZone,
-  ) {}
+  constructor(...args: unknown[]);
+  constructor() {}
 
   ngOnInit() {
     if (!this._googleMap._isBrowser) {

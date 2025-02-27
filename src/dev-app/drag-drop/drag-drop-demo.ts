@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Component, ViewEncapsulation, ChangeDetectionStrategy} from '@angular/core';
+import {Component, ViewEncapsulation, ChangeDetectionStrategy, inject} from '@angular/core';
 import {MatIconModule, MatIconRegistry} from '@angular/material/icon';
 import {DomSanitizer} from '@angular/platform-browser';
 import {
@@ -17,11 +17,11 @@ import {
   Point,
   DragRef,
 } from '@angular/cdk/drag-drop';
-import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
 import {MatSelectModule} from '@angular/material/select';
+import {MatCheckbox} from '@angular/material/checkbox';
 
 @Component({
   selector: 'drag-drop-demo',
@@ -29,15 +29,14 @@ import {MatSelectModule} from '@angular/material/select';
   styleUrl: 'drag-drop-demo.css',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
-    CommonModule,
     DragDropModule,
     FormsModule,
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
     MatSelectModule,
+    MatCheckbox,
   ],
 })
 export class DragAndDropDemo {
@@ -45,11 +44,17 @@ export class DragAndDropDemo {
   dragStartDelay = 0;
   todo = ['Go out for Lunch', 'Make a cool app', 'Watch TV', 'Eat a healthy dinner', 'Go to sleep'];
   done = ['Get up', 'Have breakfast', 'Brush teeth', 'Check reddit'];
+  mixedTodo = this.todo.slice();
+  mixedDone = this.done.slice();
+  mixedWrap = true;
 
   ages = ['Stone age', 'Bronze age', 'Iron age', 'Middle ages'];
   preferredAges = ['Modern period', 'Renaissance'];
 
-  constructor(iconRegistry: MatIconRegistry, sanitizer: DomSanitizer) {
+  constructor() {
+    const iconRegistry = inject(MatIconRegistry);
+    const sanitizer = inject(DomSanitizer);
+
     iconRegistry.addSvgIconLiteral(
       'dnd-move',
       sanitizer.bypassSecurityTrustHtml(

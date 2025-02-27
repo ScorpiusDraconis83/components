@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Directionality} from '@angular/cdk/bidi';
@@ -18,19 +18,22 @@ import {
   ContentChildren,
   ElementRef,
   inject,
-  Inject,
   Input,
   NgZone,
   numberAttribute,
   OnDestroy,
-  Optional,
   QueryList,
   ViewChild,
   ViewChildren,
   ViewEncapsulation,
   ANIMATION_MODULE_TYPE,
 } from '@angular/core';
-import {MAT_RIPPLE_GLOBAL_OPTIONS, RippleGlobalOptions, ThemePalette} from '@angular/material/core';
+import {
+  _StructuralStylesLoader,
+  MAT_RIPPLE_GLOBAL_OPTIONS,
+  RippleGlobalOptions,
+  ThemePalette,
+} from '@angular/material/core';
 import {Subscription} from 'rxjs';
 import {
   _MatThumb,
@@ -45,6 +48,7 @@ import {
   MAT_SLIDER_VISUAL_THUMB,
 } from './slider-interface';
 import {MatSliderVisualThumb} from './slider-thumb';
+import {_CdkPrivateStyleLoader} from '@angular/cdk/private';
 
 // TODO(wagnermaciel): maybe handle the following edge case:
 // 1. start dragging discrete slider
@@ -72,10 +76,17 @@ import {MatSliderVisualThumb} from './slider-thumb';
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   providers: [{provide: MAT_SLIDER, useExisting: MatSlider}],
-  standalone: true,
   imports: [MatSliderVisualThumb],
 })
 export class MatSlider implements AfterViewInit, OnDestroy, _MatSlider {
+  readonly _ngZone = inject(NgZone);
+  readonly _cdr = inject(ChangeDetectorRef);
+  readonly _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  readonly _dir = inject(Directionality, {optional: true});
+  readonly _globalRippleOptions = inject<RippleGlobalOptions>(MAT_RIPPLE_GLOBAL_OPTIONS, {
+    optional: true,
+  });
+
   /** The active portion of the slider track. */
   @ViewChild('trackActive') _trackActive: ElementRef<HTMLElement>;
 
@@ -136,7 +147,13 @@ export class MatSlider implements AfterViewInit, OnDestroy, _MatSlider {
   }
   private _min: number = 0;
 
-  /** Palette color of the slider. */
+  /**
+   * Theme color of the slider. This API is supported in M2 themes only, it
+   * has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/slider/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   @Input()
   color: ThemePalette;
 
@@ -389,19 +406,17 @@ export class MatSlider implements AfterViewInit, OnDestroy, _MatSlider {
 
   private _platform = inject(Platform);
 
-  constructor(
-    readonly _ngZone: NgZone,
-    readonly _cdr: ChangeDetectorRef,
-    readonly _elementRef: ElementRef<HTMLElement>,
-    @Optional() readonly _dir: Directionality,
-    @Optional()
-    @Inject(MAT_RIPPLE_GLOBAL_OPTIONS)
-    readonly _globalRippleOptions?: RippleGlobalOptions,
-    @Optional() @Inject(ANIMATION_MODULE_TYPE) animationMode?: string,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    inject(_CdkPrivateStyleLoader).load(_StructuralStylesLoader);
+    const animationMode = inject(ANIMATION_MODULE_TYPE, {optional: true});
     this._noopAnimations = animationMode === 'NoopAnimations';
-    this._dirChangeSubscription = this._dir.change.subscribe(() => this._onDirChange());
-    this._isRtl = this._dir.value === 'rtl';
+
+    if (this._dir) {
+      this._dirChangeSubscription = this._dir.change.subscribe(() => this._onDirChange());
+      this._isRtl = this._dir.value === 'rtl';
+    }
   }
 
   /** The radius of the native slider's knob. AFAIK there is no way to avoid hardcoding this. */
@@ -422,7 +437,7 @@ export class MatSlider implements AfterViewInit, OnDestroy, _MatSlider {
     if (typeof ngDevMode === 'undefined' || ngDevMode) {
       _validateInputs(
         this._isRange,
-        this._getInput(_MatThumb.END)!,
+        this._getInput(_MatThumb.END),
         this._getInput(_MatThumb.START),
       );
     }
@@ -482,7 +497,7 @@ export class MatSlider implements AfterViewInit, OnDestroy, _MatSlider {
 
   /** Handles updating the slider ui after a dir change. */
   private _onDirChange(): void {
-    this._isRtl = this._dir.value === 'rtl';
+    this._isRtl = this._dir?.value === 'rtl';
     this._isRange ? this._onDirChangeRange() : this._onDirChangeNonRange();
     this._updateTickMarkUI();
   }
@@ -575,7 +590,8 @@ export class MatSlider implements AfterViewInit, OnDestroy, _MatSlider {
   /** Returns the translateX positioning for a tick mark based on it's index. */
   _calcTickMarkTransform(index: number): string {
     // TODO(wagnermaciel): See if we can avoid doing this and just using flex to position these.
-    const translateX = index * (this._tickMarkTrackWidth / (this._tickMarks.length - 1));
+    const offset = index * (this._tickMarkTrackWidth / (this._tickMarks.length - 1));
+    const translateX = this._isRtl ? this._cachedWidth - 6 - offset : offset;
     return `translateX(${translateX}px`;
   }
 
@@ -773,7 +789,7 @@ export class MatSlider implements AfterViewInit, OnDestroy, _MatSlider {
     const step = this._step && this._step > 0 ? this._step : 1;
     const maxValue = Math.floor(this.max / step) * step;
     const percentage = (maxValue - this.min) / (this.max - this.min);
-    this._tickMarkTrackWidth = this._cachedWidth * percentage - 6;
+    this._tickMarkTrackWidth = (this._cachedWidth - 6) * percentage;
   }
 
   // Track active update conditions
@@ -862,16 +878,12 @@ export class MatSlider implements AfterViewInit, OnDestroy, _MatSlider {
     }
     const step = this.step > 0 ? this.step : 1;
     this._isRange ? this._updateTickMarkUIRange(step) : this._updateTickMarkUINonRange(step);
-
-    if (this._isRtl) {
-      this._tickMarks.reverse();
-    }
   }
 
   private _updateTickMarkUINonRange(step: number): void {
     const value = this._getValue();
-    let numActive = Math.max(Math.round((value - this.min) / step), 0);
-    let numInactive = Math.max(Math.round((this.max - value) / step), 0);
+    let numActive = Math.max(Math.round((value - this.min) / step), 0) + 1;
+    let numInactive = Math.max(Math.round((this.max - value) / step), 0) - 1;
     this._isRtl ? numActive++ : numInactive++;
 
     this._tickMarks = Array(numActive)
@@ -932,12 +944,12 @@ export class MatSlider implements AfterViewInit, OnDestroy, _MatSlider {
 /** Ensures that there is not an invalid configuration for the slider thumb inputs. */
 function _validateInputs(
   isRange: boolean,
-  endInputElement: _MatSliderThumb | _MatSliderRangeThumb,
-  startInputElement?: _MatSliderThumb,
+  endInputElement: _MatSliderThumb | _MatSliderRangeThumb | undefined,
+  startInputElement: _MatSliderThumb | undefined,
 ): void {
   const startValid =
     !isRange || startInputElement?._hostElement.hasAttribute('matSliderStartThumb');
-  const endValid = endInputElement._hostElement.hasAttribute(
+  const endValid = endInputElement?._hostElement.hasAttribute(
     isRange ? 'matSliderEndThumb' : 'matSliderThumb',
   );
 

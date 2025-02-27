@@ -3,12 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {DOCUMENT} from '@angular/common';
-import {Inject, Injectable, NgZone, Optional} from '@angular/core';
-import {Platform, _getEventTarget} from '@angular/cdk/platform';
+import {Injectable, NgZone, RendererFactory2, inject} from '@angular/core';
+import {Platform, _bindEventWithOptions, _getEventTarget} from '@angular/cdk/platform';
 import {BaseOverlayDispatcher} from './base-overlay-dispatcher';
 import type {OverlayRef} from '../overlay-ref';
 
@@ -19,18 +18,14 @@ import type {OverlayRef} from '../overlay-ref';
  */
 @Injectable({providedIn: 'root'})
 export class OverlayOutsideClickDispatcher extends BaseOverlayDispatcher {
+  private _platform = inject(Platform);
+  private _ngZone = inject(NgZone);
+  private _renderer = inject(RendererFactory2).createRenderer(null, null);
+
   private _cursorOriginalValue: string;
   private _cursorStyleIsSet = false;
-  private _pointerDownEventTarget: EventTarget | null;
-
-  constructor(
-    @Inject(DOCUMENT) document: any,
-    private _platform: Platform,
-    /** @breaking-change 14.0.0 _ngZone will be required. */
-    @Optional() private _ngZone?: NgZone,
-  ) {
-    super(document);
-  }
+  private _pointerDownEventTarget: HTMLElement | null;
+  private _cleanups: (() => void)[] | undefined;
 
   /** Add a new overlay to the list of attached overlay refs. */
   override add(overlayRef: OverlayRef): void {
@@ -44,13 +39,26 @@ export class OverlayOutsideClickDispatcher extends BaseOverlayDispatcher {
     // https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariWebContent/HandlingEvents/HandlingEvents.html
     if (!this._isAttached) {
       const body = this._document.body;
+      const eventOptions = {capture: true};
 
-      /** @breaking-change 14.0.0 _ngZone will be required. */
-      if (this._ngZone) {
-        this._ngZone.runOutsideAngular(() => this._addEventListeners(body));
-      } else {
-        this._addEventListeners(body);
-      }
+      this._cleanups = this._ngZone.runOutsideAngular(() => [
+        _bindEventWithOptions(
+          this._renderer,
+          body,
+          'pointerdown',
+          this._pointerDownListener,
+          eventOptions,
+        ),
+        _bindEventWithOptions(this._renderer, body, 'click', this._clickListener, eventOptions),
+        _bindEventWithOptions(this._renderer, body, 'auxclick', this._clickListener, eventOptions),
+        _bindEventWithOptions(
+          this._renderer,
+          body,
+          'contextmenu',
+          this._clickListener,
+          eventOptions,
+        ),
+      ]);
 
       // click event is not fired on iOS. To make element "clickable" we are
       // setting the cursor to pointer
@@ -67,34 +75,24 @@ export class OverlayOutsideClickDispatcher extends BaseOverlayDispatcher {
   /** Detaches the global keyboard event listener. */
   protected detach() {
     if (this._isAttached) {
-      const body = this._document.body;
-      body.removeEventListener('pointerdown', this._pointerDownListener, true);
-      body.removeEventListener('click', this._clickListener, true);
-      body.removeEventListener('auxclick', this._clickListener, true);
-      body.removeEventListener('contextmenu', this._clickListener, true);
+      this._cleanups?.forEach(cleanup => cleanup());
+      this._cleanups = undefined;
       if (this._platform.IOS && this._cursorStyleIsSet) {
-        body.style.cursor = this._cursorOriginalValue;
+        this._document.body.style.cursor = this._cursorOriginalValue;
         this._cursorStyleIsSet = false;
       }
       this._isAttached = false;
     }
   }
 
-  private _addEventListeners(body: HTMLElement): void {
-    body.addEventListener('pointerdown', this._pointerDownListener, true);
-    body.addEventListener('click', this._clickListener, true);
-    body.addEventListener('auxclick', this._clickListener, true);
-    body.addEventListener('contextmenu', this._clickListener, true);
-  }
-
   /** Store pointerdown event target to track origin of click. */
   private _pointerDownListener = (event: PointerEvent) => {
-    this._pointerDownEventTarget = _getEventTarget(event);
+    this._pointerDownEventTarget = _getEventTarget<HTMLElement>(event);
   };
 
   /** Click event listener that will be attached to the body propagate phase. */
   private _clickListener = (event: MouseEvent) => {
-    const target = _getEventTarget(event);
+    const target = _getEventTarget<HTMLElement>(event);
     // In case of a click event, we want to check the origin of the click
     // (e.g. in case where a user starts a click inside the overlay and
     // releases the click outside of it).
@@ -128,8 +126,8 @@ export class OverlayOutsideClickDispatcher extends BaseOverlayDispatcher {
       // If it's an outside click (both origin and target of the click) dispatch the mouse event,
       // and proceed with the next overlay
       if (
-        overlayRef.overlayElement.contains(target as Node) ||
-        overlayRef.overlayElement.contains(origin as Node)
+        containsPierceShadowDom(overlayRef.overlayElement, target) ||
+        containsPierceShadowDom(overlayRef.overlayElement, origin)
       ) {
         break;
       }
@@ -143,4 +141,21 @@ export class OverlayOutsideClickDispatcher extends BaseOverlayDispatcher {
       }
     }
   };
+}
+
+/** Version of `Element.contains` that transcends shadow DOM boundaries. */
+function containsPierceShadowDom(parent: HTMLElement, child: HTMLElement | null): boolean {
+  const supportsShadowRoot = typeof ShadowRoot !== 'undefined' && ShadowRoot;
+  let current: Node | null = child;
+
+  while (current) {
+    if (current === parent) {
+      return true;
+    }
+
+    current =
+      supportsShadowRoot && current instanceof ShadowRoot ? current.host : current.parentNode;
+  }
+
+  return false;
 }

@@ -5,7 +5,6 @@ export {DateRangePickerSelectionStrategyExample} from './date-range-picker-selec
 export {DatepickerActionsExample} from './datepicker-actions/datepicker-actions-example';
 
 export {DatepickerApiExample} from './datepicker-api/datepicker-api-example';
-export {DatepickerColorExample} from './datepicker-color/datepicker-color-example';
 export {
   DatepickerCustomHeaderExample,
   ExampleHeader,
@@ -26,3 +25,4 @@ export {DatepickerStartViewExample} from './datepicker-start-view/datepicker-sta
 export {DatepickerTouchExample} from './datepicker-touch/datepicker-touch-example';
 export {DatepickerValueExample} from './datepicker-value/datepicker-value-example';
 export {DatepickerViewsSelectionExample} from './datepicker-views-selection/datepicker-views-selection-example';
+export {DatepickerDialogExample} from './datepicker-dialog/datepicker-dialog-example';

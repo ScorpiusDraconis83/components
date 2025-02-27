@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Subject} from 'rxjs';
@@ -91,7 +91,7 @@ export class SelectionModel<T> {
   setSelection(...values: T[]): boolean | void {
     this._verifyValueAssignment(values);
     const oldValues = this.selected;
-    const newSelectedSet = new Set(values);
+    const newSelectedSet = new Set(values.map(value => this._getConcreteValue(value)));
     values.forEach(value => this._markSelected(value));
     oldValues
       .filter(value => !newSelectedSet.has(this._getConcreteValue(value, newSelectedSet)))

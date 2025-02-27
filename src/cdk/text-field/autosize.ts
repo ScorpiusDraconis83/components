@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {NumberInput, coerceNumberProperty} from '@angular/cdk/coercion';
@@ -15,14 +15,16 @@ import {
   DoCheck,
   OnDestroy,
   NgZone,
-  Optional,
-  Inject,
   booleanAttribute,
+  inject,
+  Renderer2,
 } from '@angular/core';
-import {Platform} from '@angular/cdk/platform';
-import {auditTime, takeUntil} from 'rxjs/operators';
-import {fromEvent, Subject} from 'rxjs';
 import {DOCUMENT} from '@angular/common';
+import {Platform} from '@angular/cdk/platform';
+import {_CdkPrivateStyleLoader} from '@angular/cdk/private';
+import {auditTime} from 'rxjs/operators';
+import {Subject} from 'rxjs';
+import {_CdkTextFieldStyleLoader} from './text-field-style-loader';
 
 /** Directive to automatically resize a textarea to fit its content. */
 @Directive({
@@ -35,13 +37,19 @@ import {DOCUMENT} from '@angular/common';
     'rows': '1',
     '(input)': '_noopInputHandler()',
   },
-  standalone: true,
 })
 export class CdkTextareaAutosize implements AfterViewInit, DoCheck, OnDestroy {
+  private _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  private _platform = inject(Platform);
+  private _ngZone = inject(NgZone);
+  private _renderer = inject(Renderer2);
+  private _resizeEvents = new Subject<void>();
+
   /** Keep track of the previous textarea value to avoid resizing when the value hasn't changed. */
   private _previousValue?: string;
   private _initialHeight: string | undefined;
   private readonly _destroyed = new Subject<void>();
+  private _listenerCleanups: (() => void)[] | undefined;
 
   private _minRows: number;
   private _maxRows: number;
@@ -106,26 +114,22 @@ export class CdkTextareaAutosize implements AfterViewInit, DoCheck, OnDestroy {
   }
 
   /** Cached height of a textarea with a single row. */
-  private _cachedLineHeight: number;
+  private _cachedLineHeight?: number;
   /** Cached height of a textarea with only the placeholder. */
   private _cachedPlaceholderHeight?: number;
 
   /** Used to reference correct document/window */
-  protected _document?: Document;
+  protected _document? = inject(DOCUMENT, {optional: true});
 
   private _hasFocus: boolean;
 
   private _isViewInited = false;
 
-  constructor(
-    private _elementRef: ElementRef<HTMLElement>,
-    private _platform: Platform,
-    private _ngZone: NgZone,
-    /** @breaking-change 11.0.0 make document required */
-    @Optional() @Inject(DOCUMENT) document?: any,
-  ) {
-    this._document = document;
+  constructor(...args: unknown[]);
 
+  constructor() {
+    const styleLoader = inject(_CdkPrivateStyleLoader);
+    styleLoader.load(_CdkTextFieldStyleLoader);
     this._textareaElement = this._elementRef.nativeElement as HTMLTextAreaElement;
   }
 
@@ -156,14 +160,17 @@ export class CdkTextareaAutosize implements AfterViewInit, DoCheck, OnDestroy {
       this.resizeToFitContent();
 
       this._ngZone.runOutsideAngular(() => {
-        const window = this._getWindow();
-
-        fromEvent(window, 'resize')
-          .pipe(auditTime(16), takeUntil(this._destroyed))
-          .subscribe(() => this.resizeToFitContent(true));
-
-        this._textareaElement.addEventListener('focus', this._handleFocusEvent);
-        this._textareaElement.addEventListener('blur', this._handleFocusEvent);
+        this._listenerCleanups = [
+          this._renderer.listen('window', 'resize', () => this._resizeEvents.next()),
+          this._renderer.listen(this._textareaElement, 'focus', this._handleFocusEvent),
+          this._renderer.listen(this._textareaElement, 'blur', this._handleFocusEvent),
+        ];
+        this._resizeEvents.pipe(auditTime(16)).subscribe(() => {
+          // Clear the cached heights since the styles can change
+          // when the window is resized (e.g. by media queries).
+          this._cachedLineHeight = this._cachedPlaceholderHeight = undefined;
+          this.resizeToFitContent(true);
+        });
       });
 
       this._isViewInited = true;
@@ -172,8 +179,8 @@ export class CdkTextareaAutosize implements AfterViewInit, DoCheck, OnDestroy {
   }
 
   ngOnDestroy() {
-    this._textareaElement.removeEventListener('focus', this._handleFocusEvent);
-    this._textareaElement.removeEventListener('blur', this._handleFocusEvent);
+    this._listenerCleanups?.forEach(cleanup => cleanup());
+    this._resizeEvents.complete();
     this._destroyed.next();
     this._destroyed.complete();
   }
@@ -191,26 +198,30 @@ export class CdkTextareaAutosize implements AfterViewInit, DoCheck, OnDestroy {
     }
 
     // Use a clone element because we have to override some styles.
-    let textareaClone = this._textareaElement.cloneNode(false) as HTMLTextAreaElement;
+    const textareaClone = this._textareaElement.cloneNode(false) as HTMLTextAreaElement;
+    const cloneStyles = textareaClone.style;
     textareaClone.rows = 1;
 
     // Use `position: absolute` so that this doesn't cause a browser layout and use
     // `visibility: hidden` so that nothing is rendered. Clear any other styles that
     // would affect the height.
-    textareaClone.style.position = 'absolute';
-    textareaClone.style.visibility = 'hidden';
-    textareaClone.style.border = 'none';
-    textareaClone.style.padding = '0';
-    textareaClone.style.height = '';
-    textareaClone.style.minHeight = '';
-    textareaClone.style.maxHeight = '';
+    cloneStyles.position = 'absolute';
+    cloneStyles.visibility = 'hidden';
+    cloneStyles.border = 'none';
+    cloneStyles.padding = '0';
+    cloneStyles.height = '';
+    cloneStyles.minHeight = '';
+    cloneStyles.maxHeight = '';
+
+    // App styles might be messing with the height through the positioning properties.
+    cloneStyles.top = cloneStyles.bottom = cloneStyles.left = cloneStyles.right = 'auto';
 
     // In Firefox it happens that textarea elements are always bigger than the specified amount
     // of rows. This is because Firefox tries to add extra space for the horizontal scrollbar.
     // As a workaround that removes the extra space for the scrollbar, we can just set overflow
     // to hidden. This ensures that there is no invalid calculation of the line height.
     // See Firefox bug report: https://bugzilla.mozilla.org/show_bug.cgi?id=33654
-    textareaClone.style.overflow = 'hidden';
+    cloneStyles.overflow = 'hidden';
 
     this._textareaElement.parentNode!.appendChild(textareaClone);
     this._cachedLineHeight = textareaClone.clientHeight;
@@ -338,17 +349,6 @@ export class CdkTextareaAutosize implements AfterViewInit, DoCheck, OnDestroy {
 
   _noopInputHandler() {
     // no-op handler that ensures we're running change detection on input events.
-  }
-
-  /** Access injected document if available or fallback to global document reference */
-  private _getDocument(): Document {
-    return this._document || document;
-  }
-
-  /** Use defaultView of injected document if available or fallback to global window reference */
-  private _getWindow(): Window {
-    const doc = this._getDocument();
-    return doc.defaultView || window;
   }
 
   /**

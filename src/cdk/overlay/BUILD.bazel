@@ -18,13 +18,18 @@ ng_module(
         ["**/*.ts"],
         exclude = ["**/*.spec.ts"],
     ),
+    assets = [
+        ":overlay-structure.css",
+    ],
     deps = [
         "//src:dev_mode_types",
+        "//src/cdk/a11y",
         "//src/cdk/bidi",
         "//src/cdk/coercion",
         "//src/cdk/keycodes",
         "//src/cdk/platform",
         "//src/cdk/portal",
+        "//src/cdk/private",
         "//src/cdk/scrolling",
         "@npm//@angular/common",
         "@npm//@angular/core",
@@ -42,7 +47,14 @@ sass_binary(
     src = "overlay-prebuilt.scss",
     deps = [
         ":overlay_scss_lib",
-        "//src/cdk/a11y:a11y_scss_lib",
+    ],
+)
+
+sass_binary(
+    name = "overlay_structure_scss",
+    src = "overlay-structure.scss",
+    deps = [
+        ":overlay_scss_lib",
     ],
 )
 

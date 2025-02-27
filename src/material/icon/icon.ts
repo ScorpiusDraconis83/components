@@ -3,26 +3,24 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {DOCUMENT} from '@angular/common';
 import {
   AfterViewChecked,
-  Attribute,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
   ElementRef,
   ErrorHandler,
   inject,
-  Inject,
   InjectionToken,
   Input,
   OnDestroy,
   OnInit,
-  Optional,
   ViewEncapsulation,
+  HostAttributeToken,
 } from '@angular/core';
 import {ThemePalette} from '@angular/material/core';
 import {Subscription} from 'rxjs';
@@ -32,7 +30,13 @@ import {MatIconRegistry} from './icon-registry';
 
 /** Default options for `mat-icon`.  */
 export interface MatIconDefaultOptions {
-  /** Default color of the icon. */
+  /**
+   * Theme color of the icon. This API is supported in M2 themes only, it
+   * has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/icon/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   color?: ThemePalette;
   /** Font set that the icon is a part of. */
   fontSet?: string;
@@ -123,7 +127,7 @@ const funcIriPattern = /^url\(['"]?#(.*?)['"]?\)$/;
  * - Specify a font glyph to be included via CSS rules by setting the fontSet input to specify the
  *   font, and the fontIcon input to specify the icon. Typically the fontIcon will specify a
  *   CSS class which causes the glyph to be displayed via a :before selector, as in
- *   https://fortawesome.github.io/Font-Awesome/examples/
+ *   https://fontawesome-v4.github.io/examples/
  *   Example:
  *     `<mat-icon fontSet="fa" fontIcon="alarm"></mat-icon>`
  */
@@ -145,12 +149,21 @@ const funcIriPattern = /^url\(['"]?#(.*?)['"]?\)$/;
   },
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
 })
 export class MatIcon implements OnInit, AfterViewChecked, OnDestroy {
+  readonly _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  private _iconRegistry = inject(MatIconRegistry);
+  private _location = inject<MatIconLocation>(MAT_ICON_LOCATION);
+  private readonly _errorHandler = inject(ErrorHandler);
   private _defaultColor: ThemePalette;
 
-  /** Theme palette color of the icon. */
+  /**
+   * Theme color of the icon. This API is supported in M2 themes only, it
+   * has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/icon/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   @Input()
   get color() {
     return this._color || this._defaultColor;
@@ -229,16 +242,12 @@ export class MatIcon implements OnInit, AfterViewChecked, OnDestroy {
   /** Subscription to the current in-progress SVG icon request. */
   private _currentIconFetch = Subscription.EMPTY;
 
-  constructor(
-    readonly _elementRef: ElementRef<HTMLElement>,
-    private _iconRegistry: MatIconRegistry,
-    @Attribute('aria-hidden') ariaHidden: string,
-    @Inject(MAT_ICON_LOCATION) private _location: MatIconLocation,
-    private readonly _errorHandler: ErrorHandler,
-    @Optional()
-    @Inject(MAT_ICON_DEFAULT_OPTIONS)
-    defaults?: MatIconDefaultOptions,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const ariaHidden = inject(new HostAttributeToken('aria-hidden'), {optional: true});
+    const defaults = inject<MatIconDefaultOptions>(MAT_ICON_DEFAULT_OPTIONS, {optional: true});
+
     if (defaults) {
       if (defaults.color) {
         this.color = this._defaultColor = defaults.color;
@@ -252,7 +261,7 @@ export class MatIcon implements OnInit, AfterViewChecked, OnDestroy {
     // If the user has not explicitly set aria-hidden, mark the icon as hidden, as this is
     // the right thing to do for the majority of icon use-cases.
     if (!ariaHidden) {
-      _elementRef.nativeElement.setAttribute('aria-hidden', 'true');
+      this._elementRef.nativeElement.setAttribute('aria-hidden', 'true');
     }
   }
 

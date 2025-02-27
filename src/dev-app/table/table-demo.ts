@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -14,24 +14,19 @@ import {
 } from '@angular/components-examples/cdk/table';
 import {
   TableBasicExample,
-  TableColumnStylingExample,
-  TableDynamicArrayDataExample,
   TableDynamicColumnsExample,
-  TableDynamicObservableDataExample,
   TableExpandableRowsExample,
   TableFilteringExample,
   TableFlexBasicExample,
   TableFlexLargeRowExample,
   TableFooterRowExample,
-  TableGeneratedColumnsExample,
-  TableHarnessExample,
   TableHttpExample,
   TableMultipleHeaderFooterExample,
+  TableMultipleRowTemplateExample,
   TableOverviewExample,
   TablePaginationExample,
   TableRecycleRowsExample,
   TableReorderableExample,
-  TableRowBindingExample,
   TableRowContextExample,
   TableSelectionExample,
   TableSortingExample,
@@ -42,14 +37,12 @@ import {
   TableStickyHeaderExample,
   TableTextColumnAdvancedExample,
   TableTextColumnExample,
-  TableWithRipplesExample,
   TableWrappedExample,
 } from '@angular/components-examples/material/table';
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 
 @Component({
   templateUrl: './table-demo.html',
-  standalone: true,
   imports: [
     CdkTableFlexBasicExample,
     CdkTableBasicExample,
@@ -63,6 +56,7 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
     TableFooterRowExample,
     TableHttpExample,
     TableMultipleHeaderFooterExample,
+    TableMultipleRowTemplateExample,
     TableOverviewExample,
     TablePaginationExample,
     TableRowContextExample,
@@ -78,13 +72,6 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
     TableWrappedExample,
     TableReorderableExample,
     TableRecycleRowsExample,
-    TableHarnessExample,
-    TableWithRipplesExample,
-    TableColumnStylingExample,
-    TableRowBindingExample,
-    TableDynamicArrayDataExample,
-    TableDynamicObservableDataExample,
-    TableGeneratedColumnsExample,
     TableFlexLargeRowExample,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,

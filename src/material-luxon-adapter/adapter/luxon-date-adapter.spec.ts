@@ -3,11 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {LOCALE_ID} from '@angular/core';
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {TestBed} from '@angular/core/testing';
 import {DateAdapter, MAT_DATE_LOCALE} from '@angular/material/core';
 import {CalendarSystem, DateTime, FixedOffsetZone, Settings} from 'luxon';
 import {LuxonDateModule} from './index';
@@ -21,14 +21,11 @@ const JAN = 1,
 describe('LuxonDateAdapter', () => {
   let adapter: DateAdapter<DateTime>;
 
-  beforeEach(waitForAsync(() => {
-    TestBed.configureTestingModule({
-      imports: [LuxonDateModule],
-    }).compileComponents();
-
+  beforeEach(() => {
+    TestBed.configureTestingModule({imports: [LuxonDateModule]});
     adapter = TestBed.inject(DateAdapter);
     adapter.setLocale('en-US');
-  }));
+  });
 
   it('should get year', () => {
     expect(adapter.getYear(DateTime.local(2017, JAN, 1))).toBe(2017);
@@ -261,7 +258,8 @@ describe('LuxonDateAdapter', () => {
   });
 
   it('should get first day of week', () => {
-    expect(adapter.getFirstDayOfWeek()).toBe(0);
+    adapter.setLocale('bg-BG');
+    expect(adapter.getFirstDayOfWeek()).toBe(1);
   });
 
   it('should create Luxon date', () => {
@@ -550,19 +548,164 @@ describe('LuxonDateAdapter', () => {
   it('should create invalid date', () => {
     assertValidDate(adapter, adapter.invalid(), false);
   });
+
+  it('should get hours', () => {
+    expect(adapter.getHours(DateTime.local(2024, JAN, 1, 14))).toBe(14);
+  });
+
+  it('should get minutes', () => {
+    expect(adapter.getMinutes(DateTime.local(2024, JAN, 1, 14, 53))).toBe(53);
+  });
+
+  it('should get seconds', () => {
+    expect(adapter.getSeconds(DateTime.local(2024, JAN, 1, 14, 53, 42))).toBe(42);
+  });
+
+  it('should set the time of a date', () => {
+    const target = DateTime.local(2024, JAN, 1, 0, 0, 0);
+    const result = adapter.setTime(target, 14, 53, 42);
+    expect(adapter.getHours(result)).toBe(14);
+    expect(adapter.getMinutes(result)).toBe(53);
+    expect(adapter.getSeconds(result)).toBe(42);
+  });
+
+  it('should throw when passing in invalid hours to setTime', () => {
+    expect(() => adapter.setTime(adapter.today(), -1, 0, 0)).toThrowError(
+      'Invalid hours "-1". Hours value must be between 0 and 23.',
+    );
+    expect(() => adapter.setTime(adapter.today(), 51, 0, 0)).toThrowError(
+      'Invalid hours "51". Hours value must be between 0 and 23.',
+    );
+  });
+
+  it('should throw when passing in invalid minutes to setTime', () => {
+    expect(() => adapter.setTime(adapter.today(), 0, -1, 0)).toThrowError(
+      'Invalid minutes "-1". Minutes value must be between 0 and 59.',
+    );
+    expect(() => adapter.setTime(adapter.today(), 0, 65, 0)).toThrowError(
+      'Invalid minutes "65". Minutes value must be between 0 and 59.',
+    );
+  });
+
+  it('should throw when passing in invalid seconds to setTime', () => {
+    expect(() => adapter.setTime(adapter.today(), 0, 0, -1)).toThrowError(
+      'Invalid seconds "-1". Seconds value must be between 0 and 59.',
+    );
+    expect(() => adapter.setTime(adapter.today(), 0, 0, 65)).toThrowError(
+      'Invalid seconds "65". Seconds value must be between 0 and 59.',
+    );
+  });
+
+  it('should parse a 24-hour time string', () => {
+    const result = adapter.parseTime('14:52', 't')!;
+    expect(result).toBeTruthy();
+    expect(adapter.isValid(result)).toBe(true);
+    expect(adapter.getHours(result)).toBe(14);
+    expect(adapter.getMinutes(result)).toBe(52);
+    expect(adapter.getSeconds(result)).toBe(0);
+  });
+
+  it('should parse a 12-hour time string', () => {
+    const result = adapter.parseTime('2:52 PM', 't')!;
+    expect(result).toBeTruthy();
+    expect(adapter.isValid(result)).toBe(true);
+    expect(adapter.getHours(result)).toBe(14);
+    expect(adapter.getMinutes(result)).toBe(52);
+    expect(adapter.getSeconds(result)).toBe(0);
+  });
+
+  it('should parse a padded time string', () => {
+    const result = adapter.parseTime('03:04:05', 'tt')!;
+    expect(result).toBeTruthy();
+    expect(adapter.isValid(result)).toBe(true);
+    expect(adapter.getHours(result)).toBe(3);
+    expect(adapter.getMinutes(result)).toBe(4);
+    expect(adapter.getSeconds(result)).toBe(5);
+  });
+
+  it('should parse a time string that uses dot as a separator', () => {
+    adapter.setLocale('fi-FI');
+    const result = adapter.parseTime('14.52', 't')!;
+    expect(result).toBeTruthy();
+    expect(adapter.isValid(result)).toBe(true);
+    expect(adapter.getHours(result)).toBe(14);
+    expect(adapter.getMinutes(result)).toBe(52);
+    expect(adapter.getSeconds(result)).toBe(0);
+  });
+
+  it('should parse a time string with characters around the time', () => {
+    adapter.setLocale('bg-BG');
+    const result = adapter.parseTime('14:52 ч.', 't')!;
+    expect(result).toBeTruthy();
+    expect(adapter.isValid(result)).toBe(true);
+    expect(adapter.getHours(result)).toBe(14);
+    expect(adapter.getMinutes(result)).toBe(52);
+    expect(adapter.getSeconds(result)).toBe(0);
+  });
+
+  it('should return an invalid date when parsing invalid time string', () => {
+    expect(adapter.isValid(adapter.parseTime('abc', 't')!)).toBeFalse();
+    expect(adapter.isValid(adapter.parseTime('    ', 't')!)).toBeFalse();
+    expect(adapter.isValid(adapter.parseTime('24:05', 't')!)).toBeFalse();
+    expect(adapter.isValid(adapter.parseTime('00:61:05', 'tt')!)).toBeFalse();
+    expect(adapter.isValid(adapter.parseTime('14:52:78', 'tt')!)).toBeFalse();
+    expect(adapter.isValid(adapter.parseTime('12:10 PM11:10 PM', 'tt')!)).toBeFalse();
+  });
+
+  it('should return null when parsing unsupported time values', () => {
+    expect(adapter.parseTime(true, 't')).toBeNull();
+    expect(adapter.parseTime(undefined, 't')).toBeNull();
+    expect(adapter.parseTime('', 't')).toBeNull();
+  });
+
+  it('should compare times', () => {
+    // Use different dates to guarantee that we only compare the times.
+    const aDate = [2024, JAN, 1] as const;
+    const bDate = [2024, FEB, 7] as const;
+
+    expect(
+      adapter.compareTime(DateTime.local(...aDate, 12, 0, 0), DateTime.local(...bDate, 13, 0, 0)),
+    ).toBeLessThan(0);
+    expect(
+      adapter.compareTime(DateTime.local(...aDate, 12, 50, 0), DateTime.local(...bDate, 12, 51, 0)),
+    ).toBeLessThan(0);
+    expect(
+      adapter.compareTime(DateTime.local(...aDate, 1, 2, 3), DateTime.local(...bDate, 1, 2, 3)),
+    ).toBe(0);
+    expect(
+      adapter.compareTime(DateTime.local(...aDate, 13, 0, 0), DateTime.local(...bDate, 12, 0, 0)),
+    ).toBeGreaterThan(0);
+    expect(
+      adapter.compareTime(
+        DateTime.local(...aDate, 12, 50, 11),
+        DateTime.local(...bDate, 12, 50, 10),
+      ),
+    ).toBeGreaterThan(0);
+    expect(
+      adapter.compareTime(DateTime.local(...aDate, 13, 0, 0), DateTime.local(...bDate, 10, 59, 59)),
+    ).toBeGreaterThan(0);
+  });
+
+  it('should add seconds to a date', () => {
+    const amount = 20;
+    const initial = DateTime.local(2024, JAN, 1, 12, 34, 56);
+    const result = adapter.addSeconds(initial, amount);
+    expect(result).not.toBe(initial);
+    expect(result.toMillis() - initial.toMillis()).toBe(amount * 1000);
+  });
 });
 
 describe('LuxonDateAdapter with MAT_DATE_LOCALE override', () => {
   let adapter: DateAdapter<DateTime>;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [LuxonDateModule],
       providers: [{provide: MAT_DATE_LOCALE, useValue: 'da-DK'}],
-    }).compileComponents();
+    });
 
     adapter = TestBed.inject(DateAdapter);
-  }));
+  });
 
   it('should take the default locale id from the MAT_DATE_LOCALE injection token', () => {
     const date = adapter.format(DateTime.local(2017, JAN, 2), 'DD');
@@ -573,14 +716,14 @@ describe('LuxonDateAdapter with MAT_DATE_LOCALE override', () => {
 describe('LuxonDateAdapter with LOCALE_ID override', () => {
   let adapter: DateAdapter<DateTime>;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [LuxonDateModule],
       providers: [{provide: LOCALE_ID, useValue: 'fr-FR'}],
-    }).compileComponents();
+    });
 
     adapter = TestBed.inject(DateAdapter);
-  }));
+  });
 
   it('should take the default locale id from the LOCALE_ID injection token', () => {
     const date = adapter.format(DateTime.local(2017, JAN, 2), 'DD');
@@ -591,7 +734,7 @@ describe('LuxonDateAdapter with LOCALE_ID override', () => {
 describe('LuxonDateAdapter with MAT_LUXON_DATE_ADAPTER_OPTIONS override', () => {
   let adapter: DateAdapter<DateTime>;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [LuxonDateModule],
       providers: [
@@ -600,10 +743,10 @@ describe('LuxonDateAdapter with MAT_LUXON_DATE_ADAPTER_OPTIONS override', () => 
           useValue: {useUtc: true, firstDayOfWeek: 1},
         },
       ],
-    }).compileComponents();
+    });
 
     adapter = TestBed.inject(DateAdapter);
-  }));
+  });
 
   describe('use UTC', () => {
     it('should create Luxon date in UTC', () => {
@@ -637,7 +780,7 @@ describe('LuxonDateAdapter with MAT_LUXON_DATE_ADAPTER_OPTIONS override for defa
 
   const calendarExample: CalendarSystem = 'islamic';
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(() => {
     TestBed.configureTestingModule({
       imports: [LuxonDateModule],
       providers: [
@@ -646,10 +789,10 @@ describe('LuxonDateAdapter with MAT_LUXON_DATE_ADAPTER_OPTIONS override for defa
           useValue: {defaultOutputCalendar: calendarExample},
         },
       ],
-    }).compileComponents();
+    });
 
     adapter = TestBed.inject(DateAdapter);
-  }));
+  });
 
   describe(`use ${calendarExample} calendar`, () => {
     it(`should create Luxon date in ${calendarExample} calendar`, () => {

@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, inject} from '@angular/core';
 import {FormBuilder, Validators, FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {STEPPER_GLOBAL_OPTIONS} from '@angular/cdk/stepper';
 import {MatIconModule} from '@angular/material/icon';
@@ -20,7 +20,6 @@ import {MatStepperModule} from '@angular/material/stepper';
       useValue: {displayDefaultIndicatorType: false},
     },
   ],
-  standalone: true,
   imports: [
     MatStepperModule,
     FormsModule,
@@ -32,12 +31,12 @@ import {MatStepperModule} from '@angular/material/stepper';
   ],
 })
 export class StepperStatesExample {
+  private _formBuilder = inject(FormBuilder);
+
   firstFormGroup = this._formBuilder.group({
     firstCtrl: ['', Validators.required],
   });
   secondFormGroup = this._formBuilder.group({
     secondCtrl: ['', Validators.required],
   });
-
-  constructor(private _formBuilder: FormBuilder) {}
 }

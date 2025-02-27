@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {FocusKeyManager} from '@angular/cdk/a11y';
@@ -17,13 +17,13 @@ import {
   ElementRef,
   Input,
   OnDestroy,
-  Optional,
   QueryList,
   ViewEncapsulation,
   booleanAttribute,
   numberAttribute,
+  inject,
 } from '@angular/core';
-import {merge, Observable, Subject} from 'rxjs';
+import {Observable, Subject, merge} from 'rxjs';
 import {startWith, switchMap, takeUntil} from 'rxjs/operators';
 import {MatChip, MatChipEvent} from './chip';
 import {MatChipAction} from './chip-action';
@@ -48,9 +48,12 @@ import {MatChipAction} from './chip-action';
   },
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
 })
 export class MatChipSet implements AfterViewInit, OnDestroy {
+  protected _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  protected _changeDetectorRef = inject(ChangeDetectorRef);
+  private _dir = inject(Directionality, {optional: true});
+
   /** Index of the last destroyed chip that had focus. */
   private _lastDestroyedFocusedChipIndex: number | null = null;
 
@@ -131,11 +134,8 @@ export class MatChipSet implements AfterViewInit, OnDestroy {
   /** Flat list of all the actions contained within the chips. */
   _chipActions = new QueryList<MatChipAction>();
 
-  constructor(
-    protected _elementRef: ElementRef<HTMLElement>,
-    protected _changeDetectorRef: ChangeDetectorRef,
-    @Optional() private _dir: Directionality,
-  ) {}
+  constructor(...args: unknown[]);
+  constructor() {}
 
   ngAfterViewInit() {
     this._setUpFocusManagement();
@@ -157,12 +157,10 @@ export class MatChipSet implements AfterViewInit, OnDestroy {
 
   /** Syncs the chip-set's state with the individual chips. */
   protected _syncChipsState() {
-    if (this._chips) {
-      this._chips.forEach(chip => {
-        chip.disabled = this._disabled;
-        chip._changeDetectorRef.markForCheck();
-      });
-    }
+    this._chips?.forEach(chip => {
+      chip._chipListDisabled = this._disabled;
+      chip._changeDetectorRef.markForCheck();
+    });
   }
 
   /** Dummy method for subclasses to override. Base chip set cannot be focused. */
@@ -191,13 +189,17 @@ export class MatChipSet implements AfterViewInit, OnDestroy {
    * it back to the first chip, creating a focus trap, if it user tries to tab away.
    */
   protected _allowFocusEscape() {
-    if (this.tabIndex !== -1) {
-      const previousTabIndex = this.tabIndex;
-      this.tabIndex = -1;
+    const previous = this._elementRef.nativeElement.tabIndex;
+
+    if (previous !== -1) {
+      // Set the tabindex directly on the element, instead of going through
+      // the data binding, because we aren't guaranteed that change detection
+      // will run quickly enough to allow focus to escape.
+      this._elementRef.nativeElement.tabIndex = -1;
 
       // Note that this needs to be a `setTimeout`, because a `Promise.resolve`
       // doesn't allow enough time for the focus to escape.
-      setTimeout(() => (this.tabIndex = previousTabIndex));
+      setTimeout(() => (this._elementRef.nativeElement.tabIndex = previous));
     }
   }
 

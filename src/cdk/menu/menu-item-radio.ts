@@ -3,16 +3,14 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {UniqueSelectionDispatcher} from '@angular/cdk/collections';
 import {Directive, inject, OnDestroy} from '@angular/core';
+import {UniqueSelectionDispatcher} from '@angular/cdk/collections';
+import {_IdGenerator} from '@angular/cdk/a11y';
 import {CdkMenuItemSelectable} from './menu-item-selectable';
 import {CdkMenuItem} from './menu-item';
-
-/** Counter used to set a unique id and name for a selectable item */
-let nextId = 0;
 
 /**
  * A directive providing behavior for the "menuitemradio" ARIA role, which behaves similarly to
@@ -22,7 +20,6 @@ let nextId = 0;
 @Directive({
   selector: '[cdkMenuItemRadio]',
   exportAs: 'cdkMenuItemRadio',
-  standalone: true,
   host: {
     'role': 'menuitemradio',
     '[class.cdk-menu-item-radio]': 'true',
@@ -37,7 +34,7 @@ export class CdkMenuItemRadio extends CdkMenuItemSelectable implements OnDestroy
   private readonly _selectionDispatcher = inject(UniqueSelectionDispatcher);
 
   /** An ID to identify this radio item to the `UniqueSelectionDispatcher`. */
-  private _id = `${nextId++}`;
+  private _id = inject(_IdGenerator).getId('cdk-menu-item-radio-');
 
   /** Function to unregister the selection dispatcher */
   private _removeDispatcherListener: () => void;

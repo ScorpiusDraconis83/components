@@ -13,14 +13,15 @@ import {
   Type,
   ViewChild,
   ViewChildren,
-  provideZoneChangeDetection,
 } from '@angular/core';
 import {ComponentFixture, TestBed, fakeAsync, flush, tick} from '@angular/core/testing';
 import {FormControl, FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {By} from '@angular/platform-browser';
 import {MatChipListbox, MatChipOption, MatChipsModule} from './index';
+import {asyncScheduler, BehaviorSubject, Observable} from 'rxjs';
+import {observeOn} from 'rxjs/operators';
 
-describe('MDC-based MatChipListbox', () => {
+describe('MatChipListbox', () => {
   let fixture: ComponentFixture<any>;
   let chipListboxDebugElement: DebugElement;
   let chipListboxNativeElement: HTMLElement;
@@ -29,11 +30,6 @@ describe('MDC-based MatChipListbox', () => {
   let chips: QueryList<MatChipOption>;
   let directionality: {value: Direction; change: EventEmitter<Direction>};
   let primaryActions: NodeListOf<HTMLElement>;
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      providers: [provideZoneChangeDetection()],
-    });
-  });
 
   describe('StandardChipList', () => {
     describe('basic behaviors', () => {
@@ -47,6 +43,7 @@ describe('MDC-based MatChipListbox', () => {
 
       it('should not have the aria-selected attribute when it is not selectable', fakeAsync(() => {
         testComponent.selectable = false;
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
         tick();
 
@@ -64,11 +61,13 @@ describe('MDC-based MatChipListbox', () => {
         expect(chips.toArray().every(chip => chip.disabled)).toBe(false);
 
         chipListboxInstance.disabled = true;
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chips.toArray().every(chip => chip.disabled)).toBe(true);
 
         chipListboxInstance.disabled = false;
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chips.toArray().every(chip => chip.disabled)).toBe(false);
@@ -78,11 +77,13 @@ describe('MDC-based MatChipListbox', () => {
         expect(chips.toArray().every(chip => chip.disabled)).toBe(false);
 
         chipListboxInstance.disabled = true;
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chips.toArray().every(chip => chip.disabled)).toBe(true);
 
         fixture.componentInstance.chips.push(5, 6);
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
         tick();
         fixture.detectChanges();
@@ -92,6 +93,7 @@ describe('MDC-based MatChipListbox', () => {
 
       it('should not set a role on the grid when the list is empty', () => {
         testComponent.chips = [];
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chipListboxNativeElement.hasAttribute('role')).toBe(false);
@@ -99,6 +101,7 @@ describe('MDC-based MatChipListbox', () => {
 
       it('should be able to set a custom role', () => {
         testComponent.role = 'grid';
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chipListboxNativeElement.getAttribute('role')).toBe('grid');
@@ -106,11 +109,21 @@ describe('MDC-based MatChipListbox', () => {
 
       it('should not set aria-required when it does not have a role', () => {
         testComponent.chips = [];
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chipListboxNativeElement.hasAttribute('role')).toBe(false);
         expect(chipListboxNativeElement.hasAttribute('aria-required')).toBe(false);
       });
+
+      it('should toggle the chips disabled state based on whether it is disabled', fakeAsync(() => {
+        fixture.destroy();
+        TestBed.resetTestingModule();
+        const disabledFixture = createComponent(IndividuallyDisabledChipInsideForm);
+        disabledFixture.detectChanges();
+        flush();
+        expect(disabledFixture.componentInstance.chip.disabled).toBe(true);
+      }));
     });
 
     describe('with selected chips', () => {
@@ -138,6 +151,7 @@ describe('MDC-based MatChipListbox', () => {
 
       it('should not have role when empty', () => {
         fixture.componentInstance.foods = [];
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chipListboxNativeElement.getAttribute('role'))
@@ -171,6 +185,7 @@ describe('MDC-based MatChipListbox', () => {
           .toBe(false);
 
         chipListboxInstance.disabled = true;
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         chipListboxInstance.focus();
@@ -185,6 +200,7 @@ describe('MDC-based MatChipListbox', () => {
         expect(chipListboxNativeElement.getAttribute('tabindex')).toBe('0');
 
         chipListboxInstance.disabled = true;
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chipListboxNativeElement.getAttribute('tabindex')).toBe('-1');
@@ -200,6 +216,7 @@ describe('MDC-based MatChipListbox', () => {
 
           // Destroy the middle item
           testComponent.chips.splice(2, 1);
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           // It focuses the 4th item
@@ -213,6 +230,7 @@ describe('MDC-based MatChipListbox', () => {
 
           // Destroy the last item
           testComponent.chips.pop();
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           // It focuses the next-to-last item
@@ -229,6 +247,7 @@ describe('MDC-based MatChipListbox', () => {
 
           // Destroy the middle item
           testComponent.chips.splice(2, 1);
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
           tick();
 
@@ -238,6 +257,7 @@ describe('MDC-based MatChipListbox', () => {
 
         it('should focus the listbox if the last focused item is removed', fakeAsync(() => {
           testComponent.chips = [0];
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           spyOn(chipListboxInstance, 'focus');
@@ -245,6 +265,7 @@ describe('MDC-based MatChipListbox', () => {
           chips.last.focus();
 
           testComponent.chips.pop();
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           expect(chipListboxInstance.focus).toHaveBeenCalled();
@@ -357,35 +378,36 @@ describe('MDC-based MatChipListbox', () => {
         it('should allow focus to escape when tabbing away', fakeAsync(() => {
           dispatchKeyboardEvent(chipListboxNativeElement, 'keydown', TAB);
 
-          expect(chipListboxInstance.tabIndex)
+          expect(chipListboxNativeElement.tabIndex)
             .withContext('Expected tabIndex to be set to -1 temporarily.')
             .toBe(-1);
 
           flush();
 
-          expect(chipListboxInstance.tabIndex)
+          expect(chipListboxNativeElement.tabIndex)
             .withContext('Expected tabIndex to be reset back to 0')
             .toBe(0);
         }));
 
         it('should use user defined tabIndex', fakeAsync(() => {
           chipListboxInstance.tabIndex = 4;
+          fixture.changeDetectorRef.markForCheck();
 
           fixture.detectChanges();
 
-          expect(chipListboxInstance.tabIndex)
+          expect(chipListboxNativeElement.tabIndex)
             .withContext('Expected tabIndex to be set to user defined value 4.')
             .toBe(4);
 
           dispatchKeyboardEvent(chipListboxNativeElement, 'keydown', TAB);
 
-          expect(chipListboxInstance.tabIndex)
+          expect(chipListboxNativeElement.tabIndex)
             .withContext('Expected tabIndex to be set to -1 temporarily.')
             .toBe(-1);
 
           flush();
 
-          expect(chipListboxInstance.tabIndex)
+          expect(chipListboxNativeElement.tabIndex)
             .withContext('Expected tabIndex to be reset back to 4')
             .toBe(4);
         }));
@@ -429,6 +451,7 @@ describe('MDC-based MatChipListbox', () => {
           .toBe(chips.first);
 
         fixture.componentInstance.foods = [];
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
         tick();
 
@@ -440,6 +463,7 @@ describe('MDC-based MatChipListbox', () => {
       it('should select an option that was added after initialization', () => {
         fixture = createComponent(BasicChipListbox);
         fixture.componentInstance.foods.push({viewValue: 'Potatoes', value: 'potatoes-8'});
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         primaryActions = chipListboxNativeElement.querySelectorAll<HTMLElement>(
@@ -509,6 +533,7 @@ describe('MDC-based MatChipListbox', () => {
           {value: 'tacos-2', viewValue: 'Tacos'},
         ];
         fixture.componentInstance.selectable = true;
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         primaryActions = chipListboxNativeElement.querySelectorAll<HTMLElement>(
@@ -547,6 +572,7 @@ describe('MDC-based MatChipListbox', () => {
           {value: 'tacos-2', viewValue: 'Tacos'},
         ];
         fixture.componentInstance.selectable = true;
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         primaryActions = chipListboxNativeElement.querySelectorAll<HTMLElement>(
@@ -585,6 +611,7 @@ describe('MDC-based MatChipListbox', () => {
 
         it('should take an initial view value with reactive forms', fakeAsync(() => {
           fixture.componentInstance.control = new FormControl('pizza-1');
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
           tick();
           const array = chips.toArray();
@@ -837,6 +864,60 @@ describe('MDC-based MatChipListbox', () => {
             .toBeFalsy();
         });
       });
+
+      describe('async multiple selection', () => {
+        it('should select initial async chips', fakeAsync(() => {
+          fixture = createComponent(AsyncMultiSelectionChipListbox, undefined, initFixture => {
+            initFixture.componentInstance.control = new FormControl(['tutorial-1', 'tutorial-2']);
+          });
+          fixture.detectChanges();
+          flush();
+
+          tick(400);
+          fixture.detectChanges();
+
+          let array = fixture.componentInstance.chips.toArray();
+
+          expect(array.length).withContext('Expect chips not to be rendered yet').toBe(0);
+
+          tick(100);
+          fixture.detectChanges();
+
+          array = fixture.componentInstance.chips.toArray();
+          flush();
+
+          expect(array[0].selected)
+            .withContext('Expect "tutorial-1" chip to be selected')
+            .toBe(true);
+          expect(array[1].selected)
+            .withContext('Expect "tutorial-2" chip to be selected')
+            .toBe(true);
+        }));
+
+        it('should select async chips that changed over time', fakeAsync(() => {
+          fixture = createComponent(AsyncMultiSelectionChipListbox, undefined, initFixture => {
+            initFixture.componentInstance.control = new FormControl(['tutorial-1']);
+          });
+          fixture.detectChanges();
+          flush();
+
+          tick(500);
+          fixture.detectChanges();
+
+          fixture.componentInstance.control.setValue(['tutorial-4']);
+          fixture.componentInstance.updateChips(['tutorial-3', 'tutorial-4']);
+
+          tick(500);
+          fixture.detectChanges();
+
+          const array = fixture.componentInstance.chips.toArray();
+          flush();
+
+          expect(array[1].selected)
+            .withContext('Expect "tutorial-4" chip to be selected')
+            .toBe(true);
+        }));
+      });
     });
   });
 
@@ -854,7 +935,7 @@ describe('MDC-based MatChipListbox', () => {
       imports: [FormsModule, ReactiveFormsModule, MatChipsModule],
       providers: [{provide: Directionality, useValue: directionality}],
       declarations: [component],
-    }).compileComponents();
+    });
 
     fixture = TestBed.createComponent<T>(component);
     beforeInitialChangeDetection?.(fixture);
@@ -882,6 +963,7 @@ describe('MDC-based MatChipListbox', () => {
         </mat-chip-option>
       }
     </mat-chip-listbox>`,
+  standalone: false,
 })
 class StandardChipListbox {
   name: string = 'Test';
@@ -904,6 +986,7 @@ class StandardChipListbox {
         }
       </mat-chip-listbox>
   `,
+  standalone: false,
 })
 class BasicChipListbox {
   foods: any[] = [
@@ -937,6 +1020,7 @@ class BasicChipListbox {
         }
       </mat-chip-listbox>
   `,
+  standalone: false,
 })
 class MultiSelectionChipListbox {
   foods: any[] = [
@@ -960,12 +1044,35 @@ class MultiSelectionChipListbox {
 
 @Component({
   template: `
+      <mat-chip-listbox [multiple]="true" [formControl]="control">
+        <mat-chip-option *ngFor="let chip of chips$ | async" [value]="chip">
+          {{ chip }}
+        </mat-chip-option>
+      </mat-chip-listbox>
+  `,
+  standalone: false,
+})
+class AsyncMultiSelectionChipListbox {
+  private _chipsSubject = new BehaviorSubject(['tutorial-1', 'tutorial-2', 'tutorial-3']);
+  chips$: Observable<string[]> = this._chipsSubject.pipe(observeOn(asyncScheduler, 500));
+  control = new FormControl<string[] | null>(null);
+  @ViewChild(MatChipListbox) chipListbox: MatChipListbox;
+  @ViewChildren(MatChipOption) chips: QueryList<MatChipOption>;
+
+  updateChips(chips: string[]): void {
+    this._chipsSubject.next(chips);
+  }
+}
+
+@Component({
+  template: `
       <mat-chip-listbox [formControl]="control">
         @for (food of foods; track food) {
           <mat-chip-option [value]="food.value">{{ food.viewValue }}</mat-chip-option>
         }
       </mat-chip-listbox>
   `,
+  standalone: false,
 })
 class FalsyValueChipListbox {
   foods: any[] = [
@@ -986,6 +1093,7 @@ class FalsyValueChipListbox {
       }
     </mat-chip-listbox>
   `,
+  standalone: false,
 })
 class SelectedChipListbox {
   foods: any[] = [
@@ -1007,6 +1115,7 @@ class SelectedChipListbox {
         }
       </mat-chip-listbox>
   `,
+  standalone: false,
 })
 class FalsyBasicChipListbox {
   foods: any[] = [
@@ -1026,4 +1135,19 @@ class FalsyBasicChipListbox {
 
   @ViewChild(MatChipListbox) chipListbox: MatChipListbox;
   @ViewChildren(MatChipOption) chips: QueryList<MatChipOption>;
+}
+
+// Based on #29783.
+@Component({
+  template: `
+    <form>
+      <mat-chip-listbox name="test" [ngModel]="null">
+        <mat-chip-option value="1" disabled>Hello</mat-chip-option>
+      </mat-chip-listbox>
+    </form>
+  `,
+  standalone: false,
+})
+class IndividuallyDisabledChipInsideForm {
+  @ViewChild(MatChipOption) chip: MatChipOption;
 }

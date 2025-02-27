@@ -1,4 +1,4 @@
-import {Component, Inject} from '@angular/core';
+import {Component, inject} from '@angular/core';
 import {
   MatDialog,
   MAT_DIALOG_DATA,
@@ -17,11 +17,10 @@ export interface DialogData {
 @Component({
   selector: 'dialog-data-example',
   templateUrl: 'dialog-data-example.html',
-  standalone: true,
   imports: [MatButtonModule],
 })
 export class DialogDataExample {
-  constructor(public dialog: MatDialog) {}
+  dialog = inject(MatDialog);
 
   openDialog() {
     this.dialog.open(DialogDataExampleDialog, {
@@ -35,9 +34,8 @@ export class DialogDataExample {
 @Component({
   selector: 'dialog-data-example-dialog',
   templateUrl: 'dialog-data-example-dialog.html',
-  standalone: true,
   imports: [MatDialogTitle, MatDialogContent],
 })
 export class DialogDataExampleDialog {
-  constructor(@Inject(MAT_DIALOG_DATA) public data: DialogData) {}
+  data = inject(MAT_DIALOG_DATA);
 }

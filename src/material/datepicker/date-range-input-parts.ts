@@ -3,78 +3,53 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {
-  Directive,
-  ElementRef,
-  Optional,
-  inject,
-  InjectionToken,
-  Inject,
-  OnInit,
-  Injector,
-  DoCheck,
-  Input,
-} from '@angular/core';
-import {
-  NG_VALUE_ACCESSOR,
-  NG_VALIDATORS,
-  NgForm,
-  FormGroupDirective,
-  NgControl,
-  ValidatorFn,
-  Validators,
-  AbstractControl,
-  ValidationErrors,
-} from '@angular/forms';
-import {
-  MAT_DATE_FORMATS,
-  DateAdapter,
-  MatDateFormats,
-  ErrorStateMatcher,
-  _ErrorStateTracker,
-} from '@angular/material/core';
 import {Directionality} from '@angular/cdk/bidi';
 import {BACKSPACE, LEFT_ARROW, RIGHT_ARROW} from '@angular/cdk/keycodes';
-import {MatDatepickerInputBase, DateFilterFn} from './datepicker-input-base';
-import {DateRange, DateSelectionModelChange} from './date-selection-model';
+import {
+  AfterContentInit,
+  Directive,
+  DoCheck,
+  ElementRef,
+  Injector,
+  Input,
+  OnInit,
+  inject,
+} from '@angular/core';
+import {
+  AbstractControl,
+  FormGroupDirective,
+  NG_VALIDATORS,
+  NG_VALUE_ACCESSOR,
+  NgControl,
+  NgForm,
+  ValidationErrors,
+  ValidatorFn,
+  Validators,
+} from '@angular/forms';
+import {ErrorStateMatcher, _ErrorStateTracker} from '@angular/material/core';
 import {_computeAriaAccessibleName} from './aria-accessible-name';
-
-/** Parent component that should be wrapped around `MatStartDate` and `MatEndDate`. */
-export interface MatDateRangeInputParent<D> {
-  id: string;
-  min: D | null;
-  max: D | null;
-  dateFilter: DateFilterFn<D>;
-  rangePicker: {
-    opened: boolean;
-    id: string;
-  };
-  _startInput: MatDateRangeInputPartBase<D>;
-  _endInput: MatDateRangeInputPartBase<D>;
-  _groupDisabled: boolean;
-  _handleChildValueChange(): void;
-  _openDatepicker(): void;
-}
-
-/**
- * Used to provide the date range input wrapper component
- * to the parts without circular dependencies.
- */
-export const MAT_DATE_RANGE_INPUT_PARENT = new InjectionToken<MatDateRangeInputParent<unknown>>(
-  'MAT_DATE_RANGE_INPUT_PARENT',
-);
+import {DateRange, DateSelectionModelChange} from './date-selection-model';
+import {MatDatepickerInputBase} from './datepicker-input-base';
+import {MatDateRangeInput} from './date-range-input';
 
 /**
  * Base class for the individual inputs that can be projected inside a `mat-date-range-input`.
  */
-@Directive({standalone: true})
+@Directive()
 abstract class MatDateRangeInputPartBase<D>
   extends MatDatepickerInputBase<DateRange<D>>
-  implements OnInit, DoCheck
+  implements OnInit, AfterContentInit, DoCheck
 {
+  _rangeInput = inject<MatDateRangeInput<D>>(MatDateRangeInput);
+  override _elementRef = inject<ElementRef<HTMLInputElement>>(ElementRef);
+  _defaultErrorStateMatcher = inject(ErrorStateMatcher);
+  private _injector = inject(Injector);
+  _parentForm = inject(NgForm, {optional: true});
+  _parentFormGroup = inject(FormGroupDirective, {optional: true});
+
   /**
    * Form control bound to this input part.
    * @docs-private
@@ -84,6 +59,7 @@ abstract class MatDateRangeInputPartBase<D>
   protected abstract override _validator: ValidatorFn | null;
   protected abstract override _assignValueToModel(value: D | null): void;
   protected abstract override _getValueFromModel(modelValue: DateRange<D>): D | null;
+  protected abstract _register(): void;
   protected readonly _dir = inject(Directionality, {optional: true});
   private _errorStateTracker: _ErrorStateTracker;
 
@@ -104,17 +80,11 @@ abstract class MatDateRangeInputPartBase<D>
     this._errorStateTracker.errorState = value;
   }
 
-  constructor(
-    @Inject(MAT_DATE_RANGE_INPUT_PARENT) public _rangeInput: MatDateRangeInputParent<D>,
-    public override _elementRef: ElementRef<HTMLInputElement>,
-    public _defaultErrorStateMatcher: ErrorStateMatcher,
-    private _injector: Injector,
-    @Optional() public _parentForm: NgForm,
-    @Optional() public _parentFormGroup: FormGroupDirective,
-    @Optional() dateAdapter: DateAdapter<D>,
-    @Optional() @Inject(MAT_DATE_FORMATS) dateFormats: MatDateFormats,
-  ) {
-    super(_elementRef, dateAdapter, dateFormats);
+  constructor(...args: unknown[]);
+
+  constructor() {
+    super();
+
     this._errorStateTracker = new _ErrorStateTracker(
       this._defaultErrorStateMatcher,
       null,
@@ -137,6 +107,10 @@ abstract class MatDateRangeInputPartBase<D>
       this.ngControl = ngControl;
       this._errorStateTracker.ngControl = ngControl;
     }
+  }
+
+  ngAfterContentInit(): void {
+    this._register();
   }
 
   ngDoCheck() {
@@ -212,11 +186,17 @@ abstract class MatDateRangeInputPartBase<D>
   protected override _assignValueProgrammatically(value: D | null) {
     super._assignValueProgrammatically(value);
     const opposite = (
-      this === this._rangeInput._startInput
+      this === (this._rangeInput._startInput as MatDateRangeInputPartBase<D>)
         ? this._rangeInput._endInput
         : this._rangeInput._startInput
     ) as MatDateRangeInputPartBase<D> | undefined;
     opposite?._validatorOnChange();
+  }
+
+  protected override _formatValue(value: D | null) {
+    super._formatValue(value);
+    // Any time the input value is reformatted we need to tell the parent.
+    this._rangeInput._handleChildValueChange();
   }
 
   /** return the ARIA accessible name of the input element */
@@ -235,7 +215,9 @@ abstract class MatDateRangeInputPartBase<D>
     '(change)': '_onChange()',
     '(keydown)': '_onKeydown($event)',
     '[attr.aria-haspopup]': '_rangeInput.rangePicker ? "dialog" : null',
-    '[attr.aria-owns]': '(_rangeInput.rangePicker?.opened && _rangeInput.rangePicker.id) || null',
+    '[attr.aria-owns]': `_rangeInput._ariaOwns
+        ? _rangeInput._ariaOwns()
+        : (_rangeInput.rangePicker?.opened && _rangeInput.rangePicker.id) || null`,
     '[attr.min]': '_getMinDate() ? _dateAdapter.toIso8601(_getMinDate()) : null',
     '[attr.max]': '_getMaxDate() ? _dateAdapter.toIso8601(_getMaxDate()) : null',
     '(blur)': '_onBlur()',
@@ -248,7 +230,6 @@ abstract class MatDateRangeInputPartBase<D>
   // These need to be specified explicitly, because some tooling doesn't
   // seem to pick them up from the base class. See #20932.
   outputs: ['dateChange', 'dateInput'],
-  standalone: true,
 })
 export class MatStartDate<D> extends MatDateRangeInputPartBase<D> {
   /** Validator that checks that the start date isn't after the end date. */
@@ -262,29 +243,11 @@ export class MatStartDate<D> extends MatDateRangeInputPartBase<D> {
       : {'matStartDateInvalid': {'end': end, 'actual': start}};
   };
 
-  constructor(
-    @Inject(MAT_DATE_RANGE_INPUT_PARENT) rangeInput: MatDateRangeInputParent<D>,
-    elementRef: ElementRef<HTMLInputElement>,
-    defaultErrorStateMatcher: ErrorStateMatcher,
-    injector: Injector,
-    @Optional() parentForm: NgForm,
-    @Optional() parentFormGroup: FormGroupDirective,
-    @Optional() dateAdapter: DateAdapter<D>,
-    @Optional() @Inject(MAT_DATE_FORMATS) dateFormats: MatDateFormats,
-  ) {
-    super(
-      rangeInput,
-      elementRef,
-      defaultErrorStateMatcher,
-      injector,
-      parentForm,
-      parentFormGroup,
-      dateAdapter,
-      dateFormats,
-    );
-  }
-
   protected _validator = Validators.compose([...super._getValidators(), this._startValidator]);
+
+  protected override _register(): void {
+    this._rangeInput._startInput = this;
+  }
 
   protected _getValueFromModel(modelValue: DateRange<D>) {
     return modelValue.start;
@@ -307,14 +270,8 @@ export class MatStartDate<D> extends MatDateRangeInputPartBase<D> {
     if (this._model) {
       const range = new DateRange(value, this._model.selection.end);
       this._model.updateSelection(range, this);
+      this._rangeInput._handleChildValueChange();
     }
-  }
-
-  protected override _formatValue(value: D | null) {
-    super._formatValue(value);
-
-    // Any time the input value is reformatted we need to tell the parent.
-    this._rangeInput._handleChildValueChange();
   }
 
   override _onKeydown(event: KeyboardEvent) {
@@ -348,7 +305,9 @@ export class MatStartDate<D> extends MatDateRangeInputPartBase<D> {
     '(change)': '_onChange()',
     '(keydown)': '_onKeydown($event)',
     '[attr.aria-haspopup]': '_rangeInput.rangePicker ? "dialog" : null',
-    '[attr.aria-owns]': '(_rangeInput.rangePicker?.opened && _rangeInput.rangePicker.id) || null',
+    '[attr.aria-owns]': `_rangeInput._ariaOwns
+        ? _rangeInput._ariaOwns()
+        : (_rangeInput.rangePicker?.opened && _rangeInput.rangePicker.id) || null`,
     '[attr.min]': '_getMinDate() ? _dateAdapter.toIso8601(_getMinDate()) : null',
     '[attr.max]': '_getMaxDate() ? _dateAdapter.toIso8601(_getMaxDate()) : null',
     '(blur)': '_onBlur()',
@@ -361,7 +320,6 @@ export class MatStartDate<D> extends MatDateRangeInputPartBase<D> {
   // These need to be specified explicitly, because some tooling doesn't
   // seem to pick them up from the base class. See #20932.
   outputs: ['dateChange', 'dateInput'],
-  standalone: true,
 })
 export class MatEndDate<D> extends MatDateRangeInputPartBase<D> {
   /** Validator that checks that the end date isn't before the start date. */
@@ -373,26 +331,8 @@ export class MatEndDate<D> extends MatDateRangeInputPartBase<D> {
       : {'matEndDateInvalid': {'start': start, 'actual': end}};
   };
 
-  constructor(
-    @Inject(MAT_DATE_RANGE_INPUT_PARENT) rangeInput: MatDateRangeInputParent<D>,
-    elementRef: ElementRef<HTMLInputElement>,
-    defaultErrorStateMatcher: ErrorStateMatcher,
-    injector: Injector,
-    @Optional() parentForm: NgForm,
-    @Optional() parentFormGroup: FormGroupDirective,
-    @Optional() dateAdapter: DateAdapter<D>,
-    @Optional() @Inject(MAT_DATE_FORMATS) dateFormats: MatDateFormats,
-  ) {
-    super(
-      rangeInput,
-      elementRef,
-      defaultErrorStateMatcher,
-      injector,
-      parentForm,
-      parentFormGroup,
-      dateAdapter,
-      dateFormats,
-    );
+  protected override _register(): void {
+    this._rangeInput._endInput = this;
   }
 
   protected _validator = Validators.compose([...super._getValidators(), this._endValidator]);

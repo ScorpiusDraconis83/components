@@ -31,7 +31,7 @@ describe('CdkVirtualScrollViewport Zone.js intergation', () => {
       TestBed.configureTestingModule({
         providers: [provideZoneChangeDetection()],
         imports: [ScrollingModule, FixedSizeVirtualScroll],
-      }).compileComponents();
+      });
     }));
 
     beforeEach(() => {
@@ -112,7 +112,6 @@ describe('CdkVirtualScrollViewport Zone.js intergation', () => {
       }
     `,
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   imports: [ScrollingModule],
 })
 class FixedSizeVirtualScroll {

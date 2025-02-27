@@ -6,6 +6,7 @@ import {
   ViewChild,
   ViewContainerRef,
   ViewEncapsulation,
+  inject as inject_1,
 } from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
@@ -28,8 +29,6 @@ describe('FocusTrap', () => {
         FocusTrapWithAutoCaptureInShadowDom,
       ],
     });
-
-    TestBed.compileComponents();
   }));
 
   describe('with default element', () => {
@@ -353,7 +352,6 @@ function getActiveElement() {
       <button>SAVE</button>
     </div>
     `,
-  standalone: true,
   imports: [A11yModule, PortalModule],
 })
 class SimpleFocusTrap {
@@ -372,7 +370,6 @@ const AUTO_FOCUS_TEMPLATE = `
 
 @Component({
   template: AUTO_FOCUS_TEMPLATE,
-  standalone: true,
   imports: [A11yModule, PortalModule],
 })
 class FocusTrapWithAutoCapture {
@@ -384,7 +381,6 @@ class FocusTrapWithAutoCapture {
 @Component({
   template: AUTO_FOCUS_TEMPLATE,
   encapsulation: ViewEncapsulation.ShadowDom,
-  standalone: true,
   imports: [A11yModule, PortalModule],
 })
 class FocusTrapWithAutoCaptureInShadowDom extends FocusTrapWithAutoCapture {}
@@ -398,7 +394,6 @@ class FocusTrapWithAutoCaptureInShadowDom extends FocusTrapWithAutoCapture {}
       </div>
     }
   `,
-  standalone: true,
   imports: [A11yModule, PortalModule],
 })
 class FocusTrapWithBindings {
@@ -419,7 +414,6 @@ class FocusTrapWithBindings {
       <input>
     </div>
     `,
-  standalone: true,
   imports: [A11yModule, PortalModule],
 })
 class FocusTrapTargets {
@@ -432,7 +426,6 @@ class FocusTrapTargets {
       <div cdkFocusInitial></div>
     </div>
     `,
-  standalone: true,
   imports: [A11yModule, PortalModule],
 })
 class FocusTrapUnfocusableTarget {
@@ -447,7 +440,6 @@ class FocusTrapUnfocusableTarget {
       </svg>
     </div>
     `,
-  standalone: true,
   imports: [A11yModule, PortalModule],
 })
 class FocusTrapWithSvg {
@@ -460,7 +452,6 @@ class FocusTrapWithSvg {
       <p>Hello</p>
     </div>
     `,
-  standalone: true,
   imports: [A11yModule, PortalModule],
 })
 class FocusTrapWithoutFocusableElements {
@@ -479,12 +470,11 @@ class FocusTrapWithoutFocusableElements {
     </div>
   </ng-template>
   `,
-  standalone: true,
   imports: [A11yModule, PortalModule],
 })
 class FocusTrapInsidePortal {
+  viewContainerRef = inject_1(ViewContainerRef);
+
   @ViewChild('template') template: TemplateRef<any>;
   @ViewChild(CdkPortalOutlet) portalOutlet: CdkPortalOutlet;
-
-  constructor(public viewContainerRef: ViewContainerRef) {}
 }

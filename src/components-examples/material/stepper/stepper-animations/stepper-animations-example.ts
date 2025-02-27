@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Component} from '@angular/core';
+import {Component, inject} from '@angular/core';
 import {FormBuilder, FormGroup, FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {MatInputModule} from '@angular/material/input';
@@ -20,7 +20,6 @@ import {MatStepperModule} from '@angular/material/stepper';
   selector: 'stepper-animations-example',
   templateUrl: 'stepper-animations-example.html',
   styleUrl: 'stepper-animations-example.css',
-  standalone: true,
   imports: [
     MatStepperModule,
     FormsModule,
@@ -31,7 +30,8 @@ import {MatStepperModule} from '@angular/material/stepper';
   ],
 })
 export class StepperAnimationsExample {
-  constructor(private _formBuilder: FormBuilder) {}
+  private _formBuilder = inject(FormBuilder);
+
   firstFormGroup: FormGroup = this._formBuilder.group({firstCtrl: ['']});
   secondFormGroup: FormGroup = this._formBuilder.group({secondCtrl: ['']});
 }

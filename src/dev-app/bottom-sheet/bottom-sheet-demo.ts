@@ -3,11 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {CommonModule} from '@angular/common';
-import {ChangeDetectionStrategy, Component, TemplateRef, ViewChild} from '@angular/core';
+import {ChangeDetectionStrategy, Component, TemplateRef, ViewChild, inject} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {
   MatBottomSheet,
@@ -30,9 +29,7 @@ const defaultConfig = new MatBottomSheetConfig();
   selector: 'bottom-sheet-demo',
   styleUrl: 'bottom-sheet-demo.css',
   templateUrl: 'bottom-sheet-demo.html',
-  standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatBottomSheetModule,
     MatButtonModule,
@@ -47,6 +44,8 @@ const defaultConfig = new MatBottomSheetConfig();
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class BottomSheetDemo {
+  private _bottomSheet = inject(MatBottomSheet);
+
   config: MatBottomSheetConfig = {
     hasBackdrop: defaultConfig.hasBackdrop,
     disableClose: defaultConfig.disableClose,
@@ -56,8 +55,6 @@ export class BottomSheetDemo {
   };
 
   @ViewChild(TemplateRef) template: TemplateRef<any>;
-
-  constructor(private _bottomSheet: MatBottomSheet) {}
 
   openComponent() {
     this._bottomSheet.open(ExampleBottomSheet, this.config);
@@ -79,12 +76,11 @@ export class BottomSheetDemo {
       }
     </mat-nav-list>
   `,
-  standalone: true,
-  imports: [CommonModule, MatListModule],
+  imports: [MatListModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ExampleBottomSheet {
-  constructor(private _bottomSheet: MatBottomSheetRef) {}
+  private _bottomSheet = inject(MatBottomSheetRef);
 
   handleClick(event: MouseEvent) {
     event.preventDefault();

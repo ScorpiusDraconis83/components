@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Inject, Injectable, Optional, InjectionToken} from '@angular/core';
+import {Injectable, InjectionToken, inject} from '@angular/core';
 import {DateAdapter, MAT_DATE_LOCALE} from '@angular/material/core';
 // Depending on whether rollup is used, moment needs to be imported differently.
 // Since Moment.js doesn't have a default export, we normally need to import using the `* as`
@@ -63,6 +63,10 @@ function range<T>(length: number, valueFunction: (index: number) => T): T[] {
 /** Adapts Moment.js Dates for use with Angular Material. */
 @Injectable()
 export class MomentDateAdapter extends DateAdapter<Moment> {
+  private _options = inject<MatMomentDateAdapterOptions>(MAT_MOMENT_DATE_ADAPTER_OPTIONS, {
+    optional: true,
+  });
+
   // Note: all of the methods that accept a `Moment` input parameter immediately call `this.clone`
   // on it. This is to ensure that we're working with a `Moment` that has the correct locale setting
   // while avoiding mutating the original object passed to us. Just calling `.locale(...)` on the
@@ -78,13 +82,11 @@ export class MomentDateAdapter extends DateAdapter<Moment> {
     narrowDaysOfWeek: string[];
   };
 
-  constructor(
-    @Optional() @Inject(MAT_DATE_LOCALE) dateLocale: string,
-    @Optional()
-    @Inject(MAT_MOMENT_DATE_ADAPTER_OPTIONS)
-    private _options?: MatMomentDateAdapterOptions,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
     super();
+    const dateLocale = inject<string>(MAT_DATE_LOCALE, {optional: true});
     this.setLocale(dateLocale || moment.locale());
   }
 
@@ -247,6 +249,44 @@ export class MomentDateAdapter extends DateAdapter<Moment> {
 
   invalid(): Moment {
     return moment.invalid();
+  }
+
+  override setTime(target: Moment, hours: number, minutes: number, seconds: number): Moment {
+    if (typeof ngDevMode === 'undefined' || ngDevMode) {
+      if (hours < 0 || hours > 23) {
+        throw Error(`Invalid hours "${hours}". Hours value must be between 0 and 23.`);
+      }
+
+      if (minutes < 0 || minutes > 59) {
+        throw Error(`Invalid minutes "${minutes}". Minutes value must be between 0 and 59.`);
+      }
+
+      if (seconds < 0 || seconds > 59) {
+        throw Error(`Invalid seconds "${seconds}". Seconds value must be between 0 and 59.`);
+      }
+    }
+
+    return this.clone(target).set({hours, minutes, seconds, milliseconds: 0});
+  }
+
+  override getHours(date: Moment): number {
+    return date.hours();
+  }
+
+  override getMinutes(date: Moment): number {
+    return date.minutes();
+  }
+
+  override getSeconds(date: Moment): number {
+    return date.seconds();
+  }
+
+  override parseTime(value: any, parseFormat: string | string[]): Moment | null {
+    return this.parse(value, parseFormat);
+  }
+
+  override addSeconds(date: Moment, amount: number): Moment {
+    return this.clone(date).add({seconds: amount});
   }
 
   /** Creates a Moment instance while respecting the current UTC settings. */

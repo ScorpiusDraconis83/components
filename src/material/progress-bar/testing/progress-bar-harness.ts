@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {coerceNumberProperty} from '@angular/cdk/coercion';
@@ -14,7 +14,7 @@ import {
 } from '@angular/cdk/testing';
 import {ProgressBarHarnessFilters} from './progress-bar-harness-filters';
 
-/** Harness for interacting with an MDC-based `mat-progress-bar` in tests. */
+/** Harness for interacting with a `mat-progress-bar` in tests. */
 export class MatProgressBarHarness extends ComponentHarness {
   static hostSelector = '.mat-mdc-progress-bar';
 

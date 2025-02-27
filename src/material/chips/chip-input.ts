@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {BACKSPACE, hasModifierKey} from '@angular/cdk/keycodes';
@@ -11,14 +11,14 @@ import {
   Directive,
   ElementRef,
   EventEmitter,
-  Inject,
   Input,
   OnChanges,
   OnDestroy,
-  Optional,
   Output,
   booleanAttribute,
+  inject,
 } from '@angular/core';
+import {_IdGenerator} from '@angular/cdk/a11y';
 import {MatFormField, MAT_FORM_FIELD} from '@angular/material/form-field';
 import {MatChipsDefaultOptions, MAT_CHIPS_DEFAULT_OPTIONS} from './tokens';
 import {MatChipGrid} from './chip-grid';
@@ -39,9 +39,6 @@ export interface MatChipInputEvent {
   /** Reference to the chip input that emitted the event. */
   chipInput: MatChipInput;
 }
-
-// Increasing integer for generating unique ids.
-let nextUniqueId = 0;
 
 /**
  * Directive that adds chip-specific behaviors to an input element inside `<mat-form-field>`.
@@ -66,9 +63,10 @@ let nextUniqueId = 0;
     '[attr.aria-required]': '_chipGrid && _chipGrid.required || null',
     '[attr.required]': '_chipGrid && _chipGrid.required || null',
   },
-  standalone: true,
 })
 export class MatChipInput implements MatChipTextControl, OnChanges, OnDestroy {
+  protected _elementRef = inject<ElementRef<HTMLInputElement>>(ElementRef);
+
   /** Whether the control is focused. */
   focused: boolean = false;
 
@@ -107,7 +105,7 @@ export class MatChipInput implements MatChipTextControl, OnChanges, OnDestroy {
   @Input() placeholder: string = '';
 
   /** Unique id for the input. */
-  @Input() id: string = `mat-mdc-chip-list-input-${nextUniqueId++}`;
+  @Input() id: string = inject(_IdGenerator).getId('mat-mdc-chip-list-input-');
 
   /** Whether the input is disabled. */
   @Input({transform: booleanAttribute})
@@ -127,11 +125,12 @@ export class MatChipInput implements MatChipTextControl, OnChanges, OnDestroy {
   /** The native input element to which this directive is attached. */
   readonly inputElement!: HTMLInputElement;
 
-  constructor(
-    protected _elementRef: ElementRef<HTMLInputElement>,
-    @Inject(MAT_CHIPS_DEFAULT_OPTIONS) defaultOptions: MatChipsDefaultOptions,
-    @Optional() @Inject(MAT_FORM_FIELD) formField?: MatFormField,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const defaultOptions = inject<MatChipsDefaultOptions>(MAT_CHIPS_DEFAULT_OPTIONS);
+    const formField = inject<MatFormField>(MAT_FORM_FIELD, {optional: true});
+
     this.inputElement = this._elementRef.nativeElement as HTMLInputElement;
     this.separatorKeyCodes = defaultOptions.separatorKeyCodes;
 
@@ -182,7 +181,7 @@ export class MatChipInput implements MatChipTextControl, OnChanges, OnDestroy {
 
   /** Checks to see if the (chipEnd) event needs to be emitted. */
   _emitChipEnd(event?: KeyboardEvent) {
-    if (!event || this._isSeparatorKey(event)) {
+    if (!event || (this._isSeparatorKey(event) && !event.repeat)) {
       this.chipEnd.emit({
         input: this.inputElement,
         value: this.inputElement.value,

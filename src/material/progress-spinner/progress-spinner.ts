@@ -3,21 +3,20 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
-  Inject,
   InjectionToken,
   Input,
-  Optional,
   ViewChild,
   ViewEncapsulation,
   numberAttribute,
   ANIMATION_MODULE_TYPE,
+  inject,
 } from '@angular/core';
 import {ThemePalette} from '@angular/material/core';
 import {NgTemplateOutlet} from '@angular/common';
@@ -27,7 +26,13 @@ export type ProgressSpinnerMode = 'determinate' | 'indeterminate';
 
 /** Default `mat-progress-spinner` options that can be overridden. */
 export interface MatProgressSpinnerDefaultOptions {
-  /** Default color of the spinner. */
+  /**
+   * Default theme color of the progress spinner. This API is supported in M2 themes only, it
+   * has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/progress-spinner/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   color?: ThemePalette;
   /** Diameter of the spinner. */
   diameter?: number;
@@ -87,15 +92,22 @@ const BASE_STROKE_WIDTH = 10;
   styleUrl: 'progress-spinner.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   imports: [NgTemplateOutlet],
 })
 export class MatProgressSpinner {
+  readonly _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+
   /** Whether the _mat-animation-noopable class should be applied, disabling animations.  */
   _noopAnimations: boolean;
 
   // TODO: should be typed as `ThemePalette` but internal apps pass in arbitrary strings.
-  /** Theme palette color of the progress spinner. */
+  /**
+   * Theme color of the progress spinner. This API is supported in M2 themes only, it
+   * has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/progress-spinner/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   @Input()
   get color() {
     return this._color || this._defaultColor;
@@ -109,16 +121,16 @@ export class MatProgressSpinner {
   /** The element of the determinate spinner. */
   @ViewChild('determinateSpinner') _determinateCircle: ElementRef<HTMLElement>;
 
-  constructor(
-    readonly _elementRef: ElementRef<HTMLElement>,
-    @Optional() @Inject(ANIMATION_MODULE_TYPE) animationMode: string,
-    @Inject(MAT_PROGRESS_SPINNER_DEFAULT_OPTIONS)
-    defaults?: MatProgressSpinnerDefaultOptions,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const animationMode = inject(ANIMATION_MODULE_TYPE, {optional: true});
+    const defaults = inject<MatProgressSpinnerDefaultOptions>(MAT_PROGRESS_SPINNER_DEFAULT_OPTIONS);
+
     this._noopAnimations =
       animationMode === 'NoopAnimations' && !!defaults && !defaults._forceAnimations;
     this.mode =
-      _elementRef.nativeElement.nodeName.toLowerCase() === 'mat-spinner'
+      this._elementRef.nativeElement.nodeName.toLowerCase() === 'mat-spinner'
         ? 'indeterminate'
         : 'determinate';
 

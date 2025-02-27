@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -11,13 +11,12 @@ import {
   ViewEncapsulation,
   ElementRef,
   Input,
-  Optional,
   ContentChildren,
   QueryList,
   AfterContentInit,
   Directive,
   ChangeDetectionStrategy,
-  Inject,
+  inject,
 } from '@angular/core';
 import {MatLine, setLines} from '@angular/material/core';
 import {coerceNumberProperty, NumberInput} from '@angular/cdk/coercion';
@@ -37,16 +36,16 @@ import {MAT_GRID_LIST, MatGridListBase} from './grid-list-base';
   styleUrl: 'grid-list.css',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
 })
 export class MatGridTile {
+  private _element = inject<ElementRef<HTMLElement>>(ElementRef);
+  _gridList? = inject<MatGridListBase>(MAT_GRID_LIST, {optional: true});
+
   _rowspan: number = 1;
   _colspan: number = 1;
 
-  constructor(
-    private _element: ElementRef<HTMLElement>,
-    @Optional() @Inject(MAT_GRID_LIST) public _gridList?: MatGridListBase,
-  ) {}
+  constructor(...args: unknown[]);
+  constructor() {}
 
   /** Amount of rows that the grid tile takes up. */
   @Input()
@@ -80,12 +79,14 @@ export class MatGridTile {
   templateUrl: 'grid-tile-text.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
 })
 export class MatGridTileText implements AfterContentInit {
+  private _element = inject<ElementRef<HTMLElement>>(ElementRef);
+
   @ContentChildren(MatLine, {descendants: true}) _lines: QueryList<MatLine>;
 
-  constructor(private _element: ElementRef<HTMLElement>) {}
+  constructor(...args: unknown[]);
+  constructor() {}
 
   ngAfterContentInit() {
     setLines(this._lines, this._element);
@@ -99,7 +100,6 @@ export class MatGridTileText implements AfterContentInit {
 @Directive({
   selector: '[mat-grid-avatar], [matGridAvatar]',
   host: {'class': 'mat-grid-avatar'},
-  standalone: true,
 })
 export class MatGridAvatarCssMatStyler {}
 
@@ -110,7 +110,6 @@ export class MatGridAvatarCssMatStyler {}
 @Directive({
   selector: 'mat-grid-tile-header',
   host: {'class': 'mat-grid-tile-header'},
-  standalone: true,
 })
 export class MatGridTileHeaderCssMatStyler {}
 
@@ -121,6 +120,5 @@ export class MatGridTileHeaderCssMatStyler {}
 @Directive({
   selector: 'mat-grid-tile-footer',
   host: {'class': 'mat-grid-tile-footer'},
-  standalone: true,
 })
 export class MatGridTileFooterCssMatStyler {}

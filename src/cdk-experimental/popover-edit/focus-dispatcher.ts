@@ -3,12 +3,12 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Directionality} from '@angular/cdk/bidi';
 import {LEFT_ARROW, UP_ARROW, RIGHT_ARROW, DOWN_ARROW} from '@angular/cdk/keycodes';
-import {Injectable} from '@angular/core';
+import {Injectable, inject} from '@angular/core';
 import {PartialObserver} from 'rxjs';
 
 import {EDITABLE_CELL_SELECTOR, ROW_SELECTOR, TABLE_SELECTOR} from './constants';
@@ -20,10 +20,12 @@ import {closest} from './polyfill';
  */
 @Injectable({providedIn: 'root'})
 export class FocusDispatcher {
+  protected readonly directionality = inject(Directionality);
+
   /** Observes keydown events triggered from the table. */
   readonly keyObserver: PartialObserver<KeyboardEvent>;
 
-  constructor(protected readonly directionality: Directionality) {
+  constructor() {
     this.keyObserver = {next: event => this.handleKeyboardEvent(event)};
   }
 

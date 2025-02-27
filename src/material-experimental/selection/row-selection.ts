@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CdkRowSelection} from '@angular/cdk-experimental/selection';
@@ -24,9 +24,8 @@ import {Input, Directive} from '@angular/core';
   },
   providers: [{provide: CdkRowSelection, useExisting: MatRowSelection}],
   inputs: [{name: 'index', alias: 'matRowSelectionIndex'}],
-  standalone: true,
 })
 export class MatRowSelection<T> extends CdkRowSelection<T> {
   /** The value that is associated with the row */
-  @Input('matRowSelectionValue') override value: T;
+  @Input('matRowSelectionValue') override value: T = undefined!;
 }

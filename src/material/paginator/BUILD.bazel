@@ -1,5 +1,6 @@
 load(
     "//tools:defaults.bzl",
+    "extract_tokens",
     "markdown_to_html",
     "ng_module",
     "ng_test_library",
@@ -32,7 +33,6 @@ sass_library(
     name = "paginator_scss_lib",
     srcs = glob(["**/_*.scss"]),
     deps = [
-        "//:mdc_sass_lib",
         "//src/material/core:core_scss_lib",
     ],
 )
@@ -41,7 +41,6 @@ sass_binary(
     name = "paginator_scss",
     src = "paginator.scss",
     deps = [
-        "//:mdc_sass_lib",
         "//src/cdk:sass_lib",
         "//src/material:sass_lib",
     ],
@@ -72,6 +71,11 @@ ng_web_test_suite(
 markdown_to_html(
     name = "overview",
     srcs = [":paginator.md"],
+)
+
+extract_tokens(
+    name = "tokens",
+    srcs = [":paginator_scss_lib"],
 )
 
 filegroup(

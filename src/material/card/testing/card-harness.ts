@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -21,7 +21,7 @@ export enum MatCardSection {
   FOOTER = '.mat-mdc-card-footer',
 }
 
-/** Harness for interacting with an MDC-based mat-card in tests. */
+/** Harness for interacting with a mat-card in tests. */
 export class MatCardHarness extends ContentContainerComponentHarness<MatCardSection> {
   /** The selector for the host element of a `MatCard` instance. */
   static hostSelector = '.mat-mdc-card';

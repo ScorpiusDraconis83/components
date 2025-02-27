@@ -5,22 +5,16 @@
 ```ts
 
 import { AfterViewInit } from '@angular/core';
-import { AnimationTriggerMetadata } from '@angular/animations';
-import { AriaDescriber } from '@angular/cdk/a11y';
 import { BooleanInput } from '@angular/cdk/coercion';
-import { ChangeDetectorRef } from '@angular/core';
 import { ConnectedPosition } from '@angular/cdk/overlay';
 import { Directionality } from '@angular/cdk/bidi';
 import { ElementRef } from '@angular/core';
-import { FocusMonitor } from '@angular/cdk/a11y';
 import * as i0 from '@angular/core';
 import * as i1 from '@angular/cdk/a11y';
-import * as i2 from '@angular/common';
-import * as i3 from '@angular/cdk/overlay';
-import * as i4 from '@angular/material/core';
-import * as i6 from '@angular/cdk/scrolling';
+import * as i2 from '@angular/cdk/overlay';
+import * as i3 from '@angular/material/core';
+import * as i5 from '@angular/cdk/scrolling';
 import { InjectionToken } from '@angular/core';
-import { NgZone } from '@angular/core';
 import { NumberInput } from '@angular/cdk/coercion';
 import { Observable } from 'rxjs';
 import { OnDestroy } from '@angular/core';
@@ -28,10 +22,7 @@ import { OriginConnectionPosition } from '@angular/cdk/overlay';
 import { Overlay } from '@angular/cdk/overlay';
 import { OverlayConnectionPosition } from '@angular/cdk/overlay';
 import { OverlayRef } from '@angular/cdk/overlay';
-import { Platform } from '@angular/cdk/platform';
-import { ScrollDispatcher } from '@angular/cdk/overlay';
 import { ScrollStrategy } from '@angular/cdk/overlay';
-import { ViewContainerRef } from '@angular/core';
 
 // @public
 export function getMatTooltipInvalidPositionError(position: string): Error;
@@ -57,7 +48,7 @@ export const MAT_TOOLTIP_SCROLL_STRATEGY_FACTORY_PROVIDER: {
 
 // @public
 export class MatTooltip implements OnDestroy, AfterViewInit {
-    constructor(_overlay: Overlay, _elementRef: ElementRef<HTMLElement>, _scrollDispatcher: ScrollDispatcher, _viewContainerRef: ViewContainerRef, _ngZone: NgZone, _platform: Platform, _ariaDescriber: AriaDescriber, _focusMonitor: FocusMonitor, scrollStrategy: any, _dir: Directionality, _defaultOptions: MatTooltipDefaultOptions, _document: any);
+    constructor(...args: unknown[]);
     protected _addOffset(position: ConnectedPosition): ConnectedPosition;
     // (undocumented)
     protected _dir: Directionality;
@@ -76,7 +67,7 @@ export class MatTooltip implements OnDestroy, AfterViewInit {
     set hideDelay(value: NumberInput);
     _isTooltipVisible(): boolean;
     get message(): string;
-    set message(value: string);
+    set message(value: string | null | undefined);
     // (undocumented)
     ngAfterViewInit(): void;
     ngOnDestroy(): void;
@@ -108,12 +99,12 @@ export class MatTooltip implements OnDestroy, AfterViewInit {
     // (undocumented)
     static ɵdir: i0.ɵɵDirectiveDeclaration<MatTooltip, "[matTooltip]", ["matTooltip"], { "position": { "alias": "matTooltipPosition"; "required": false; }; "positionAtOrigin": { "alias": "matTooltipPositionAtOrigin"; "required": false; }; "disabled": { "alias": "matTooltipDisabled"; "required": false; }; "showDelay": { "alias": "matTooltipShowDelay"; "required": false; }; "hideDelay": { "alias": "matTooltipHideDelay"; "required": false; }; "touchGestures": { "alias": "matTooltipTouchGestures"; "required": false; }; "message": { "alias": "matTooltip"; "required": false; }; "tooltipClass": { "alias": "matTooltipClass"; "required": false; }; }, {}, never, never, true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatTooltip, [null, null, null, null, null, null, null, null, null, null, { optional: true; }, null]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatTooltip, never>;
 }
 
-// @public
+// @public @deprecated
 export const matTooltipAnimations: {
-    readonly tooltipState: AnimationTriggerMetadata;
+    readonly tooltipState: any;
 };
 
 // @public
@@ -123,6 +114,7 @@ export interface MatTooltipDefaultOptions {
     position?: TooltipPosition;
     positionAtOrigin?: boolean;
     showDelay: number;
+    tooltipClass?: string | string[];
     touchendHideDelay: number;
     touchGestures?: TooltipTouchGestures;
     touchLongPressShowDelay?: number;
@@ -135,7 +127,7 @@ export class MatTooltipModule {
     // (undocumented)
     static ɵinj: i0.ɵɵInjectorDeclaration<MatTooltipModule>;
     // (undocumented)
-    static ɵmod: i0.ɵɵNgModuleDeclaration<MatTooltipModule, never, [typeof i1.A11yModule, typeof i2.CommonModule, typeof i3.OverlayModule, typeof i4.MatCommonModule, typeof i5.MatTooltip, typeof i5.TooltipComponent], [typeof i5.MatTooltip, typeof i5.TooltipComponent, typeof i4.MatCommonModule, typeof i6.CdkScrollableModule]>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<MatTooltipModule, never, [typeof i1.A11yModule, typeof i2.OverlayModule, typeof i3.MatCommonModule, typeof i4.MatTooltip, typeof i4.TooltipComponent], [typeof i4.MatTooltip, typeof i4.TooltipComponent, typeof i3.MatCommonModule, typeof i5.CdkScrollableModule]>;
 }
 
 // @public
@@ -146,7 +138,7 @@ export const TOOLTIP_PANEL_CLASS = "mat-mdc-tooltip-panel";
 
 // @public
 export class TooltipComponent implements OnDestroy {
-    constructor(_changeDetectorRef: ChangeDetectorRef, _elementRef: ElementRef<HTMLElement>, animationMode?: string);
+    constructor(...args: unknown[]);
     afterHidden(): Observable<void>;
     _cancelPendingAnimations(): void;
     // (undocumented)
@@ -174,7 +166,7 @@ export class TooltipComponent implements OnDestroy {
     // (undocumented)
     static ɵcmp: i0.ɵɵComponentDeclaration<TooltipComponent, "mat-tooltip-component", never, {}, {}, never, never, true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<TooltipComponent, [null, null, { optional: true; }]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<TooltipComponent, never>;
 }
 
 // @public

@@ -1,4 +1,6 @@
-@use '../../token-utils';
+@use 'sass:map';
+@use '../../../style/elevation';
+@use '../../token-definition';
 
 // The prefix used to generate the fully qualified name for tokens in this file.
 $prefix: (mdc, extended-fab);
@@ -9,13 +11,32 @@ $prefix: (mdc, extended-fab);
 /// @param {Map} $token-slots Possible token slots
 /// @return {Map} A set of tokens for the MDC extended-fab
 @function get-tokens($systems, $exclude-hardcoded, $token-slots) {
-  $mdc-tokens: token-utils.get-mdc-tokens('extended-fab-primary', $systems, $exclude-hardcoded);
+  $tokens:
+      token-definition.get-mdc-tokens('extended-fab-primary', $systems, $exclude-hardcoded);
+  $elevation-tokens: (
+    container-elevation,
+    focus-container-elevation,
+    hover-container-elevation,
+    pressed-container-elevation,
+  );
+
+  @each $token in $elevation-tokens {
+    $elevation: map.get($tokens, $token);
+
+    @if ($elevation != null) {
+      $tokens: map.set($tokens, $token + '-shadow', elevation.get-box-shadow($elevation));
+    }
+  }
+
   $variant-tokens: (
     // Color variants
     primary: (), // Default, no overrides needed.
-    secondary: token-utils.get-mdc-tokens('extended-fab-secondary', $systems, $exclude-hardcoded),
-    tertiary: token-utils.get-mdc-tokens('extended-fab-tertiary', $systems, $exclude-hardcoded)
+    secondary: token-definition.get-mdc-tokens(
+        'extended-fab-secondary', $systems, $exclude-hardcoded),
+    tertiary: token-definition.get-mdc-tokens(
+        'extended-fab-tertiary', $systems, $exclude-hardcoded)
   );
 
-  @return token-utils.namespace-tokens($prefix, ($mdc-tokens, $variant-tokens), $token-slots);
+  @return token-definition.namespace-tokens(
+      $prefix, ($tokens, $variant-tokens), $token-slots);
 }

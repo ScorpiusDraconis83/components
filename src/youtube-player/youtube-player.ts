@@ -3,11 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 // Workaround for: https://github.com/bazelbuild/rules_nodejs/issues/1265
-/// <reference types="youtube" />
+/// <reference types="youtube" preserve="true" />
 
 import {
   ChangeDetectionStrategy,
@@ -19,7 +19,6 @@ import {
   Output,
   ViewChild,
   ViewEncapsulation,
-  Inject,
   PLATFORM_ID,
   OnChanges,
   SimpleChanges,
@@ -30,6 +29,7 @@ import {
   CSP_NONCE,
   ChangeDetectorRef,
   AfterViewInit,
+  EventEmitter,
 } from '@angular/core';
 import {isPlatformBrowser} from '@angular/common';
 import {Observable, of as observableOf, Subject, BehaviorSubject, fromEventPattern} from 'rxjs';
@@ -112,8 +112,8 @@ enum PlayerState {
   selector: 'youtube-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   imports: [YouTubePlayerPlaceholder],
+  styleUrl: 'youtube-player.css',
   template: `
     @if (_shouldShowPlaceholder()) {
       <youtube-player-placeholder
@@ -131,18 +131,21 @@ enum PlayerState {
   `,
 })
 export class YouTubePlayer implements AfterViewInit, OnChanges, OnDestroy {
-  /** Whether we're currently rendering inside a browser. */
-  private readonly _isBrowser: boolean;
+  private _ngZone = inject(NgZone);
+  private readonly _nonce = inject(CSP_NONCE, {optional: true});
+  private readonly _changeDetectorRef = inject(ChangeDetectorRef);
+  private readonly _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
   private _player: YT.Player | undefined;
   private _pendingPlayer: YT.Player | undefined;
   private _existingApiReadyCallback: (() => void) | undefined;
   private _pendingPlayerState: PendingPlayerState | undefined;
   private readonly _destroyed = new Subject<void>();
   private readonly _playerChanges = new BehaviorSubject<YT.Player | undefined>(undefined);
-  private readonly _nonce = inject(CSP_NONCE, {optional: true});
-  private readonly _changeDetectorRef = inject(ChangeDetectorRef);
   protected _isLoading = false;
   protected _hasPlaceholder = true;
+
+  /** Whether we're currently rendering inside a browser. */
+  private readonly _isBrowser: boolean;
 
   /** YouTube Video ID to view */
   @Input()
@@ -218,22 +221,29 @@ export class YouTubePlayer implements AfterViewInit, OnChanges, OnDestroy {
    */
   @Input() placeholderImageQuality: PlaceholderImageQuality;
 
-  /** Outputs are direct proxies from the player itself. */
-  @Output() readonly ready: Observable<YT.PlayerEvent> =
-    this._getLazyEmitter<YT.PlayerEvent>('onReady');
+  // Note: ready event can't go through the lazy emitter, because it
+  // happens before the `_playerChanges` stream emits the new player.
 
+  /** Emits when the player is initialized. */
+  @Output() readonly ready: Observable<YT.PlayerEvent> = new EventEmitter<YT.PlayerEvent>();
+
+  /** Emits when the state of the player has changed. */
   @Output() readonly stateChange: Observable<YT.OnStateChangeEvent> =
     this._getLazyEmitter<YT.OnStateChangeEvent>('onStateChange');
 
+  /** Emits when there's an error while initializing the player. */
   @Output() readonly error: Observable<YT.OnErrorEvent> =
     this._getLazyEmitter<YT.OnErrorEvent>('onError');
 
+  /** Emits when the underlying API of the player has changed. */
   @Output() readonly apiChange: Observable<YT.PlayerEvent> =
     this._getLazyEmitter<YT.PlayerEvent>('onApiChange');
 
+  /** Emits when the playback quality has changed. */
   @Output() readonly playbackQualityChange: Observable<YT.OnPlaybackQualityChangeEvent> =
     this._getLazyEmitter<YT.OnPlaybackQualityChangeEvent>('onPlaybackQualityChange');
 
+  /** Emits when the playback rate has changed. */
   @Output() readonly playbackRateChange: Observable<YT.OnPlaybackRateChangeEvent> =
     this._getLazyEmitter<YT.OnPlaybackRateChangeEvent>('onPlaybackRateChange');
 
@@ -241,10 +251,10 @@ export class YouTubePlayer implements AfterViewInit, OnChanges, OnDestroy {
   @ViewChild('youtubeContainer', {static: true})
   youtubeContainer: ElementRef<HTMLElement>;
 
-  constructor(
-    private _ngZone: NgZone,
-    @Inject(PLATFORM_ID) platformId: Object,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const platformId = inject<Object>(PLATFORM_ID);
     const config = inject(YOUTUBE_PLAYER_CONFIG, {optional: true});
     this.loadApi = config?.loadApi ?? true;
     this.disablePlaceholder = !!config?.disablePlaceholder;
@@ -467,6 +477,19 @@ export class YouTubePlayer implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   /**
+   * Attempts to put the player into fullscreen mode, depending on browser support.
+   * @param options Options controlling how the element behaves in fullscreen mode.
+   */
+  async requestFullscreen(options?: FullscreenOptions): Promise<void> {
+    // Note that we do this on the host, rather than the iframe, because it allows us to handle the
+    // placeholder in fullscreen mode. Null check the method since it's not supported everywhere.
+    const element = this._elementRef.nativeElement;
+    return element.requestFullscreen
+      ? element.requestFullscreen(options)
+      : Promise.reject(new Error('Fullscreen API not supported by browser.'));
+  }
+
+  /**
    * Loads the YouTube API and sets up the player.
    * @param playVideo Whether to automatically play the video once the player is loaded.
    */
@@ -575,7 +598,7 @@ export class YouTubePlayer implements AfterViewInit, OnChanges, OnDestroy {
         }),
     );
 
-    const whenReady = () => {
+    const whenReady = (event: YT.PlayerEvent) => {
       // Only assign the player once it's ready, otherwise YouTube doesn't expose some APIs.
       this._ngZone.run(() => {
         this._isLoading = false;
@@ -584,6 +607,7 @@ export class YouTubePlayer implements AfterViewInit, OnChanges, OnDestroy {
         this._pendingPlayer = undefined;
         player.removeEventListener('onReady', whenReady);
         this._playerChanges.next(player);
+        (this.ready as EventEmitter<YT.PlayerEvent>).emit(event);
         this._setSize();
         this._setQuality();
 
@@ -597,6 +621,12 @@ export class YouTubePlayer implements AfterViewInit, OnChanges, OnDestroy {
         const state = player.getPlayerState();
         if (state === PlayerState.UNSTARTED || state === PlayerState.CUED || state == null) {
           this._cuePlayer();
+        } else if (playVideo && this.startSeconds && this.startSeconds > 0) {
+          // We have to use `seekTo` when `startSeconds` are specified to simulate it playing from
+          // a specific time. The "proper" way to do it would be to either go through `cueVideoById`
+          // or `playerVars.start`, but at the time of writing both end up resetting the video
+          // to the state as if the user hasn't interacted with it.
+          player.seekTo(this.startSeconds, true);
         }
 
         this._changeDetectorRef.markForCheck();
@@ -674,10 +704,10 @@ export class YouTubePlayer implements AfterViewInit, OnChanges, OnDestroy {
       switchMap(player => {
         return player
           ? fromEventPattern<T>(
-              (listener: (event: T) => void) => {
+              listener => {
                 player.addEventListener(name, listener);
               },
-              (listener: (event: T) => void) => {
+              listener => {
                 // The API seems to throw when we try to unbind from a destroyed player and it doesn't
                 // expose whether the player has been destroyed so we have to wrap it in a try/catch to
                 // prevent the entire stream from erroring out.

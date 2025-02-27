@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -12,18 +12,18 @@ import {
   ElementRef,
   OnDestroy,
   ViewEncapsulation,
-  Inject,
-  Optional,
   Input,
   AfterViewInit,
   ChangeDetectorRef,
   booleanAttribute,
+  inject,
 } from '@angular/core';
 import {FocusableOption, FocusMonitor, FocusOrigin} from '@angular/cdk/a11y';
 import {Subject} from 'rxjs';
 import {DOCUMENT} from '@angular/common';
 import {MatMenuPanel, MAT_MENU_PANEL} from './menu-panel';
-import {MatRipple} from '@angular/material/core';
+import {_StructuralStylesLoader, MatRipple} from '@angular/material/core';
+import {_CdkPrivateStyleLoader} from '@angular/cdk/private';
 
 /**
  * Single item inside a `mat-menu`. Provides the menu item styling and accessibility treatment.
@@ -33,7 +33,7 @@ import {MatRipple} from '@angular/material/core';
   exportAs: 'matMenuItem',
   host: {
     '[attr.role]': 'role',
-    'class': 'mat-mdc-menu-item mat-mdc-focus-indicator',
+    'class': 'mat-mdc-menu-item mat-focus-indicator',
     '[class.mat-mdc-menu-item-highlighted]': '_highlighted',
     '[class.mat-mdc-menu-item-submenu-trigger]': '_triggersSubmenu',
     '[attr.tabindex]': '_getTabIndex()',
@@ -45,10 +45,15 @@ import {MatRipple} from '@angular/material/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   templateUrl: 'menu-item.html',
-  standalone: true,
   imports: [MatRipple],
 })
 export class MatMenuItem implements FocusableOption, AfterViewInit, OnDestroy {
+  private _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  private _document = inject(DOCUMENT);
+  private _focusMonitor = inject(FocusMonitor);
+  _parentMenu? = inject<MatMenuPanel<MatMenuItem>>(MAT_MENU_PANEL, {optional: true});
+  private _changeDetectorRef = inject(ChangeDetectorRef);
+
   /** ARIA role for the menu item. */
   @Input() role: 'menuitem' | 'menuitemradio' | 'menuitemcheckbox' = 'menuitem';
 
@@ -70,34 +75,11 @@ export class MatMenuItem implements FocusableOption, AfterViewInit, OnDestroy {
   /** Whether the menu item acts as a trigger for a sub-menu. */
   _triggersSubmenu: boolean = false;
 
-  constructor(
-    elementRef: ElementRef<HTMLElement>,
-    document: any,
-    focusMonitor: FocusMonitor,
-    parentMenu: MatMenuPanel<MatMenuItem> | undefined,
-    changeDetectorRef: ChangeDetectorRef,
-  );
+  constructor(...args: unknown[]);
 
-  /**
-   * @deprecated `document`, `changeDetectorRef` and `focusMonitor` to become required.
-   * @breaking-change 12.0.0
-   */
-  constructor(
-    elementRef: ElementRef<HTMLElement>,
-    document?: any,
-    focusMonitor?: FocusMonitor,
-    parentMenu?: MatMenuPanel<MatMenuItem>,
-    changeDetectorRef?: ChangeDetectorRef,
-  );
-
-  constructor(
-    private _elementRef: ElementRef<HTMLElement>,
-    @Inject(DOCUMENT) private _document?: any,
-    private _focusMonitor?: FocusMonitor,
-    @Inject(MAT_MENU_PANEL) @Optional() public _parentMenu?: MatMenuPanel<MatMenuItem>,
-    private _changeDetectorRef?: ChangeDetectorRef,
-  ) {
-    _parentMenu?.addItem?.(this);
+  constructor() {
+    inject(_CdkPrivateStyleLoader).load(_StructuralStylesLoader);
+    this._parentMenu?.addItem?.(this);
   }
 
   /** Focuses the menu item. */
@@ -173,15 +155,13 @@ export class MatMenuItem implements FocusableOption, AfterViewInit, OnDestroy {
     // We need to mark this for check for the case where the content is coming from a
     // `matMenuContent` whose change detection tree is at the declaration position,
     // not the insertion position. See #23175.
-    // @breaking-change 12.0.0 Remove null check for `_changeDetectorRef`.
     this._highlighted = isHighlighted;
-    this._changeDetectorRef?.markForCheck();
+    this._changeDetectorRef.markForCheck();
   }
 
   _setTriggersSubmenu(triggersSubmenu: boolean) {
-    // @breaking-change 12.0.0 Remove null check for `_changeDetectorRef`.
     this._triggersSubmenu = triggersSubmenu;
-    this._changeDetectorRef?.markForCheck();
+    this._changeDetectorRef.markForCheck();
   }
 
   _hasFocus(): boolean {

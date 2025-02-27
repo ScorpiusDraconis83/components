@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {ViewContainerRef, ComponentFactoryResolver, Injector} from '@angular/core';
+import {ViewContainerRef, Injector} from '@angular/core';
 import {Direction} from '@angular/cdk/bidi';
 import {ScrollStrategy} from '@angular/cdk/overlay';
 import {_defaultParams} from './dialog-animations';
@@ -104,8 +104,12 @@ export class MatDialogConfig<D = any> {
   /** Aria label to assign to the dialog element. */
   ariaLabel?: string | null = null;
 
-  /** Whether this is a modal dialog. Used to set the `aria-modal` attribute. */
-  ariaModal?: boolean = true;
+  /**
+   * Whether this is a modal dialog. Used to set the `aria-modal` attribute. Off by default,
+   * because it can interfere with other overlay-based components (e.g. `mat-select`) and because
+   * it is redundant since the dialog marks all outside content as `aria-hidden` anyway.
+   */
+  ariaModal?: boolean = false;
 
   /**
    * Where the dialog should focus on open.
@@ -133,8 +137,12 @@ export class MatDialogConfig<D = any> {
    */
   closeOnNavigation?: boolean = true;
 
-  /** Alternate `ComponentFactoryResolver` to use when resolving the associated component. */
-  componentFactoryResolver?: ComponentFactoryResolver;
+  /**
+   * Alternate `ComponentFactoryResolver` to use when resolving the associated component.
+   * @deprecated No longer used. Will be removed.
+   * @breaking-change 20.0.0
+   */
+  componentFactoryResolver?: unknown;
 
   /**
    * Duration of the enter animation in ms.

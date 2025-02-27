@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Injectable} from '@angular/core';
@@ -64,6 +64,11 @@ export class MatDatepickerIntl {
    * @breaking-change 17.0.0
    */
   endDateLabel = 'End date';
+
+  /**
+   * A label for the Comparison date of a range of dates (used by screen readers).
+   */
+  comparisonDateLabel = 'Comparison range';
 
   /** Formats a range of years (used for visuals). */
   formatYearRange(start: string, end: string): string {

@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {ChangeDetectionStrategy, Component, Inject} from '@angular/core';
+import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
 import {FormControl, FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
@@ -21,16 +21,9 @@ import {
 import {MatSliderModule} from '@angular/material/slider';
 import {MatTabsModule} from '@angular/material/tabs';
 
-interface DialogData {
-  color: ThemePalette;
-  discrete: boolean;
-  showTickMarks: boolean;
-}
-
 @Component({
   selector: 'slider-demo',
   templateUrl: 'slider-demo.html',
-  standalone: true,
   imports: [
     FormsModule,
     MatButtonModule,
@@ -44,6 +37,8 @@ interface DialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SliderDemo {
+  dialog = inject(MatDialog);
+
   discrete = true;
   showTickMarks = true;
   colorModel: ThemePalette = 'primary';
@@ -63,8 +58,6 @@ export class SliderDemo {
   disabledModel = false;
 
   control = new FormControl('0');
-
-  constructor(public dialog: MatDialog) {}
 
   updateValue(input: EventTarget | null): void {
     if (!input) {
@@ -134,10 +127,9 @@ export class SliderDemo {
     </mat-slider>
   </mat-dialog-content>
   `,
-  standalone: true,
   imports: [MatSliderModule, MatDialogTitle, MatDialogContent],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SliderDialogDemo {
-  constructor(@Inject(MAT_DIALOG_DATA) public data: DialogData) {}
+  data = inject(MAT_DIALOG_DATA);
 }

@@ -3,14 +3,14 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {FocusKeyManager, FocusableOption} from '@angular/cdk/a11y';
 import {Direction, Directionality} from '@angular/cdk/bidi';
 import {ENTER, SPACE, hasModifierKey} from '@angular/cdk/keycodes';
 import {SharedResizeObserver} from '@angular/cdk/observers/private';
-import {Platform, normalizePassiveListenerOptions} from '@angular/cdk/platform';
+import {Platform, _bindEventWithOptions} from '@angular/cdk/platform';
 import {ViewportRuler} from '@angular/cdk/scrolling';
 import {
   ANIMATION_MODULE_TYPE,
@@ -21,35 +21,25 @@ import {
   Directive,
   ElementRef,
   EventEmitter,
-  Inject,
   Injector,
   Input,
   NgZone,
   OnDestroy,
-  Optional,
   Output,
   QueryList,
+  Renderer2,
   afterNextRender,
   booleanAttribute,
   inject,
   numberAttribute,
 } from '@angular/core';
-import {
-  EMPTY,
-  Observable,
-  Observer,
-  Subject,
-  fromEvent,
-  merge,
-  of as observableOf,
-  timer,
-} from 'rxjs';
+import {EMPTY, Observable, Observer, Subject, merge, of as observableOf, timer} from 'rxjs';
 import {debounceTime, filter, skip, startWith, switchMap, takeUntil} from 'rxjs/operators';
 
 /** Config used to bind passive event listeners */
-const passiveEventListenerOptions = normalizePassiveListenerOptions({
+const passiveEventListenerOptions = {
   passive: true,
-}) as EventListenerOptions;
+};
 
 /**
  * The directions that scrolling can go in when the header's tabs exceed the header width. 'After'
@@ -81,6 +71,18 @@ export type MatPaginatedTabHeaderItem = FocusableOption & {elementRef: ElementRe
 export abstract class MatPaginatedTabHeader
   implements AfterContentChecked, AfterContentInit, AfterViewInit, OnDestroy
 {
+  protected _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  protected _changeDetectorRef = inject(ChangeDetectorRef);
+  private _viewportRuler = inject(ViewportRuler);
+  private _dir = inject(Directionality, {optional: true});
+  private _ngZone = inject(NgZone);
+  private _platform = inject(Platform);
+  private _sharedResizeObserver = inject(SharedResizeObserver);
+  private _injector = inject(Injector);
+  private _renderer = inject(Renderer2);
+  _animationMode = inject(ANIMATION_MODULE_TYPE, {optional: true});
+  private _eventCleanups: (() => void)[];
+
   abstract _items: QueryList<MatPaginatedTabHeaderItem>;
   abstract _inkBar: {hide: () => void; alignToElement: (element: HTMLElement) => void};
   abstract _tabListContainer: ElementRef<HTMLElement>;
@@ -157,27 +159,15 @@ export abstract class MatPaginatedTabHeader
   /** Event emitted when a label is focused. */
   @Output() readonly indexFocused: EventEmitter<number> = new EventEmitter<number>();
 
-  private _sharedResizeObserver = inject(SharedResizeObserver);
+  constructor(...args: unknown[]);
 
-  private _injector = inject(Injector);
-
-  constructor(
-    protected _elementRef: ElementRef<HTMLElement>,
-    protected _changeDetectorRef: ChangeDetectorRef,
-    private _viewportRuler: ViewportRuler,
-    @Optional() private _dir: Directionality,
-    private _ngZone: NgZone,
-    private _platform: Platform,
-    @Optional() @Inject(ANIMATION_MODULE_TYPE) public _animationMode?: string,
-  ) {
+  constructor() {
     // Bind the `mouseleave` event on the outside since it doesn't change anything in the view.
-    _ngZone.runOutsideAngular(() => {
-      fromEvent(_elementRef.nativeElement, 'mouseleave')
-        .pipe(takeUntil(this._destroyed))
-        .subscribe(() => {
-          this._stopInterval();
-        });
-    });
+    this._eventCleanups = this._ngZone.runOutsideAngular(() => [
+      this._renderer.listen(this._elementRef.nativeElement, 'mouseleave', () =>
+        this._stopInterval(),
+      ),
+    ]);
   }
 
   /** Called when the user has selected an item via the keyboard. */
@@ -185,17 +175,23 @@ export abstract class MatPaginatedTabHeader
 
   ngAfterViewInit() {
     // We need to handle these events manually, because we want to bind passive event listeners.
-    fromEvent(this._previousPaginator.nativeElement, 'touchstart', passiveEventListenerOptions)
-      .pipe(takeUntil(this._destroyed))
-      .subscribe(() => {
-        this._handlePaginatorPress('before');
-      });
 
-    fromEvent(this._nextPaginator.nativeElement, 'touchstart', passiveEventListenerOptions)
-      .pipe(takeUntil(this._destroyed))
-      .subscribe(() => {
-        this._handlePaginatorPress('after');
-      });
+    this._eventCleanups.push(
+      _bindEventWithOptions(
+        this._renderer,
+        this._previousPaginator.nativeElement,
+        'touchstart',
+        () => this._handlePaginatorPress('before'),
+        passiveEventListenerOptions,
+      ),
+      _bindEventWithOptions(
+        this._renderer,
+        this._nextPaginator.nativeElement,
+        'touchstart',
+        () => this._handlePaginatorPress('after'),
+        passiveEventListenerOptions,
+      ),
+    );
   }
 
   ngAfterContentInit() {
@@ -318,6 +314,7 @@ export abstract class MatPaginatedTabHeader
   }
 
   ngOnDestroy() {
+    this._eventCleanups.forEach(cleanup => cleanup());
     this._keyManager?.destroy();
     this._destroyed.next();
     this._destroyed.complete();

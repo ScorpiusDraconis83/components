@@ -1,8 +1,8 @@
-import {animate, style, transition, trigger} from '@angular/animations';
 import {Direction, Directionality} from '@angular/cdk/bidi';
 import {
   BACKSPACE,
   DELETE,
+  DOWN_ARROW,
   END,
   ENTER,
   HOME,
@@ -10,6 +10,7 @@ import {
   RIGHT_ARROW,
   SPACE,
   TAB,
+  UP_ARROW,
 } from '@angular/cdk/keycodes';
 import {
   createKeyboardEvent,
@@ -20,6 +21,7 @@ import {
   typeInElement,
 } from '@angular/cdk/testing/private';
 import {
+  ChangeDetectorRef,
   Component,
   DebugElement,
   EventEmitter,
@@ -27,17 +29,18 @@ import {
   Type,
   ViewChild,
   ViewChildren,
-  provideZoneChangeDetection,
+  inject,
 } from '@angular/core';
+import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 import {ComponentFixture, TestBed, fakeAsync, flush, tick} from '@angular/core/testing';
 import {FormControl, FormsModule, NgForm, ReactiveFormsModule, Validators} from '@angular/forms';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
 import {By} from '@angular/platform-browser';
-import {BrowserAnimationsModule, NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {MatChipEvent, MatChipGrid, MatChipInputEvent, MatChipRow, MatChipsModule} from './index';
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-describe('MDC-based MatChipGrid', () => {
+describe('MatChipGrid', () => {
   let chipGridDebugElement: DebugElement;
   let chipGridNativeElement: HTMLElement;
   let chipGridInstance: MatChipGrid;
@@ -70,11 +73,13 @@ describe('MDC-based MatChipGrid', () => {
         expect(chips.toArray().every(chip => chip.disabled)).toBe(false);
 
         chipGridInstance.disabled = true;
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chips.toArray().every(chip => chip.disabled)).toBe(true);
 
         chipGridInstance.disabled = false;
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chips.toArray().every(chip => chip.disabled)).toBe(false);
@@ -84,11 +89,13 @@ describe('MDC-based MatChipGrid', () => {
         expect(chips.toArray().every(chip => chip.disabled)).toBe(false);
 
         chipGridInstance.disabled = true;
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chips.toArray().every(chip => chip.disabled)).toBe(true);
 
         fixture.componentInstance.chips.push(5, 6);
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
         tick();
         fixture.detectChanges();
@@ -98,6 +105,7 @@ describe('MDC-based MatChipGrid', () => {
 
       it('should not set a role on the grid when the list is empty', () => {
         testComponent.chips = [];
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chipGridNativeElement.hasAttribute('role')).toBe(false);
@@ -105,6 +113,7 @@ describe('MDC-based MatChipGrid', () => {
 
       it('should be able to set a custom role', () => {
         testComponent.role = 'listbox';
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chipGridNativeElement.getAttribute('role')).toBe('listbox');
@@ -112,9 +121,7 @@ describe('MDC-based MatChipGrid', () => {
     });
 
     describe('focus behaviors', () => {
-      let fixture:
-        | ComponentFixture<StandardChipGrid>
-        | ComponentFixture<StandardChipGridWithAnimations>;
+      let fixture: ComponentFixture<StandardChipGrid>;
 
       beforeEach(() => {
         fixture = createComponent(StandardChipGrid);
@@ -140,6 +147,7 @@ describe('MDC-based MatChipGrid', () => {
           .toBe(false);
 
         chipGridInstance.disabled = true;
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         chipGridInstance.focus();
@@ -154,6 +162,7 @@ describe('MDC-based MatChipGrid', () => {
         expect(chipGridNativeElement.getAttribute('tabindex')).toBe('0');
 
         chipGridInstance.disabled = true;
+        fixture.changeDetectorRef.markForCheck();
         fixture.detectChanges();
 
         expect(chipGridNativeElement.getAttribute('tabindex')).toBe('-1');
@@ -168,6 +177,7 @@ describe('MDC-based MatChipGrid', () => {
 
           // Destroy the middle item
           testComponent.chips.splice(2, 1);
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           // It focuses the 4th item
@@ -180,6 +190,7 @@ describe('MDC-based MatChipGrid', () => {
 
           // Destroy the last item
           testComponent.chips.pop();
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           // It focuses the next-to-last item
@@ -196,6 +207,7 @@ describe('MDC-based MatChipGrid', () => {
 
           // Destroy the middle item
           testComponent.chips.splice(2, 1);
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
           flush();
 
@@ -205,33 +217,18 @@ describe('MDC-based MatChipGrid', () => {
 
         it('should focus the grid if the last focused item is removed', () => {
           testComponent.chips = [0];
+          fixture.changeDetectorRef.markForCheck();
 
           spyOn(chipGridInstance, 'focus');
           patchElementFocus(chips.last.primaryAction!._elementRef.nativeElement);
           chips.last.focus();
 
           testComponent.chips.pop();
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           expect(chipGridInstance.focus).toHaveBeenCalled();
         });
-
-        it('should move focus to the last chip when the focused chip was deleted inside a component with animations', fakeAsync(() => {
-          fixture.destroy();
-          TestBed.resetTestingModule();
-
-          fixture = createComponent(StandardChipGridWithAnimations, BrowserAnimationsModule);
-
-          patchElementFocus(chips.last.primaryAction!._elementRef.nativeElement);
-          chips.last.focus();
-          fixture.detectChanges();
-
-          dispatchKeyboardEvent(chips.last._elementRef.nativeElement, 'keydown', BACKSPACE);
-          fixture.detectChanges();
-          tick(500);
-
-          expect(document.activeElement).toBe(primaryActions[primaryActions.length - 2]);
-        }));
       });
 
       it('should have a focus indicator', () => {
@@ -294,13 +291,55 @@ describe('MDC-based MatChipGrid', () => {
             .withContext('Expected focused item not to have changed.')
             .toBe(previousActiveElement);
         });
+
+        it('should focus primary action in next row when pressing DOWN ARROW on primary action', () => {
+          chips.first.focus();
+          expect(document.activeElement).toBe(primaryActions[0]);
+
+          dispatchKeyboardEvent(primaryActions[0], 'keydown', DOWN_ARROW);
+          fixture.detectChanges();
+
+          expect(document.activeElement).toBe(primaryActions[1]);
+        });
+
+        it('should focus primary action in previous row when pressing UP ARROW on primary action', () => {
+          const lastIndex = primaryActions.length - 1;
+          chips.last.focus();
+          expect(document.activeElement).toBe(primaryActions[lastIndex]);
+
+          dispatchKeyboardEvent(primaryActions[lastIndex], 'keydown', UP_ARROW);
+          fixture.detectChanges();
+
+          expect(document.activeElement).toBe(primaryActions[lastIndex - 1]);
+        });
+
+        it('should focus(trailing action in next row when pressing DOWN ARROW on(trailing action', () => {
+          trailingActions[0].focus();
+          expect(document.activeElement).toBe(trailingActions[0]);
+
+          dispatchKeyboardEvent(trailingActions[0], 'keydown', DOWN_ARROW);
+          fixture.detectChanges();
+
+          expect(document.activeElement).toBe(trailingActions[1]);
+        });
+
+        it('should focus trailing action in previous row when pressing UP ARROW on trailing action', () => {
+          const lastIndex = trailingActions.length - 1;
+          trailingActions[lastIndex].focus();
+          expect(document.activeElement).toBe(trailingActions[lastIndex]);
+
+          dispatchKeyboardEvent(trailingActions[lastIndex], 'keydown', UP_ARROW);
+          fixture.detectChanges();
+
+          expect(document.activeElement).toBe(trailingActions[lastIndex - 1]);
+        });
       });
 
       describe('RTL', () => {
         let fixture: ComponentFixture<StandardChipGrid>;
 
         beforeEach(() => {
-          fixture = createComponent(StandardChipGrid, undefined, 'rtl');
+          fixture = createComponent(StandardChipGrid, 'rtl');
         });
 
         it('should focus previous column when press RIGHT ARROW', () => {
@@ -337,22 +376,23 @@ describe('MDC-based MatChipGrid', () => {
 
           dispatchKeyboardEvent(firstNativeChip, 'keydown', TAB);
 
-          expect(chipGridInstance.tabIndex)
+          expect(chipGridNativeElement.tabIndex)
             .withContext('Expected tabIndex to be set to -1 temporarily.')
             .toBe(-1);
 
           flush();
 
-          expect(chipGridInstance.tabIndex)
+          expect(chipGridNativeElement.tabIndex)
             .withContext('Expected tabIndex to be reset back to 0')
             .toBe(0);
         }));
 
-        it(`should use user defined tabIndex`, fakeAsync(() => {
+        it('should use user defined tabIndex', fakeAsync(() => {
           chipGridInstance.tabIndex = 4;
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
-          expect(chipGridInstance.tabIndex)
+          expect(chipGridNativeElement.tabIndex)
             .withContext('Expected tabIndex to be set to user defined value 4.')
             .toBe(4);
 
@@ -360,13 +400,13 @@ describe('MDC-based MatChipGrid', () => {
           let firstNativeChip = nativeChips[0] as HTMLElement;
 
           dispatchKeyboardEvent(firstNativeChip, 'keydown', TAB);
-          expect(chipGridInstance.tabIndex)
+          expect(chipGridNativeElement.tabIndex)
             .withContext('Expected tabIndex to be set to -1 temporarily.')
             .toBe(-1);
 
           flush();
 
-          expect(chipGridInstance.tabIndex)
+          expect(chipGridNativeElement.tabIndex)
             .withContext('Expected tabIndex to be reset back to 4')
             .toBe(4);
         }));
@@ -422,6 +462,7 @@ describe('MDC-based MatChipGrid', () => {
 
         it('should ignore all non-tab navigation keyboard events from an editing chip', fakeAsync(() => {
           testComponent.editable = true;
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           chips.first.focus();
@@ -572,6 +613,7 @@ describe('MDC-based MatChipGrid', () => {
 
     it('should take an initial view value with reactive forms', () => {
       fixture.componentInstance.control = new FormControl('[pizza-1]');
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(fixture.componentInstance.chipGrid.value).toEqual('[pizza-1]');
@@ -756,6 +798,7 @@ describe('MDC-based MatChipGrid', () => {
 
     it('should set aria-invalid if the form field is invalid', fakeAsync(() => {
       fixture.componentInstance.control = new FormControl('', [Validators.required]);
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       const input: HTMLInputElement = fixture.nativeElement.querySelector('input');
@@ -972,9 +1015,6 @@ describe('MDC-based MatChipGrid', () => {
 
   function createComponent<T>(
     component: Type<T>,
-    animationsModule:
-      | Type<NoopAnimationsModule>
-      | Type<BrowserAnimationsModule> = NoopAnimationsModule,
     direction: Direction = 'ltr',
   ): ComponentFixture<T> {
     directionality = {
@@ -989,14 +1029,11 @@ describe('MDC-based MatChipGrid', () => {
         MatChipsModule,
         MatFormFieldModule,
         MatInputModule,
-        animationsModule,
+        NoopAnimationsModule,
       ],
-      providers: [
-        {provide: Directionality, useValue: directionality},
-        provideZoneChangeDetection(),
-      ],
+      providers: [{provide: Directionality, useValue: directionality}],
       declarations: [component],
-    }).compileComponents();
+    });
 
     const fixture = TestBed.createComponent<T>(component);
     fixture.detectChanges();
@@ -1018,13 +1055,11 @@ describe('MDC-based MatChipGrid', () => {
   template: `
     <mat-chip-grid [tabIndex]="tabIndex" [role]="role" #chipGrid>
       @for (i of chips; track i) {
-  <mat-chip-row
-                    [editable]="editable">
-        {{name}} {{i + 1}}
-      </mat-chip-row>
-}
+        <mat-chip-row [editable]="editable">{{name}} {{i + 1}}</mat-chip-row>
+      }
     </mat-chip-grid>
     <input name="test" [matChipInputFor]="chipGrid"/>`,
+  standalone: false,
 })
 class StandardChipGrid {
   name: string = 'Test';
@@ -1040,12 +1075,13 @@ class StandardChipGrid {
       <mat-label>Add a chip</mat-label>
       <mat-chip-grid #chipGrid>
         @for (chip of chips; track chip) {
-  <mat-chip-row (removed)="remove(chip)">{{chip}}</mat-chip-row>
-}
+          <mat-chip-row (removed)="remove(chip)">{{chip}}</mat-chip-row>
+        }
       </mat-chip-grid>
       <input name="test" [matChipInputFor]="chipGrid"/>
     </mat-form-field>
   `,
+  standalone: false,
 })
 class FormFieldChipGrid {
   chips = ['Chip 0', 'Chip 1', 'Chip 2'];
@@ -1065,10 +1101,10 @@ class FormFieldChipGrid {
       <mat-label>New food...</mat-label>
       <mat-chip-grid #chipGrid placeholder="Food" [formControl]="control">
         @for (food of foods; track food) {
-  <mat-chip-row [value]="food.value" (removed)="remove(food)">
-          {{ food.viewValue }}
-        </mat-chip-row>
-}
+          <mat-chip-row [value]="food.value" (removed)="remove(food)">
+            {{ food.viewValue }}
+          </mat-chip-row>
+        }
       </mat-chip-grid>
       <input
           [matChipInputFor]="chipGrid"
@@ -1077,6 +1113,7 @@ class FormFieldChipGrid {
           (matChipInputTokenEnd)="add($event)"/>
     </mat-form-field>
   `,
+  standalone: false,
 })
 class InputChipGrid {
   foods: any[] = [
@@ -1127,10 +1164,8 @@ class InputChipGrid {
   <mat-form-field>
     <mat-chip-grid #chipGrid [formControl]="formControl">
       @for (food of foods; track food) {
-  <mat-chip-row [value]="food.value">
-      {{food.viewValue}}
-      </mat-chip-row>
-}
+        <mat-chip-row [value]="food.value">{{food.viewValue}}</mat-chip-row>
+      }
     </mat-chip-grid>
     <input name="test" [matChipInputFor]="chipGrid"/>
     <mat-hint>Please select a chip, or type to add a new chip</mat-hint>
@@ -1138,6 +1173,7 @@ class InputChipGrid {
   </mat-form-field>
 </form>
   `,
+  standalone: false,
 })
 class ChipGridWithFormErrorMessages {
   foods: any[] = [
@@ -1149,33 +1185,13 @@ class ChipGridWithFormErrorMessages {
 
   @ViewChild('form') form: NgForm;
   formControl = new FormControl('', Validators.required);
-}
 
-@Component({
-  template: `
-    <mat-chip-grid #chipGrid>
-      @for (i of numbers; track i) {
-  <mat-chip-row (removed)="remove(i)">{{i}}</mat-chip-row>
-}
-      <input name="test" [matChipInputFor]="chipGrid"/>
-    </mat-chip-grid>`,
-  animations: [
-    // For the case we're testing this animation doesn't
-    // have to be used anywhere, it just has to be defined.
-    trigger('dummyAnimation', [
-      transition(':leave', [style({opacity: 0}), animate('500ms', style({opacity: 1}))]),
-    ]),
-  ],
-})
-class StandardChipGridWithAnimations {
-  numbers = [0, 1, 2, 3, 4];
+  private readonly _changeDetectorRef = inject(ChangeDetectorRef);
 
-  remove(item: number): void {
-    const index = this.numbers.indexOf(item);
-
-    if (index > -1) {
-      this.numbers.splice(index, 1);
-    }
+  constructor() {
+    this.formControl.events.pipe(takeUntilDestroyed()).subscribe(() => {
+      this._changeDetectorRef.markForCheck();
+    });
   }
 }
 
@@ -1184,15 +1200,16 @@ class StandardChipGridWithAnimations {
     <mat-form-field>
       <mat-chip-grid #chipGrid>
         @for (i of chips; track i) {
-  <mat-chip-row [value]="i" (removed)="removeChip($event)">
-          Chip {{i + 1}}
-          <span matChipRemove>Remove</span>
-        </mat-chip-row>
-}
+          <mat-chip-row [value]="i" (removed)="removeChip($event)">
+            Chip {{i + 1}}
+            <span matChipRemove>Remove</span>
+          </mat-chip-row>
+        }
       </mat-chip-grid>
       <input name="test" [matChipInputFor]="chipGrid"/>
     </mat-form-field>
   `,
+  standalone: false,
 })
 class ChipGridWithRemove {
   chips = [0, 1, 2, 3, 4];

@@ -4,35 +4,23 @@
 
 ```ts
 
-import { AfterContentChecked } from '@angular/core';
 import { AfterContentInit } from '@angular/core';
 import { AfterViewInit } from '@angular/core';
-import { AnimationEvent as AnimationEvent_2 } from '@angular/animations';
-import { AnimationTriggerMetadata } from '@angular/animations';
 import { BooleanInput } from '@angular/cdk/coercion';
 import { CdkScrollable } from '@angular/cdk/scrolling';
-import { ChangeDetectorRef } from '@angular/core';
-import { Directionality } from '@angular/cdk/bidi';
 import { DoCheck } from '@angular/core';
 import { ElementRef } from '@angular/core';
 import { EventEmitter } from '@angular/core';
-import { FocusMonitor } from '@angular/cdk/a11y';
 import { FocusOrigin } from '@angular/cdk/a11y';
-import { FocusTrapFactory } from '@angular/cdk/a11y';
 import * as i0 from '@angular/core';
 import * as i1 from '@angular/material/core';
 import * as i2 from '@angular/cdk/scrolling';
 import { InjectionToken } from '@angular/core';
-import { InteractivityChecker } from '@angular/cdk/a11y';
-import { NgZone } from '@angular/core';
 import { NumberInput } from '@angular/cdk/coercion';
 import { Observable } from 'rxjs';
 import { OnDestroy } from '@angular/core';
-import { Platform } from '@angular/cdk/platform';
 import { QueryList } from '@angular/core';
-import { ScrollDispatcher } from '@angular/cdk/scrolling';
 import { Subject } from 'rxjs';
-import { ViewportRuler } from '@angular/cdk/scrolling';
 
 // @public
 export const MAT_DRAWER_DEFAULT_AUTOSIZE: InjectionToken<boolean>;
@@ -41,11 +29,10 @@ export const MAT_DRAWER_DEFAULT_AUTOSIZE: InjectionToken<boolean>;
 export function MAT_DRAWER_DEFAULT_AUTOSIZE_FACTORY(): boolean;
 
 // @public
-export class MatDrawer implements AfterViewInit, AfterContentChecked, OnDestroy {
-    constructor(_elementRef: ElementRef<HTMLElement>, _focusTrapFactory: FocusTrapFactory, _focusMonitor: FocusMonitor, _platform: Platform, _ngZone: NgZone, _interactivityChecker: InteractivityChecker, _doc: any, _container?: MatDrawerContainer | undefined);
-    readonly _animationEnd: Subject<AnimationEvent_2>;
-    readonly _animationStarted: Subject<AnimationEvent_2>;
-    _animationState: 'open-instant' | 'open' | 'void';
+export class MatDrawer implements AfterViewInit, OnDestroy {
+    constructor(...args: unknown[]);
+    readonly _animationEnd: Subject<unknown>;
+    readonly _animationStarted: Subject<unknown>;
     get autoFocus(): AutoFocusTarget | string | boolean;
     set autoFocus(value: AutoFocusTarget | string | BooleanInput);
     close(): Promise<MatDrawerToggleResult>;
@@ -53,7 +40,7 @@ export class MatDrawer implements AfterViewInit, AfterContentChecked, OnDestroy 
     readonly _closedStream: Observable<void>;
     _closeViaBackdropClick(): Promise<MatDrawerToggleResult>;
     // (undocumented)
-    _container?: MatDrawerContainer | undefined;
+    _container?: MatDrawerContainer | null | undefined;
     _content: ElementRef<HTMLElement>;
     get disableClose(): boolean;
     set disableClose(value: BooleanInput);
@@ -62,8 +49,6 @@ export class MatDrawer implements AfterViewInit, AfterContentChecked, OnDestroy 
     get mode(): MatDrawerMode;
     set mode(value: MatDrawerMode);
     readonly _modeChanged: Subject<void>;
-    // (undocumented)
-    ngAfterContentChecked(): void;
     // (undocumented)
     ngAfterViewInit(): void;
     // (undocumented)
@@ -81,17 +66,17 @@ export class MatDrawer implements AfterViewInit, AfterContentChecked, OnDestroy 
     // (undocumented)
     static ɵcmp: i0.ɵɵComponentDeclaration<MatDrawer, "mat-drawer", ["matDrawer"], { "position": { "alias": "position"; "required": false; }; "mode": { "alias": "mode"; "required": false; }; "disableClose": { "alias": "disableClose"; "required": false; }; "autoFocus": { "alias": "autoFocus"; "required": false; }; "opened": { "alias": "opened"; "required": false; }; }, { "openedChange": "openedChange"; "_openedStream": "opened"; "openedStart": "openedStart"; "_closedStream": "closed"; "closedStart": "closedStart"; "onPositionChanged": "positionChanged"; }, never, ["*"], true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatDrawer, [null, null, null, null, null, null, { optional: true; }, { optional: true; }]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatDrawer, never>;
 }
 
-// @public
+// @public @deprecated
 export const matDrawerAnimations: {
-    readonly transformDrawer: AnimationTriggerMetadata;
+    readonly transformDrawer: any;
 };
 
 // @public
 export class MatDrawerContainer implements AfterContentInit, DoCheck, OnDestroy {
-    constructor(_dir: Directionality, _element: ElementRef<HTMLElement>, _ngZone: NgZone, _changeDetectorRef: ChangeDetectorRef, viewportRuler: ViewportRuler, defaultAutosize?: boolean, _animationMode?: string | undefined);
+    constructor(...args: unknown[]);
     _allDrawers: QueryList<MatDrawer>;
     get autosize(): boolean;
     set autosize(value: BooleanInput);
@@ -129,22 +114,25 @@ export class MatDrawerContainer implements AfterContentInit, DoCheck, OnDestroy 
     open(): void;
     get scrollable(): CdkScrollable;
     get start(): MatDrawer | null;
+    // (undocumented)
+    _transitionsEnabled: boolean;
     updateContentMargins(): void;
     // (undocumented)
     _userContent: MatDrawerContent;
     // (undocumented)
     static ɵcmp: i0.ɵɵComponentDeclaration<MatDrawerContainer, "mat-drawer-container", ["matDrawerContainer"], { "autosize": { "alias": "autosize"; "required": false; }; "hasBackdrop": { "alias": "hasBackdrop"; "required": false; }; }, { "backdropClick": "backdropClick"; }, ["_content", "_allDrawers"], ["mat-drawer", "mat-drawer-content", "*"], true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatDrawerContainer, [{ optional: true; }, null, null, null, null, null, { optional: true; }]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatDrawerContainer, never>;
 }
 
 // @public (undocumented)
 export class MatDrawerContent extends CdkScrollable implements AfterContentInit {
-    constructor(_changeDetectorRef: ChangeDetectorRef, _container: MatDrawerContainer, elementRef: ElementRef<HTMLElement>, scrollDispatcher: ScrollDispatcher, ngZone: NgZone);
+    constructor(...args: unknown[]);
     // (undocumented)
     _container: MatDrawerContainer;
     // (undocumented)
     ngAfterContentInit(): void;
+    protected _shouldBeHidden(): boolean;
     // (undocumented)
     static ɵcmp: i0.ɵɵComponentDeclaration<MatDrawerContent, "mat-drawer-content", never, {}, {}, never, ["*"], true, never>;
     // (undocumented)
@@ -185,7 +173,6 @@ export class MatSidenavContainer extends MatDrawerContainer {
 
 // @public (undocumented)
 export class MatSidenavContent extends MatDrawerContent {
-    constructor(changeDetectorRef: ChangeDetectorRef, container: MatSidenavContainer, elementRef: ElementRef<HTMLElement>, scrollDispatcher: ScrollDispatcher, ngZone: NgZone);
     // (undocumented)
     static ɵcmp: i0.ɵɵComponentDeclaration<MatSidenavContent, "mat-sidenav-content", never, {}, {}, never, ["*"], true, never>;
     // (undocumented)

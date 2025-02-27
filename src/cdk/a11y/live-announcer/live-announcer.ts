@@ -3,21 +3,12 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ContentObserver} from '@angular/cdk/observers';
 import {DOCUMENT} from '@angular/common';
-import {
-  Directive,
-  ElementRef,
-  Inject,
-  Injectable,
-  Input,
-  NgZone,
-  OnDestroy,
-  Optional,
-} from '@angular/core';
+import {Directive, ElementRef, Injectable, Input, NgZone, OnDestroy, inject} from '@angular/core';
 import {Subscription} from 'rxjs';
 import {
   AriaLivePoliteness,
@@ -25,29 +16,27 @@ import {
   LIVE_ANNOUNCER_ELEMENT_TOKEN,
   LIVE_ANNOUNCER_DEFAULT_OPTIONS,
 } from './live-announcer-tokens';
+import {_CdkPrivateStyleLoader, _VisuallyHiddenLoader} from '@angular/cdk/private';
 
 let uniqueIds = 0;
 
 @Injectable({providedIn: 'root'})
 export class LiveAnnouncer implements OnDestroy {
+  private _ngZone = inject(NgZone);
+  private _defaultOptions = inject<LiveAnnouncerDefaultOptions>(LIVE_ANNOUNCER_DEFAULT_OPTIONS, {
+    optional: true,
+  });
+
   private _liveElement: HTMLElement;
-  private _document: Document;
-  private _previousTimeout: number;
+  private _document = inject(DOCUMENT);
+  private _previousTimeout: ReturnType<typeof setTimeout>;
   private _currentPromise: Promise<void> | undefined;
   private _currentResolve: (() => void) | undefined;
 
-  constructor(
-    @Optional() @Inject(LIVE_ANNOUNCER_ELEMENT_TOKEN) elementToken: any,
-    private _ngZone: NgZone,
-    @Inject(DOCUMENT) _document: any,
-    @Optional()
-    @Inject(LIVE_ANNOUNCER_DEFAULT_OPTIONS)
-    private _defaultOptions?: LiveAnnouncerDefaultOptions,
-  ) {
-    // We inject the live element and document as `any` because the constructor signature cannot
-    // reference browser globals (HTMLElement, Document) on non-browser environments, since having
-    // a class decorator causes TypeScript to preserve the constructor signature types.
-    this._document = _document;
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const elementToken = inject(LIVE_ANNOUNCER_ELEMENT_TOKEN, {optional: true});
     this._liveElement = elementToken || this._createLiveElement();
   }
 
@@ -222,9 +211,13 @@ export class LiveAnnouncer implements OnDestroy {
 @Directive({
   selector: '[cdkAriaLive]',
   exportAs: 'cdkAriaLive',
-  standalone: true,
 })
 export class CdkAriaLive implements OnDestroy {
+  private _elementRef = inject(ElementRef);
+  private _liveAnnouncer = inject(LiveAnnouncer);
+  private _contentObserver = inject(ContentObserver);
+  private _ngZone = inject(NgZone);
+
   /** The aria-live politeness level to use when announcing messages. */
   @Input('cdkAriaLive')
   get politeness(): AriaLivePoliteness {
@@ -261,12 +254,11 @@ export class CdkAriaLive implements OnDestroy {
   private _previousAnnouncedText?: string;
   private _subscription: Subscription | null;
 
-  constructor(
-    private _elementRef: ElementRef,
-    private _liveAnnouncer: LiveAnnouncer,
-    private _contentObserver: ContentObserver,
-    private _ngZone: NgZone,
-  ) {}
+  constructor(...args: unknown[]);
+
+  constructor() {
+    inject(_CdkPrivateStyleLoader).load(_VisuallyHiddenLoader);
+  }
 
   ngOnDestroy() {
     if (this._subscription) {

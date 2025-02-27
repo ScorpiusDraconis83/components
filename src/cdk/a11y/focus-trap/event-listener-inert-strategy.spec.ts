@@ -1,10 +1,18 @@
-import {AfterViewInit, Component, ElementRef, Type, ViewChild, Provider} from '@angular/core';
-import {ComponentFixture, fakeAsync, flush, TestBed} from '@angular/core/testing';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  Provider,
+  Type,
+  ViewChild,
+  inject,
+} from '@angular/core';
+import {ComponentFixture, TestBed, fakeAsync, flush} from '@angular/core/testing';
 import {patchElementFocus} from '../../testing/private';
 import {
   A11yModule,
-  ConfigurableFocusTrapFactory,
   ConfigurableFocusTrap,
+  ConfigurableFocusTrapFactory,
   EventListenerFocusTrapInertStrategy,
   FOCUS_TRAP_INERT_STRATEGY,
 } from '../index';
@@ -31,6 +39,7 @@ describe('EventListenerFocusTrapInertStrategy', () => {
     const fixture = createComponent(SimpleFocusTrap, providers);
     const componentInstance = fixture.componentInstance;
     fixture.detectChanges();
+    flush();
 
     componentInstance.secondFocusableElement.nativeElement.focus();
     flush();
@@ -43,6 +52,7 @@ describe('EventListenerFocusTrapInertStrategy', () => {
   it('should not intercept focus if it moved outside the trap and back in again', fakeAsync(() => {
     const fixture = createComponent(SimpleFocusTrap, providers);
     fixture.detectChanges();
+    flush();
     const {secondFocusableElement, outsideFocusableElement} = fixture.componentInstance;
 
     outsideFocusableElement.nativeElement.focus();
@@ -62,7 +72,7 @@ function createComponent<T>(
   TestBed.configureTestingModule({
     imports: [A11yModule, componentType],
     providers: providers,
-  }).compileComponents();
+  });
 
   return TestBed.createComponent<T>(componentType);
 }
@@ -75,9 +85,10 @@ function createComponent<T>(
       <button #secondFocusable>SAVE</button>
     </div>
   `,
-  standalone: true,
 })
 class SimpleFocusTrap implements AfterViewInit {
+  private _focusTrapFactory = inject(ConfigurableFocusTrapFactory);
+
   @ViewChild('focusTrapElement') focusTrapElement!: ElementRef<HTMLElement>;
   @ViewChild('outsideFocusable') outsideFocusableElement!: ElementRef<HTMLElement>;
   @ViewChild('firstFocusable') firstFocusableElement!: ElementRef<HTMLElement>;
@@ -88,8 +99,6 @@ class SimpleFocusTrap implements AfterViewInit {
   // Since our custom stubbing in `patchElementFocus` won't update
   // the `document.activeElement`, we need to keep track of it here.
   activeElement: Element | null;
-
-  constructor(private _focusTrapFactory: ConfigurableFocusTrapFactory) {}
 
   ngAfterViewInit() {
     // Ensure consistent focus timing across browsers.

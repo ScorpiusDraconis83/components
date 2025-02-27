@@ -3,10 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
+  ANIMATION_MODULE_TYPE,
   AfterContentInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -14,7 +15,6 @@ import {
   ContentChildren,
   ElementRef,
   EventEmitter,
-  Inject,
   InjectionToken,
   Input,
   OnDestroy,
@@ -24,8 +24,8 @@ import {
   ViewChild,
   ViewEncapsulation,
   booleanAttribute,
+  inject,
 } from '@angular/core';
-import {AnimationEvent} from '@angular/animations';
 import {
   MAT_OPTGROUP,
   MAT_OPTION_PARENT_COMPONENT,
@@ -33,16 +33,9 @@ import {
   MatOption,
   ThemePalette,
 } from '@angular/material/core';
-import {ActiveDescendantKeyManager} from '@angular/cdk/a11y';
+import {_IdGenerator, ActiveDescendantKeyManager} from '@angular/cdk/a11y';
 import {Platform} from '@angular/cdk/platform';
-import {panelAnimation} from './animations';
 import {Subscription} from 'rxjs';
-
-/**
- * Autocomplete IDs need to be unique across components, so this counter exists outside of
- * the component definition.
- */
-let _uniqueAutocompleteIdCounter = 0;
 
 /** Event object that is emitted when an autocomplete option is selected. */
 export class MatAutocompleteSelectedEvent {
@@ -80,7 +73,7 @@ export interface MatAutocompleteDefaultOptions {
   /** Class or list of classes to be applied to the autocomplete's overlay panel. */
   overlayPanelClass?: string | string[];
 
-  /** Wheter icon indicators should be hidden for single-selection. */
+  /** Whether icon indicators should be hidden for single-selection. */
   hideSingleSelectionIndicator?: boolean;
 }
 
@@ -115,14 +108,14 @@ export function MAT_AUTOCOMPLETE_DEFAULT_OPTIONS_FACTORY(): MatAutocompleteDefau
     'class': 'mat-mdc-autocomplete',
   },
   providers: [{provide: MAT_OPTION_PARENT_COMPONENT, useExisting: MatAutocomplete}],
-  animations: [panelAnimation],
-  standalone: true,
 })
 export class MatAutocomplete implements AfterContentInit, OnDestroy {
+  private _changeDetectorRef = inject(ChangeDetectorRef);
+  private _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  protected _defaults = inject<MatAutocompleteDefaultOptions>(MAT_AUTOCOMPLETE_DEFAULT_OPTIONS);
+  protected _animationsDisabled =
+    inject(ANIMATION_MODULE_TYPE, {optional: true}) === 'NoopAnimations';
   private _activeOptionChanges = Subscription.EMPTY;
-
-  /** Emits when the panel animation is done. Null if the panel doesn't animate. */
-  _animationDone = new EventEmitter<AnimationEvent>();
 
   /** Manages active item in option list based on key events. */
   _keyManager: ActiveDescendantKeyManager<MatOption>;
@@ -244,7 +237,7 @@ export class MatAutocomplete implements AfterContentInit, OnDestroy {
   }
 
   /** Unique ID to be used by autocomplete trigger's "aria-owns" property. */
-  id: string = `mat-autocomplete-${_uniqueAutocompleteIdCounter++}`;
+  id: string = inject(_IdGenerator).getId('mat-autocomplete-');
 
   /**
    * Tells any descendant `mat-optgroup` to use the inert a11y pattern.
@@ -252,20 +245,19 @@ export class MatAutocomplete implements AfterContentInit, OnDestroy {
    */
   readonly inertGroups: boolean;
 
-  constructor(
-    private _changeDetectorRef: ChangeDetectorRef,
-    private _elementRef: ElementRef<HTMLElement>,
-    @Inject(MAT_AUTOCOMPLETE_DEFAULT_OPTIONS) protected _defaults: MatAutocompleteDefaultOptions,
-    platform?: Platform,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const platform = inject(Platform);
+
     // TODO(crisbeto): the problem that the `inertGroups` option resolves is only present on
     // Safari using VoiceOver. We should occasionally check back to see whether the bug
     // wasn't resolved in VoiceOver, and if it has, we can remove this and the `inertGroups`
     // option altogether.
     this.inertGroups = platform?.SAFARI || false;
-    this.autoActiveFirstOption = !!_defaults.autoActiveFirstOption;
-    this.autoSelectActiveOption = !!_defaults.autoSelectActiveOption;
-    this.requireSelection = !!_defaults.requireSelection;
+    this.autoActiveFirstOption = !!this._defaults.autoActiveFirstOption;
+    this.autoSelectActiveOption = !!this._defaults.autoSelectActiveOption;
+    this.requireSelection = !!this._defaults.requireSelection;
     this._hideSingleSelectionIndicator = this._defaults.hideSingleSelectionIndicator ?? false;
   }
 
@@ -286,7 +278,6 @@ export class MatAutocomplete implements AfterContentInit, OnDestroy {
   ngOnDestroy() {
     this._keyManager?.destroy();
     this._activeOptionChanges.unsubscribe();
-    this._animationDone.complete();
   }
 
   /**

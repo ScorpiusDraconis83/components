@@ -3,22 +3,19 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {isFakeMousedownFromScreenReader, isFakeTouchstartFromScreenReader} from '@angular/cdk/a11y';
 import {Direction} from '@angular/cdk/bidi';
 import {coerceElement} from '@angular/cdk/coercion';
-import {
-  _getEventTarget,
-  _getShadowRoot,
-  normalizePassiveListenerOptions,
-} from '@angular/cdk/platform';
+import {_getEventTarget, _getShadowRoot, _bindEventWithOptions} from '@angular/cdk/platform';
 import {ViewportRuler} from '@angular/cdk/scrolling';
 import {
   ElementRef,
   EmbeddedViewRef,
   NgZone,
+  Renderer2,
   TemplateRef,
   ViewContainerRef,
   signal,
@@ -60,17 +57,25 @@ export interface DragRefConfig {
   parentDragRef?: DragRef;
 }
 
+/** Function that can be used to constrain the position of a dragged element. */
+export type DragConstrainPosition = (
+  userPointerPosition: Point,
+  dragRef: DragRef,
+  dimensions: DOMRect,
+  pickupPositionInElement: Point,
+) => Point;
+
 /** Options that can be used to bind a passive event listener. */
-const passiveEventListenerOptions = normalizePassiveListenerOptions({passive: true});
+const passiveEventListenerOptions = {passive: true};
 
 /** Options that can be used to bind an active event listener. */
-const activeEventListenerOptions = normalizePassiveListenerOptions({passive: false});
+const activeEventListenerOptions = {passive: false};
 
 /** Event options that can be used to bind an active, capturing event. */
-const activeCapturingEventOptions = normalizePassiveListenerOptions({
+const activeCapturingEventOptions = {
   passive: false,
   capture: true,
-});
+};
 
 /**
  * Time in milliseconds for which to ignore mouse events, after
@@ -120,6 +125,9 @@ export type PreviewContainer = 'global' | 'parent' | ElementRef<HTMLElement> | H
  * Reference to a draggable item. Used to manipulate or dispose of the item.
  */
 export class DragRef<T = any> {
+  private _rootElementCleanups: (() => void)[] | undefined;
+  private _cleanupShadowRootSelectStart: (() => void) | undefined;
+
   /** Element displayed next to the user's pointer while the element is dragged. */
   private _preview: PreviewRef | null;
 
@@ -288,6 +296,12 @@ export class DragRef<T = any> {
   /** Class to be added to the preview element. */
   previewClass: string | string[] | undefined;
 
+  /**
+   * If the parent of the dragged element has a `scale` transform, it can throw off the
+   * positioning when the user starts dragging. Use this input to notify the CDK of the scale.
+   */
+  scale: number = 1;
+
   /** Whether starting to drag this element is disabled. */
   get disabled(): boolean {
     return this._disabled || !!(this._dropContainer && this._dropContainer.disabled);
@@ -358,12 +372,7 @@ export class DragRef<T = any> {
    * of the user's pointer on the page, a reference to the item being dragged and its dimensions.
    * Should return a point describing where the item should be rendered.
    */
-  constrainPosition?: (
-    userPointerPosition: Point,
-    dragRef: DragRef,
-    dimensions: DOMRect,
-    pickupPositionInElement: Point,
-  ) => Point;
+  constrainPosition?: DragConstrainPosition;
 
   constructor(
     element: ElementRef<HTMLElement> | HTMLElement,
@@ -371,7 +380,8 @@ export class DragRef<T = any> {
     private _document: Document,
     private _ngZone: NgZone,
     private _viewportRuler: ViewportRuler,
-    private _dragDropRegistry: DragDropRegistry<DragRef, DropListRef>,
+    private _dragDropRegistry: DragDropRegistry,
+    private _renderer: Renderer2,
   ) {
     this.withRootElement(element).withParent(_config.parentDragRef || null);
     this._parentPositions = new ParentPositionTracker(_document);
@@ -446,15 +456,30 @@ export class DragRef<T = any> {
     const element = coerceElement(rootElement);
 
     if (element !== this._rootElement) {
-      if (this._rootElement) {
-        this._removeRootElementListeners(this._rootElement);
-      }
-
-      this._ngZone.runOutsideAngular(() => {
-        element.addEventListener('mousedown', this._pointerDown, activeEventListenerOptions);
-        element.addEventListener('touchstart', this._pointerDown, passiveEventListenerOptions);
-        element.addEventListener('dragstart', this._nativeDragStart, activeEventListenerOptions);
-      });
+      this._removeRootElementListeners();
+      this._rootElementCleanups = this._ngZone.runOutsideAngular(() => [
+        _bindEventWithOptions(
+          this._renderer,
+          element,
+          'mousedown',
+          this._pointerDown,
+          activeEventListenerOptions,
+        ),
+        _bindEventWithOptions(
+          this._renderer,
+          element,
+          'touchstart',
+          this._pointerDown,
+          passiveEventListenerOptions,
+        ),
+        _bindEventWithOptions(
+          this._renderer,
+          element,
+          'dragstart',
+          this._nativeDragStart,
+          activeEventListenerOptions,
+        ),
+      ]);
       this._initialTransform = undefined;
       this._rootElement = element;
     }
@@ -488,7 +513,7 @@ export class DragRef<T = any> {
 
   /** Removes the dragging functionality from the DOM element. */
   dispose() {
-    this._removeRootElementListeners(this._rootElement);
+    this._removeRootElementListeners();
 
     // Do this check before removing from the registry since it'll
     // stop being considered as dragged once it is removed.
@@ -618,11 +643,8 @@ export class DragRef<T = any> {
     this._pointerMoveSubscription.unsubscribe();
     this._pointerUpSubscription.unsubscribe();
     this._scrollSubscription.unsubscribe();
-    this._getShadowRoot()?.removeEventListener(
-      'selectstart',
-      shadowDomSelectStart,
-      activeCapturingEventOptions,
-    );
+    this._cleanupShadowRootSelectStart?.();
+    this._cleanupShadowRootSelectStart = undefined;
   }
 
   /** Destroys the preview element and its ViewRef. */
@@ -810,7 +832,9 @@ export class DragRef<T = any> {
       // In some browsers the global `selectstart` that we maintain in the `DragDropRegistry`
       // doesn't cross the shadow boundary so we have to prevent it at the shadow root (see #28792).
       this._ngZone.runOutsideAngular(() => {
-        shadowRoot.addEventListener(
+        this._cleanupShadowRootSelectStart = _bindEventWithOptions(
+          this._renderer,
+          shadowRoot,
           'selectstart',
           shadowDomSelectStart,
           activeCapturingEventOptions,
@@ -822,7 +846,11 @@ export class DragRef<T = any> {
       const element = this._rootElement;
       const parent = element.parentNode as HTMLElement;
       const placeholder = (this._placeholder = this._createPlaceholderElement());
-      const anchor = (this._anchor = this._anchor || this._document.createComment(''));
+      const anchor = (this._anchor =
+        this._anchor ||
+        this._document.createComment(
+          typeof ngDevMode === 'undefined' || ngDevMode ? 'cdk-drag-anchor' : '',
+        ));
 
       // Insert an anchor node so that we can restore the element's position in the DOM.
       parent.insertBefore(anchor, element);
@@ -843,6 +871,7 @@ export class DragRef<T = any> {
         this._pickupPositionOnPage,
         this._initialTransform,
         this._config.zIndex || 1000,
+        this._renderer,
       );
       this._preview.attach(this._getPreviewInsertionPoint(parent, shadowRoot));
 
@@ -1096,22 +1125,24 @@ export class DragRef<T = any> {
 
     return this._ngZone.runOutsideAngular(() => {
       return new Promise(resolve => {
-        const handler = ((event: TransitionEvent) => {
+        const handler = (event: TransitionEvent) => {
           if (
             !event ||
-            (_getEventTarget(event) === this._preview && event.propertyName === 'transform')
+            (this._preview &&
+              _getEventTarget(event) === this._preview.element &&
+              event.propertyName === 'transform')
           ) {
-            this._preview?.removeEventListener('transitionend', handler);
+            cleanupListener();
             resolve();
             clearTimeout(timeout);
           }
-        }) as EventListenerOrEventListenerObject;
+        };
 
         // If a transition is short enough, the browser might not fire the `transitionend` event.
         // Since we know how long it's supposed to take, add a timeout with a 50% buffer that'll
         // fire if the transition hasn't completed when it was supposed to.
         const timeout = setTimeout(handler as Function, duration * 1.5);
-        this._preview!.addEventListener('transitionend', handler);
+        const cleanupListener = this._preview!.addEventListener('transitionend', handler);
       });
     });
   }
@@ -1275,10 +1306,9 @@ export class DragRef<T = any> {
   }
 
   /** Removes the manually-added event listeners from the root element. */
-  private _removeRootElementListeners(element: HTMLElement) {
-    element.removeEventListener('mousedown', this._pointerDown, activeEventListenerOptions);
-    element.removeEventListener('touchstart', this._pointerDown, passiveEventListenerOptions);
-    element.removeEventListener('dragstart', this._nativeDragStart, activeEventListenerOptions);
+  private _removeRootElementListeners() {
+    this._rootElementCleanups?.forEach(cleanup => cleanup());
+    this._rootElementCleanups = undefined;
   }
 
   /**
@@ -1287,7 +1317,8 @@ export class DragRef<T = any> {
    * @param y New transform value along the Y axis.
    */
   private _applyRootElementTransform(x: number, y: number) {
-    const transform = getTransform(x, y);
+    const scale = 1 / this.scale;
+    const transform = getTransform(x * scale, y * scale);
     const styles = this._rootElement.style;
 
     // Cache the previous transform amount only after the first drag sequence, because

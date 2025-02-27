@@ -26,7 +26,7 @@ describe('Combobox', () => {
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
         imports: [CdkComboboxModule, ComboboxToggle],
-      }).compileComponents();
+      });
     }));
 
     beforeEach(() => {
@@ -192,7 +192,7 @@ describe('Combobox', () => {
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
         imports: [CdkComboboxModule, ComboboxToggle],
-      }).compileComponents();
+      });
     }));
 
     beforeEach(() => {
@@ -262,7 +262,7 @@ describe('Combobox', () => {
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
         imports: [CdkComboboxModule, ComboboxToggle],
-      }).compileComponents();
+      });
     }));
 
     beforeEach(() => {
@@ -385,7 +385,6 @@ describe('Combobox', () => {
       <button id="applyButton" (click)="toggleCombobox.updateAndClose(input.value)">Apply</button>
     </div>
   </ng-template>`,
-  standalone: true,
   imports: [CdkComboboxModule],
 })
 class ComboboxToggle {

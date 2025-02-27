@@ -3,7 +3,6 @@ import {DataSource} from '@angular/cdk/collections';
 import {DOWN_ARROW, LEFT_ARROW, RIGHT_ARROW, TAB, UP_ARROW} from '@angular/cdk/keycodes';
 import {CdkTableModule} from '@angular/cdk/table';
 import {dispatchKeyboardEvent} from '@angular/cdk/testing/private';
-import {CommonModule} from '@angular/common';
 import {
   ChangeDetectorRef,
   Component,
@@ -62,6 +61,7 @@ const POPOVER_EDIT_DIRECTIVE_NAME = `
     [cdkPopoverEdit]="nameEdit"
     [cdkPopoverEditColspan]="colspan"
     [cdkPopoverEditDisabled]="nameEditDisabled"
+    [cdkPopoverEditAriaLabel]="nameEditAriaLabel"
     `;
 
 const POPOVER_EDIT_DIRECTIVE_WEIGHT = `[cdkPopoverEdit]="weightEdit" cdkPopoverEditTabOut`;
@@ -77,6 +77,7 @@ abstract class BaseTestComponent {
 
   preservedValues = new FormValueContainer<PeriodicElement, {'name': string}>();
   nameEditDisabled = false;
+  nameEditAriaLabel: string | undefined = undefined;
   ignoreSubmitUnlessValid = true;
   clickOutBehavior: PopoverEditClickOutBehavior = 'close';
   colspan: CdkPopoverEditColspan = {};
@@ -218,6 +219,7 @@ abstract class BaseTestComponent {
     }
   </table>
   `,
+  standalone: false,
 })
 class VanillaTableOutOfCell extends BaseTestComponent {
   elements: ChemicalElement[];
@@ -254,6 +256,7 @@ class VanillaTableOutOfCell extends BaseTestComponent {
     }
   </table>
   `,
+  standalone: false,
 })
 class VanillaTableInCell extends BaseTestComponent {
   elements: ChemicalElement[];
@@ -316,6 +319,7 @@ class ElementDataSource extends DataSource<PeriodicElement> {
     </cdk-table>
   </div>
   `,
+  standalone: false,
 })
 class CdkFlexTableInCell extends BaseTestComponent {
   displayedColumns = ['before', 'name', 'weight'];
@@ -367,6 +371,7 @@ class CdkFlexTableInCell extends BaseTestComponent {
     </table>
   <div>
   `,
+  standalone: false,
 })
 class CdkTableInCell extends BaseTestComponent {
   displayedColumns = ['before', 'name', 'weight'];
@@ -393,11 +398,12 @@ describe('CDK Popover Edit', () => {
 
       beforeEach(fakeAsync(() => {
         TestBed.configureTestingModule({
-          imports: [CdkTableModule, CdkPopoverEditModule, CommonModule, FormsModule, BidiModule],
+          imports: [CdkTableModule, CdkPopoverEditModule, FormsModule, BidiModule],
           declarations: [componentClass],
-        }).compileComponents();
+        });
         fixture = TestBed.createComponent<BaseTestComponent>(componentClass);
         component = fixture.componentInstance;
+        component.renderData();
         fixture.detectChanges();
         tick(10);
         fixture.detectChanges();
@@ -555,6 +561,22 @@ describe('CDK Popover Edit', () => {
           fixture.detectChanges();
 
           expect(component.lensIsOpen()).toBe(false);
+          clearLeftoverTimers();
+        }));
+
+        it('sets aria label and role dialog on the popup', fakeAsync(() => {
+          component.nameEditAriaLabel = 'Label of name!!';
+          fixture.changeDetectorRef.markForCheck();
+          fixture.detectChanges();
+
+          // Uses Enter to open the lens.
+          component.openLens();
+          fixture.detectChanges();
+
+          expect(component.lensIsOpen()).toBe(true);
+          const dialogElem = component.getEditPane()!;
+          expect(dialogElem.getAttribute('aria-label')).toBe('Label of name!!');
+          expect(dialogElem.getAttribute('role')).toBe('dialog');
           clearLeftoverTimers();
         }));
       });

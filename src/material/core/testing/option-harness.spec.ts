@@ -1,17 +1,11 @@
-import {
-  Component,
-  ViewChildren,
-  QueryList,
-  signal,
-  provideZoneChangeDetection,
-} from '@angular/core';
-import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {HarnessLoader, parallel} from '@angular/cdk/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
+import {Component, QueryList, ViewChildren, signal} from '@angular/core';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {
+  MAT_OPTION_PARENT_COMPONENT,
   MatOption,
   MatOptionModule,
-  MAT_OPTION_PARENT_COMPONENT,
   MatOptionParentComponent,
 } from '@angular/material/core';
 import {MatOptionHarness} from './option-harness';
@@ -20,11 +14,10 @@ describe('MatOptionHarness', () => {
   let fixture: ComponentFixture<OptionHarnessTest>;
   let loader: HarnessLoader;
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
+  beforeEach(() => {
+    TestBed.configureTestingModule({
       imports: [MatOptionModule, OptionHarnessTest],
-      providers: [provideZoneChangeDetection()],
-    }).compileComponents();
+    });
 
     fixture = TestBed.createComponent(OptionHarnessTest);
     fixture.detectChanges();
@@ -119,7 +112,6 @@ describe('MatOptionHarness', () => {
     <mat-option>Plain option</mat-option>
     <mat-option disabled>Disabled option</mat-option>
   `,
-  standalone: true,
   imports: [MatOptionModule],
 })
 class OptionHarnessTest implements MatOptionParentComponent {

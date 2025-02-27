@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -14,8 +14,10 @@ import {
   ElementRef,
   OnDestroy,
   ViewChild,
+  inject,
 } from '@angular/core';
 import {FormsModule} from '@angular/forms';
+import {MatButton} from '@angular/material/button';
 import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatRadioModule} from '@angular/material/radio';
 import {PlaceholderImageQuality, YouTubePlayer} from '@angular/youtube-player';
@@ -78,8 +80,7 @@ const VIDEOS: Video[] = [
   selector: 'youtube-player-demo',
   templateUrl: 'youtube-player-demo.html',
   styleUrl: 'youtube-player-demo.css',
-  standalone: true,
-  imports: [FormsModule, MatRadioModule, MatCheckboxModule, YouTubePlayer],
+  imports: [FormsModule, MatRadioModule, MatCheckboxModule, MatButton, YouTubePlayer],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class YouTubePlayerDemo implements AfterViewInit, OnDestroy {
@@ -87,15 +88,17 @@ export class YouTubePlayerDemo implements AfterViewInit, OnDestroy {
   private _selectedVideo?: Video;
   private _playerVars?: YT.PlayerVars;
   private _selectedVideoId?: string;
+  private _changeDetectorRef = inject(ChangeDetectorRef);
 
   videos = VIDEOS;
   videoWidth: number | undefined;
   videoHeight: number | undefined;
   disableCookies = false;
   disablePlaceholder = false;
+  startAt30s = false;
   placeholderQuality: PlaceholderImageQuality;
 
-  constructor(private _changeDetectorRef: ChangeDetectorRef) {
+  constructor() {
     this.selectedVideo = VIDEOS[0];
   }
 

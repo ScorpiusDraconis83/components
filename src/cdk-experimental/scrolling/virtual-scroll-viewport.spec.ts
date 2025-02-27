@@ -12,7 +12,7 @@ describe('CdkVirtualScrollViewport', () => {
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
         imports: [ScrollingModule, ExperimentalScrollingModule, AutoSizeVirtualScroll],
-      }).compileComponents();
+      });
     }));
 
     beforeEach(() => {
@@ -95,7 +95,6 @@ function finishInit(fixture: ComponentFixture<any>) {
     }
   `,
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   imports: [ScrollingModule, ExperimentalScrollingModule],
 })
 class AutoSizeVirtualScroll {

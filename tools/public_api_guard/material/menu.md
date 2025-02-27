@@ -6,26 +6,15 @@
 
 import { AfterContentInit } from '@angular/core';
 import { AfterViewInit } from '@angular/core';
-import { AnimationEvent as AnimationEvent_2 } from '@angular/animations';
-import { AnimationTriggerMetadata } from '@angular/animations';
-import { ApplicationRef } from '@angular/core';
-import { ChangeDetectorRef } from '@angular/core';
-import { ComponentFactoryResolver } from '@angular/core';
 import { Direction } from '@angular/cdk/bidi';
-import { Directionality } from '@angular/cdk/bidi';
-import { ElementRef } from '@angular/core';
 import { EventEmitter } from '@angular/core';
 import { FocusableOption } from '@angular/cdk/a11y';
-import { FocusMonitor } from '@angular/cdk/a11y';
 import { FocusOrigin } from '@angular/cdk/a11y';
 import * as i0 from '@angular/core';
-import * as i1 from '@angular/common';
-import * as i2 from '@angular/material/core';
-import * as i3 from '@angular/cdk/overlay';
-import * as i8 from '@angular/cdk/scrolling';
+import * as i1 from '@angular/material/core';
+import * as i2 from '@angular/cdk/overlay';
+import * as i7 from '@angular/cdk/scrolling';
 import { InjectionToken } from '@angular/core';
-import { Injector } from '@angular/core';
-import { NgZone } from '@angular/core';
 import { Observable } from 'rxjs';
 import { OnDestroy } from '@angular/core';
 import { OnInit } from '@angular/core';
@@ -34,10 +23,9 @@ import { QueryList } from '@angular/core';
 import { ScrollStrategy } from '@angular/cdk/overlay';
 import { Subject } from 'rxjs';
 import { TemplateRef } from '@angular/core';
-import { ViewContainerRef } from '@angular/core';
 
 // @public @deprecated (undocumented)
-export const fadeInItems: AnimationTriggerMetadata;
+export const fadeInItems: any;
 
 // @public
 export const MAT_MENU_CONTENT: InjectionToken<MatMenuContent>;
@@ -60,13 +48,12 @@ export const MAT_MENU_SCROLL_STRATEGY_FACTORY_PROVIDER: {
 
 // @public (undocumented)
 export class MatMenu implements AfterContentInit, MatMenuPanel<MatMenuItem>, OnInit, OnDestroy {
-    constructor(elementRef: ElementRef<HTMLElement>, ngZone: NgZone, defaultOptions: MatMenuDefaultOptions, changeDetectorRef: ChangeDetectorRef);
-    // @deprecated
-    constructor(elementRef: ElementRef<HTMLElement>, ngZone: NgZone, defaultOptions: MatMenuDefaultOptions, changeDetectorRef?: ChangeDetectorRef);
+    constructor(...args: unknown[]);
     // (undocumented)
     addItem(_item: MatMenuItem): void;
     _allItems: QueryList<MatMenuItem>;
-    readonly _animationDone: Subject<AnimationEvent_2>;
+    readonly _animationDone: Subject<"void" | "enter">;
+    protected _animationsDisabled: boolean;
     ariaDescribedby: string;
     ariaLabel: string;
     ariaLabelledby: string;
@@ -100,9 +87,9 @@ export class MatMenu implements AfterContentInit, MatMenuPanel<MatMenuItem>, OnI
     ngOnDestroy(): void;
     // (undocumented)
     ngOnInit(): void;
-    _onAnimationDone(event: AnimationEvent_2): void;
+    protected _onAnimationDone(state: string): void;
     // (undocumented)
-    _onAnimationStart(event: AnimationEvent_2): void;
+    protected _onAnimationStart(state: string): void;
     overlapTrigger: boolean;
     overlayPanelClass: string | string[];
     _panelAnimationState: 'void' | 'enter';
@@ -113,10 +100,11 @@ export class MatMenu implements AfterContentInit, MatMenuPanel<MatMenuItem>, OnI
     // @deprecated
     removeItem(_item: MatMenuItem): void;
     resetActiveItem(): void;
-    _resetAnimation(): void;
-    setElevation(depth: number): void;
+    // @deprecated (undocumented)
+    setElevation(_depth: number): void;
+    // (undocumented)
+    _setIsOpen(isOpen: boolean): void;
     setPositionClasses(posX?: MenuPositionX, posY?: MenuPositionY): void;
-    _startAnimation(): void;
     templateRef: TemplateRef<any>;
     get xPosition(): MenuPositionX;
     set xPosition(value: MenuPositionX);
@@ -128,17 +116,15 @@ export class MatMenu implements AfterContentInit, MatMenuPanel<MatMenuItem>, OnI
     static ɵfac: i0.ɵɵFactoryDeclaration<MatMenu, never>;
 }
 
-// @public
+// @public @deprecated
 export const matMenuAnimations: {
-    readonly transformMenu: AnimationTriggerMetadata;
-    readonly fadeInItems: AnimationTriggerMetadata;
+    readonly transformMenu: any;
+    readonly fadeInItems: any;
 };
 
 // @public
 export class MatMenuContent implements OnDestroy {
-    constructor(template: TemplateRef<any>, componentFactoryResolver: ComponentFactoryResolver, appRef: ApplicationRef, injector: Injector, viewContainerRef: ViewContainerRef, document: any, changeDetectorRef: ChangeDetectorRef);
-    // @deprecated
-    constructor(template: TemplateRef<any>, componentFactoryResolver: ComponentFactoryResolver, appRef: ApplicationRef, injector: Injector, viewContainerRef: ViewContainerRef, document: any, changeDetectorRef?: ChangeDetectorRef);
+    constructor(...args: unknown[]);
     attach(context?: any): void;
     readonly _attached: Subject<void>;
     detach(): void;
@@ -162,9 +148,7 @@ export interface MatMenuDefaultOptions {
 
 // @public
 export class MatMenuItem implements FocusableOption, AfterViewInit, OnDestroy {
-    constructor(elementRef: ElementRef<HTMLElement>, document: any, focusMonitor: FocusMonitor, parentMenu: MatMenuPanel<MatMenuItem> | undefined, changeDetectorRef: ChangeDetectorRef);
-    // @deprecated
-    constructor(elementRef: ElementRef<HTMLElement>, document?: any, focusMonitor?: FocusMonitor, parentMenu?: MatMenuPanel<MatMenuItem>, changeDetectorRef?: ChangeDetectorRef);
+    constructor(...args: unknown[]);
     _checkDisabled(event: Event): void;
     disabled: boolean;
     disableRipple: boolean;
@@ -187,7 +171,7 @@ export class MatMenuItem implements FocusableOption, AfterViewInit, OnDestroy {
     // (undocumented)
     ngOnDestroy(): void;
     // (undocumented)
-    _parentMenu?: MatMenuPanel<MatMenuItem> | undefined;
+    _parentMenu?: MatMenuPanel<MatMenuItem> | null | undefined;
     role: 'menuitem' | 'menuitemradio' | 'menuitemcheckbox';
     // (undocumented)
     _setHighlighted(isHighlighted: boolean): void;
@@ -197,7 +181,7 @@ export class MatMenuItem implements FocusableOption, AfterViewInit, OnDestroy {
     // (undocumented)
     static ɵcmp: i0.ɵɵComponentDeclaration<MatMenuItem, "[mat-menu-item]", ["matMenuItem"], { "role": { "alias": "role"; "required": false; }; "disabled": { "alias": "disabled"; "required": false; }; "disableRipple": { "alias": "disableRipple"; "required": false; }; }, {}, never, ["mat-icon, [matMenuItemIcon]", "*"], true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatMenuItem, [null, null, null, { optional: true; }, null]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatMenuItem, never>;
 }
 
 // @public (undocumented)
@@ -207,7 +191,7 @@ export class MatMenuModule {
     // (undocumented)
     static ɵinj: i0.ɵɵInjectorDeclaration<MatMenuModule>;
     // (undocumented)
-    static ɵmod: i0.ɵɵNgModuleDeclaration<MatMenuModule, never, [typeof i1.CommonModule, typeof i2.MatRippleModule, typeof i2.MatCommonModule, typeof i3.OverlayModule, typeof i4.MatMenu, typeof i5.MatMenuItem, typeof i6.MatMenuContent, typeof i7.MatMenuTrigger], [typeof i8.CdkScrollableModule, typeof i4.MatMenu, typeof i2.MatCommonModule, typeof i5.MatMenuItem, typeof i6.MatMenuContent, typeof i7.MatMenuTrigger]>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<MatMenuModule, never, [typeof i1.MatRippleModule, typeof i1.MatCommonModule, typeof i2.OverlayModule, typeof i3.MatMenu, typeof i4.MatMenuItem, typeof i5.MatMenuContent, typeof i6.MatMenuTrigger], [typeof i7.CdkScrollableModule, typeof i3.MatMenu, typeof i1.MatCommonModule, typeof i4.MatMenuItem, typeof i5.MatMenuContent, typeof i6.MatMenuTrigger]>;
 }
 
 // @public
@@ -238,7 +222,7 @@ export interface MatMenuPanel<T = any> {
     removeItem?: (item: T) => void;
     // (undocumented)
     resetActiveItem: () => void;
-    // (undocumented)
+    // @deprecated (undocumented)
     setElevation?(depth: number): void;
     // (undocumented)
     setPositionClasses?: (x: MenuPositionX, y: MenuPositionY) => void;
@@ -252,11 +236,7 @@ export interface MatMenuPanel<T = any> {
 
 // @public
 export class MatMenuTrigger implements AfterContentInit, OnDestroy {
-    constructor(overlay: Overlay, element: ElementRef<HTMLElement>, viewContainerRef: ViewContainerRef, scrollStrategy: any, parentMenu: MatMenuPanel, menuItemInstance: MatMenuItem, dir: Directionality, focusMonitor: FocusMonitor, ngZone: NgZone);
-    // @deprecated
-    constructor(overlay: Overlay, element: ElementRef<HTMLElement>, viewContainerRef: ViewContainerRef, scrollStrategy: any, parentMenu: MatMenuPanel, menuItemInstance: MatMenuItem, dir: Directionality, focusMonitor?: FocusMonitor | null);
-    // @deprecated
-    constructor(overlay: Overlay, element: ElementRef<HTMLElement>, viewContainerRef: ViewContainerRef, scrollStrategy: any, parentMenu: MatMenuPanel, menuItemInstance: MatMenuItem, dir: Directionality, focusMonitor: FocusMonitor);
+    constructor(...args: unknown[]);
     closeMenu(): void;
     // @deprecated (undocumented)
     get _deprecatedMatMenuTriggerFor(): MatMenuPanel | null;
@@ -290,7 +270,7 @@ export class MatMenuTrigger implements AfterContentInit, OnDestroy {
     // (undocumented)
     static ɵdir: i0.ɵɵDirectiveDeclaration<MatMenuTrigger, "[mat-menu-trigger-for], [matMenuTriggerFor]", ["matMenuTrigger"], { "_deprecatedMatMenuTriggerFor": { "alias": "mat-menu-trigger-for"; "required": false; }; "menu": { "alias": "matMenuTriggerFor"; "required": false; }; "menuData": { "alias": "matMenuTriggerData"; "required": false; }; "restoreFocus": { "alias": "matMenuTriggerRestoreFocus"; "required": false; }; }, { "menuOpened": "menuOpened"; "onMenuOpen": "onMenuOpen"; "menuClosed": "menuClosed"; "onMenuClose": "onMenuClose"; }, never, never, true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatMenuTrigger, [null, null, null, null, { optional: true; }, { optional: true; self: true; }, { optional: true; }, null, null]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatMenuTrigger, never>;
 }
 
 // @public @deprecated
@@ -306,7 +286,7 @@ export type MenuPositionX = 'before' | 'after';
 export type MenuPositionY = 'above' | 'below';
 
 // @public @deprecated (undocumented)
-export const transformMenu: AnimationTriggerMetadata;
+export const transformMenu: any;
 
 // (No @packageDocumentation comment for this package)
 

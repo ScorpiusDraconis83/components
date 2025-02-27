@@ -1,21 +1,13 @@
 import {waitForAsync, TestBed, ComponentFixture} from '@angular/core/testing';
 import {Component} from '@angular/core';
 import {By} from '@angular/platform-browser';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {CdkAccordionModule, CdkAccordionItem} from './public-api';
 
 describe('CdkAccordionItem', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [
-        BrowserAnimationsModule,
-        CdkAccordionModule,
-        SingleItem,
-        ItemGroupWithoutAccordion,
-        ItemGroupWithAccordion,
-      ],
+      imports: [CdkAccordionModule, SingleItem, ItemGroupWithoutAccordion, ItemGroupWithAccordion],
     });
-    TestBed.compileComponents();
   }));
 
   describe('single item', () => {
@@ -239,7 +231,6 @@ describe('CdkAccordionItem', () => {
 
 @Component({
   template: `<cdk-accordion-item #item1></cdk-accordion-item>`,
-  standalone: true,
   imports: [CdkAccordionModule],
 })
 class SingleItem {}
@@ -249,7 +240,6 @@ class SingleItem {}
     <cdk-accordion-item #item1></cdk-accordion-item>
     <cdk-accordion-item #item2></cdk-accordion-item>
   `,
-  standalone: true,
   imports: [CdkAccordionModule],
 })
 class ItemGroupWithoutAccordion {}
@@ -261,7 +251,6 @@ class ItemGroupWithoutAccordion {}
       <cdk-accordion-item #item2></cdk-accordion-item>
     </cdk-accordion>
   `,
-  standalone: true,
   imports: [CdkAccordionModule],
 })
 class ItemGroupWithAccordion {}

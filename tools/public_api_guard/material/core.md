@@ -12,10 +12,10 @@ import { EventEmitter } from '@angular/core';
 import { FocusableOption } from '@angular/cdk/a11y';
 import { FocusOrigin } from '@angular/cdk/a11y';
 import { FormGroupDirective } from '@angular/forms';
-import { HighContrastModeDetector } from '@angular/cdk/a11y';
 import * as i0 from '@angular/core';
 import * as i1 from '@angular/cdk/bidi';
 import { InjectionToken } from '@angular/core';
+import { Injector } from '@angular/core';
 import { NgControl } from '@angular/forms';
 import { NgForm } from '@angular/forms';
 import { NgZone } from '@angular/core';
@@ -25,13 +25,11 @@ import { OnInit } from '@angular/core';
 import { Platform } from '@angular/cdk/platform';
 import { Provider } from '@angular/core';
 import { QueryList } from '@angular/core';
+import { Signal } from '@angular/core';
 import { Subject } from 'rxjs';
 import { Version } from '@angular/core';
 
-// @public
-export type _AbstractConstructor<T = object> = abstract new (...args: any[]) => T;
-
-// @public
+// @public @deprecated (undocumented)
 export class AnimationCurves {
     // (undocumented)
     static ACCELERATION_CURVE: string;
@@ -43,7 +41,7 @@ export class AnimationCurves {
     static STANDARD_CURVE: string;
 }
 
-// @public
+// @public @deprecated (undocumented)
 export class AnimationDurations {
     // (undocumented)
     static COMPLEX: string;
@@ -53,32 +51,6 @@ export class AnimationDurations {
     static EXITING: string;
 }
 
-// @public @deprecated
-export interface CanColor {
-    color: ThemePalette;
-    defaultColor: ThemePalette | undefined;
-}
-
-// @public @deprecated
-export interface CanDisable {
-    disabled: boolean;
-}
-
-// @public @deprecated
-export interface CanDisableRipple {
-    disableRipple: boolean;
-}
-
-// @public @deprecated
-export interface CanUpdateErrorState {
-    errorState: boolean;
-    errorStateMatcher: ErrorStateMatcher_2;
-    updateErrorState(): void;
-}
-
-// @public
-export type _Constructor<T> = new (...args: any[]) => T;
-
 // @public
 export function _countGroupLabelsBeforeOption(optionIndex: number, options: QueryList<MatOption>, optionGroups: QueryList<MatOptgroup>): number;
 
@@ -87,9 +59,11 @@ export abstract class DateAdapter<D, L = any> {
     abstract addCalendarDays(date: D, days: number): D;
     abstract addCalendarMonths(date: D, months: number): D;
     abstract addCalendarYears(date: D, years: number): D;
+    addSeconds(date: D, amount: number): D;
     clampDate(date: D, min?: D | null, max?: D | null): D;
     abstract clone(date: D): D;
     compareDate(first: D, second: D): number;
+    compareTime(first: D, second: D): number;
     abstract createDate(year: number, month: number, date: number): D;
     deserialize(value: any): D | null;
     abstract format(date: D, displayFormat: any): string;
@@ -98,9 +72,12 @@ export abstract class DateAdapter<D, L = any> {
     abstract getDayOfWeek(date: D): number;
     abstract getDayOfWeekNames(style: 'long' | 'short' | 'narrow'): string[];
     abstract getFirstDayOfWeek(): number;
+    getHours(date: D): number;
+    getMinutes(date: D): number;
     abstract getMonth(date: D): number;
     abstract getMonthNames(style: 'long' | 'short' | 'narrow'): string[];
     abstract getNumDaysInMonth(date: D): number;
+    getSeconds(date: D): number;
     getValidDateOrNull(obj: unknown): D | null;
     abstract getYear(date: D): number;
     abstract getYearName(date: D): string;
@@ -112,8 +89,11 @@ export abstract class DateAdapter<D, L = any> {
     // (undocumented)
     protected readonly _localeChanges: Subject<void>;
     abstract parse(value: any, parseFormat: any): D | null;
+    parseTime(value: any, parseFormat: any): D | null;
     sameDate(first: D | null, second: D | null): boolean;
+    sameTime(first: D | null, second: D | null): boolean;
     setLocale(locale: L): void;
+    setTime(target: D, hours: number, minutes: number, seconds: number): D;
     abstract today(): D;
     abstract toIso8601(date: D): string;
 }
@@ -147,7 +127,7 @@ export class _ErrorStateTracker {
 // @public
 export function _getOptionScrollPosition(optionOffset: number, optionHeight: number, currentScrollPosition: number, panelHeight: number): number;
 
-// @public
+// @public @deprecated
 export interface GranularSanityChecks {
     // (undocumented)
     doctype: boolean;
@@ -155,18 +135,6 @@ export interface GranularSanityChecks {
     theme: boolean;
     // (undocumented)
     version: boolean;
-}
-
-// @public @deprecated
-export interface HasInitialized {
-    initialized: Observable<void>;
-    _markInitialized: () => void;
-}
-
-// @public @deprecated
-export interface HasTabIndex {
-    defaultTabIndex: number;
-    tabIndex: number;
 }
 
 // @public (undocumented)
@@ -190,11 +158,11 @@ export const MAT_OPTION_PARENT_COMPONENT: InjectionToken<MatOptionParentComponen
 // @public
 export const MAT_RIPPLE_GLOBAL_OPTIONS: InjectionToken<RippleGlobalOptions>;
 
-// @public
+// @public @deprecated
 export class MatCommonModule {
-    constructor(highContrastModeDetector: HighContrastModeDetector, _sanityChecks: SanityChecks, _document: Document);
+    constructor(...args: any[]);
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatCommonModule, [null, { optional: true; }, null]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatCommonModule, never>;
     // (undocumented)
     static ɵinj: i0.ɵɵInjectorDeclaration<MatCommonModule>;
     // (undocumented)
@@ -205,6 +173,7 @@ export class MatCommonModule {
 export type MatDateFormats = {
     parse: {
         dateInput: any;
+        timeInput?: any;
     };
     display: {
         dateInput: any;
@@ -212,10 +181,12 @@ export type MatDateFormats = {
         monthYearLabel: any;
         dateA11yLabel: any;
         monthYearA11yLabel: any;
+        timeInput?: any;
+        timeOptionLabel?: any;
     };
 };
 
-// @public
+// @public @deprecated
 export const MATERIAL_SANITY_CHECKS: InjectionToken<SanityChecks>;
 
 // @public
@@ -257,7 +228,7 @@ export class MatNativeDateModule {
 
 // @public
 export class MatOptgroup {
-    constructor(parent?: MatOptionParentComponent);
+    constructor(...args: unknown[]);
     disabled: boolean;
     _inert: boolean;
     label: string;
@@ -267,12 +238,12 @@ export class MatOptgroup {
     // (undocumented)
     static ɵcmp: i0.ɵɵComponentDeclaration<MatOptgroup, "mat-optgroup", ["matOptgroup"], { "label": { "alias": "label"; "required": false; }; "disabled": { "alias": "disabled"; "required": false; }; }, {}, never, ["*", "mat-option, ng-container"], true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatOptgroup, [{ optional: true; }]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatOptgroup, never>;
 }
 
 // @public
 export class MatOption<T = any> implements FocusableOption, AfterViewChecked, OnDestroy {
-    constructor(_element: ElementRef<HTMLElement>, _changeDetectorRef: ChangeDetectorRef, _parent: MatOptionParentComponent, group: MatOptgroup);
+    constructor(...args: unknown[]);
     get active(): boolean;
     // (undocumented)
     _changeDetectorRef: ChangeDetectorRef;
@@ -285,11 +256,11 @@ export class MatOption<T = any> implements FocusableOption, AfterViewChecked, On
     getLabel(): string;
     _getTabIndex(): string;
     // (undocumented)
-    group: MatOptgroup;
+    group: MatOptgroup | null;
     _handleKeydown(event: KeyboardEvent): void;
     get hideSingleSelectionIndicator(): boolean;
     id: string;
-    get multiple(): boolean | undefined;
+    get multiple(): boolean | null | undefined;
     // (undocumented)
     static ngAcceptInputType_disabled: unknown;
     // (undocumented)
@@ -309,7 +280,7 @@ export class MatOption<T = any> implements FocusableOption, AfterViewChecked, On
     // (undocumented)
     static ɵcmp: i0.ɵɵComponentDeclaration<MatOption<any>, "mat-option", ["matOption"], { "value": { "alias": "value"; "required": false; }; "id": { "alias": "id"; "required": false; }; "disabled": { "alias": "disabled"; "required": false; }; }, { "onSelectionChange": "onSelectionChange"; }, never, ["mat-icon", "*"], true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatOption<any>, [null, null, { optional: true; }, { optional: true; }]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatOption<any>, never>;
 }
 
 // @public (undocumented)
@@ -325,7 +296,7 @@ export class MatOptionModule {
 // @public
 export interface MatOptionParentComponent {
     // (undocumented)
-    disableRipple?: boolean;
+    disableRipple?: boolean | Signal<boolean>;
     // (undocumented)
     hideSingleSelectionIndicator?: boolean;
     // (undocumented)
@@ -345,16 +316,16 @@ export class MatOptionSelectionChange<T = any> {
 
 // @public
 export class MatPseudoCheckbox {
-    constructor(_animationMode?: string | undefined);
+    constructor(...args: unknown[]);
     // (undocumented)
-    _animationMode?: string | undefined;
+    _animationMode?: "NoopAnimations" | "BrowserAnimations" | null | undefined;
     appearance: 'minimal' | 'full';
     disabled: boolean;
     state: MatPseudoCheckboxState;
     // (undocumented)
     static ɵcmp: i0.ɵɵComponentDeclaration<MatPseudoCheckbox, "mat-pseudo-checkbox", never, { "state": { "alias": "state"; "required": false; }; "disabled": { "alias": "disabled"; "required": false; }; "appearance": { "alias": "appearance"; "required": false; }; }, {}, never, never, true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatPseudoCheckbox, [{ optional: true; }]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatPseudoCheckbox, never>;
 }
 
 // @public (undocumented)
@@ -372,7 +343,7 @@ export type MatPseudoCheckboxState = 'unchecked' | 'checked' | 'indeterminate';
 
 // @public (undocumented)
 export class MatRipple implements OnInit, OnDestroy, RippleTarget {
-    constructor(_elementRef: ElementRef<HTMLElement>, ngZone: NgZone, platform: Platform, globalOptions?: RippleGlobalOptions, _animationMode?: string | undefined);
+    constructor(...args: unknown[]);
     animation: RippleAnimationConfig;
     centered: boolean;
     color: string;
@@ -396,14 +367,12 @@ export class MatRipple implements OnInit, OnDestroy, RippleTarget {
     // (undocumented)
     static ɵdir: i0.ɵɵDirectiveDeclaration<MatRipple, "[mat-ripple], [matRipple]", ["matRipple"], { "color": { "alias": "matRippleColor"; "required": false; }; "unbounded": { "alias": "matRippleUnbounded"; "required": false; }; "centered": { "alias": "matRippleCentered"; "required": false; }; "radius": { "alias": "matRippleRadius"; "required": false; }; "animation": { "alias": "matRippleAnimation"; "required": false; }; "disabled": { "alias": "matRippleDisabled"; "required": false; }; "trigger": { "alias": "matRippleTrigger"; "required": false; }; }, {}, never, never, true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatRipple, [null, null, null, { optional: true; }, { optional: true; }]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatRipple, never>;
 }
 
 // @public
 export class MatRippleLoader implements OnDestroy {
     constructor();
-    // (undocumented)
-    attachRipple(host: HTMLElement, ripple: MatRipple): void;
     configureRipple(host: HTMLElement, config: {
         className?: string;
         centered?: boolean;
@@ -411,7 +380,6 @@ export class MatRippleLoader implements OnDestroy {
     }): void;
     // (undocumented)
     destroyRipple(host: HTMLElement): void;
-    getRipple(host: HTMLElement): MatRipple | undefined;
     // (undocumented)
     ngOnDestroy(): void;
     setDisabled(host: HTMLElement, disabled: boolean): void;
@@ -431,34 +399,17 @@ export class MatRippleModule {
     static ɵmod: i0.ɵɵNgModuleDeclaration<MatRippleModule, never, [typeof i1_2.MatCommonModule, typeof i2.MatRipple], [typeof i2.MatRipple, typeof i1_2.MatCommonModule]>;
 }
 
-// @public @deprecated
-export function mixinColor<T extends _AbstractConstructor<HasElementRef>>(base: T, defaultColor?: ThemePalette): CanColorCtor & T;
-
-// @public @deprecated
-export function mixinDisabled<T extends _AbstractConstructor<{}>>(base: T): CanDisableCtor & T;
-
-// @public @deprecated
-export function mixinDisableRipple<T extends _AbstractConstructor<{}>>(base: T): CanDisableRippleCtor & T;
-
-// @public @deprecated
-export function mixinErrorState<T extends _AbstractConstructor<HasErrorState>>(base: T): CanUpdateErrorStateCtor & T;
-
-// @public @deprecated
-export function mixinInitialized<T extends _Constructor<{}>>(base: T): HasInitializedCtor & T;
-
-// @public @deprecated
-export function mixinTabIndex<T extends _AbstractConstructor<CanDisable>>(base: T, defaultTabIndex?: number): HasTabIndexCtor & T;
-
 // @public
 export class NativeDateAdapter extends DateAdapter<Date> {
-    constructor(
-    matDateLocale?: string);
+    constructor(...args: unknown[]);
     // (undocumented)
     addCalendarDays(date: Date, days: number): Date;
     // (undocumented)
     addCalendarMonths(date: Date, months: number): Date;
     // (undocumented)
     addCalendarYears(date: Date, years: number): Date;
+    // (undocumented)
+    addSeconds(date: Date, amount: number): Date;
     // (undocumented)
     clone(date: Date): Date;
     // (undocumented)
@@ -477,11 +428,17 @@ export class NativeDateAdapter extends DateAdapter<Date> {
     // (undocumented)
     getFirstDayOfWeek(): number;
     // (undocumented)
+    getHours(date: Date): number;
+    // (undocumented)
+    getMinutes(date: Date): number;
+    // (undocumented)
     getMonth(date: Date): number;
     // (undocumented)
     getMonthNames(style: 'long' | 'short' | 'narrow'): string[];
     // (undocumented)
     getNumDaysInMonth(date: Date): number;
+    // (undocumented)
+    getSeconds(date: Date): number;
     // (undocumented)
     getYear(date: Date): number;
     // (undocumented)
@@ -489,11 +446,15 @@ export class NativeDateAdapter extends DateAdapter<Date> {
     // (undocumented)
     invalid(): Date;
     // (undocumented)
-    isDateInstance(obj: any): boolean;
+    isDateInstance(obj: any): obj is Date;
     // (undocumented)
     isValid(date: Date): boolean;
     // (undocumented)
     parse(value: any, parseFormat?: any): Date | null;
+    // (undocumented)
+    parseTime(userValue: any, parseFormat?: any): Date | null;
+    // (undocumented)
+    setTime(target: Date, hours: number, minutes: number, seconds: number): Date;
     // (undocumented)
     today(): Date;
     // (undocumented)
@@ -501,7 +462,7 @@ export class NativeDateAdapter extends DateAdapter<Date> {
     // @deprecated (undocumented)
     useUtcForDisplay: boolean;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<NativeDateAdapter, [{ optional: true; }]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<NativeDateAdapter, never>;
     // (undocumented)
     static ɵprov: i0.ɵɵInjectableDeclaration<NativeDateAdapter>;
 }
@@ -560,7 +521,7 @@ export class RippleRef {
 
 // @public
 export class RippleRenderer implements EventListenerObject {
-    constructor(_target: RippleTarget, _ngZone: NgZone, elementOrElementRef: HTMLElement | ElementRef<HTMLElement>, _platform: Platform);
+    constructor(_target: RippleTarget, _ngZone: NgZone, elementOrElementRef: HTMLElement | ElementRef<HTMLElement>, _platform: Platform, injector?: Injector);
     fadeInRipple(x: number, y: number, config?: RippleConfig): RippleRef;
     fadeOutAll(): void;
     fadeOutAllNonPersistent(): void;
@@ -588,7 +549,7 @@ export interface RippleTarget {
     rippleDisabled: boolean;
 }
 
-// @public
+// @public @deprecated
 export type SanityChecks = boolean | GranularSanityChecks;
 
 // @public
@@ -602,6 +563,14 @@ export class ShowOnDirtyErrorStateMatcher implements ErrorStateMatcher {
     static ɵfac: i0.ɵɵFactoryDeclaration<ShowOnDirtyErrorStateMatcher, never>;
     // (undocumented)
     static ɵprov: i0.ɵɵInjectableDeclaration<ShowOnDirtyErrorStateMatcher>;
+}
+
+// @public
+export class _StructuralStylesLoader {
+    // (undocumented)
+    static ɵcmp: i0.ɵɵComponentDeclaration<_StructuralStylesLoader, "structural-styles", never, {}, {}, never, never, true, never>;
+    // (undocumented)
+    static ɵfac: i0.ɵɵFactoryDeclaration<_StructuralStylesLoader, never>;
 }
 
 // @public

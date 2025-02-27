@@ -3,10 +3,9 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {CommonModule} from '@angular/common';
 import {
   afterNextRender,
   AfterViewInit,
@@ -32,9 +31,7 @@ import {MatTableDataSource, MatTableModule} from '@angular/material/table';
   selector: 'performance-demo',
   templateUrl: 'performance-demo.html',
   styleUrl: 'performance-demo.css',
-  standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     MatButtonModule,
     MatDividerModule,

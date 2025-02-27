@@ -8,22 +8,17 @@ import { AbstractControlDirective } from '@angular/forms';
 import { AfterContentChecked } from '@angular/core';
 import { AfterContentInit } from '@angular/core';
 import { AfterViewInit } from '@angular/core';
-import { AnimationTriggerMetadata } from '@angular/animations';
 import { BooleanInput } from '@angular/cdk/coercion';
-import { ChangeDetectorRef } from '@angular/core';
-import { Directionality } from '@angular/cdk/bidi';
 import { ElementRef } from '@angular/core';
 import * as i0 from '@angular/core';
 import * as i1 from '@angular/material/core';
-import * as i2 from '@angular/common';
-import * as i3 from '@angular/cdk/observers';
+import * as i2 from '@angular/cdk/observers';
 import { InjectionToken } from '@angular/core';
 import { NgControl } from '@angular/forms';
-import { NgZone } from '@angular/core';
 import { Observable } from 'rxjs';
 import { OnDestroy } from '@angular/core';
-import { Platform } from '@angular/cdk/platform';
 import { QueryList } from '@angular/core';
+import { Signal } from '@angular/core';
 import { ThemePalette } from '@angular/material/core';
 
 // @public
@@ -55,30 +50,28 @@ export const MAT_SUFFIX: InjectionToken<MatSuffix>;
 
 // @public
 export class MatError {
-    constructor(ariaLive: string, elementRef: ElementRef);
+    constructor(...args: unknown[]);
     // (undocumented)
     id: string;
     // (undocumented)
     static ɵdir: i0.ɵɵDirectiveDeclaration<MatError, "mat-error, [matError]", never, { "id": { "alias": "id"; "required": false; }; }, {}, never, never, true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatError, [{ attribute: "aria-live"; }, null]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatError, never>;
 }
 
 // @public
 export class MatFormField implements FloatingLabelParent, AfterContentInit, AfterContentChecked, AfterViewInit, OnDestroy {
-    constructor(_elementRef: ElementRef, _changeDetectorRef: ChangeDetectorRef,
-    _unusedNgZone: NgZone, _dir: Directionality, _platform: Platform, _defaults?: MatFormFieldDefaultOptions | undefined, _animationMode?: string | undefined,
-    _unusedDocument?: any);
+    constructor(...args: unknown[]);
     _animateAndLockLabel(): void;
     // (undocumented)
-    _animationMode?: string | undefined;
+    protected readonly _animationsDisabled: boolean;
     get appearance(): MatFormFieldAppearance;
     set appearance(value: MatFormFieldAppearance);
     color: ThemePalette;
     get _control(): MatFormFieldControl_2<any>;
     set _control(value: MatFormFieldControl_2<any>);
     // (undocumented)
-    _elementRef: ElementRef;
+    _elementRef: ElementRef<any>;
     // (undocumented)
     _errorChildren: QueryList<MatError>;
     // (undocumented)
@@ -90,10 +83,10 @@ export class MatFormField implements FloatingLabelParent, AfterContentInit, Afte
     _formFieldControl: MatFormFieldControl_2<any>;
     getConnectedOverlayOrigin(): ElementRef;
     _getDisplayedMessages(): 'error' | 'hint';
-    getLabelId(): string | null;
+    getLabelId: Signal<string | null>;
     _handleLabelResized(): void;
     // (undocumented)
-    _hasFloatingLabel(): boolean;
+    _hasFloatingLabel: Signal<boolean>;
     // (undocumented)
     _hasIconPrefix: boolean;
     // (undocumented)
@@ -115,9 +108,7 @@ export class MatFormField implements FloatingLabelParent, AfterContentInit, Afte
     // (undocumented)
     _iconPrefixContainer: ElementRef<HTMLElement>;
     // (undocumented)
-    _labelChildNonStatic: MatLabel | undefined;
-    // (undocumented)
-    _labelChildStatic: MatLabel | undefined;
+    _iconSuffixContainer: ElementRef<HTMLElement>;
     // (undocumented)
     readonly _labelId: string;
     // (undocumented)
@@ -139,7 +130,6 @@ export class MatFormField implements FloatingLabelParent, AfterContentInit, Afte
     _shouldForward(prop: keyof AbstractControlDirective): boolean;
     // (undocumented)
     _shouldLabelFloat(): boolean;
-    _subscriptAnimationState: string;
     get subscriptSizing(): SubscriptSizing;
     set subscriptSizing(value: SubscriptSizing);
     // (undocumented)
@@ -149,14 +139,16 @@ export class MatFormField implements FloatingLabelParent, AfterContentInit, Afte
     // (undocumented)
     _textPrefixContainer: ElementRef<HTMLElement>;
     // (undocumented)
-    static ɵcmp: i0.ɵɵComponentDeclaration<MatFormField, "mat-form-field", ["matFormField"], { "hideRequiredMarker": { "alias": "hideRequiredMarker"; "required": false; }; "color": { "alias": "color"; "required": false; }; "floatLabel": { "alias": "floatLabel"; "required": false; }; "appearance": { "alias": "appearance"; "required": false; }; "subscriptSizing": { "alias": "subscriptSizing"; "required": false; }; "hintLabel": { "alias": "hintLabel"; "required": false; }; }, {}, ["_labelChildNonStatic", "_labelChildStatic", "_formFieldControl", "_prefixChildren", "_suffixChildren", "_errorChildren", "_hintChildren"], ["mat-label", "[matPrefix], [matIconPrefix]", "[matTextPrefix]", "*", "[matTextSuffix]", "[matSuffix], [matIconSuffix]", "mat-error, [matError]", "mat-hint:not([align='end'])", "mat-hint[align='end']"], true, never>;
+    _textSuffixContainer: ElementRef<HTMLElement>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatFormField, [null, null, null, null, null, { optional: true; }, { optional: true; }, null]>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MatFormField, "mat-form-field", ["matFormField"], { "hideRequiredMarker": { "alias": "hideRequiredMarker"; "required": false; }; "color": { "alias": "color"; "required": false; }; "floatLabel": { "alias": "floatLabel"; "required": false; }; "appearance": { "alias": "appearance"; "required": false; }; "subscriptSizing": { "alias": "subscriptSizing"; "required": false; }; "hintLabel": { "alias": "hintLabel"; "required": false; }; }, {}, ["_labelChild", "_formFieldControl", "_prefixChildren", "_suffixChildren", "_errorChildren", "_hintChildren"], ["mat-label", "[matPrefix], [matIconPrefix]", "[matTextPrefix]", "*", "[matTextSuffix]", "[matSuffix], [matIconSuffix]", "mat-error, [matError]", "mat-hint:not([align='end'])", "mat-hint[align='end']"], true, never>;
+    // (undocumented)
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatFormField, never>;
 }
 
-// @public
+// @public @deprecated
 export const matFormFieldAnimations: {
-    readonly transitionMessages: AnimationTriggerMetadata;
+    readonly transitionMessages: any;
 };
 
 // @public
@@ -182,7 +174,7 @@ export abstract class MatFormFieldControl<T> {
     readonly userAriaDescribedBy?: string;
     value: T | null;
     // (undocumented)
-    static ɵdir: i0.ɵɵDirectiveDeclaration<MatFormFieldControl<any>, never, never, {}, {}, never, never, false, never>;
+    static ɵdir: i0.ɵɵDirectiveDeclaration<MatFormFieldControl<any>, never, never, {}, {}, never, never, true, never>;
     // (undocumented)
     static ɵfac: i0.ɵɵFactoryDeclaration<MatFormFieldControl<any>, never>;
 }
@@ -203,7 +195,7 @@ export class MatFormFieldModule {
     // (undocumented)
     static ɵinj: i0.ɵɵInjectorDeclaration<MatFormFieldModule>;
     // (undocumented)
-    static ɵmod: i0.ɵɵNgModuleDeclaration<MatFormFieldModule, never, [typeof i1.MatCommonModule, typeof i2.CommonModule, typeof i3.ObserversModule, typeof i4.MatFormField, typeof i5.MatLabel, typeof i6.MatError, typeof i7.MatHint, typeof i8.MatPrefix, typeof i9.MatSuffix], [typeof i4.MatFormField, typeof i5.MatLabel, typeof i7.MatHint, typeof i6.MatError, typeof i8.MatPrefix, typeof i9.MatSuffix, typeof i1.MatCommonModule]>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<MatFormFieldModule, never, [typeof i1.MatCommonModule, typeof i2.ObserversModule, typeof i3.MatFormField, typeof i4.MatLabel, typeof i5.MatError, typeof i6.MatHint, typeof i7.MatPrefix, typeof i8.MatSuffix], [typeof i3.MatFormField, typeof i4.MatLabel, typeof i6.MatHint, typeof i5.MatError, typeof i7.MatPrefix, typeof i8.MatSuffix, typeof i1.MatCommonModule]>;
 }
 
 // @public

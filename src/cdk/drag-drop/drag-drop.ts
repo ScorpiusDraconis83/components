@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Injectable, Inject, NgZone, ElementRef} from '@angular/core';
+import {Injectable, NgZone, ElementRef, inject, RendererFactory2} from '@angular/core';
 import {DOCUMENT} from '@angular/common';
 import {ViewportRuler} from '@angular/cdk/scrolling';
 import {DragRef, DragRefConfig} from './drag-ref';
@@ -24,12 +24,14 @@ const DEFAULT_CONFIG = {
  */
 @Injectable({providedIn: 'root'})
 export class DragDrop {
-  constructor(
-    @Inject(DOCUMENT) private _document: any,
-    private _ngZone: NgZone,
-    private _viewportRuler: ViewportRuler,
-    private _dragDropRegistry: DragDropRegistry<DragRef, DropListRef>,
-  ) {}
+  private _document = inject(DOCUMENT);
+  private _ngZone = inject(NgZone);
+  private _viewportRuler = inject(ViewportRuler);
+  private _dragDropRegistry = inject(DragDropRegistry);
+  private _renderer = inject(RendererFactory2).createRenderer(null, null);
+
+  constructor(...args: unknown[]);
+  constructor() {}
 
   /**
    * Turns an element into a draggable item.
@@ -47,6 +49,7 @@ export class DragDrop {
       this._ngZone,
       this._viewportRuler,
       this._dragDropRegistry,
+      this._renderer,
     );
   }
 

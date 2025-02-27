@@ -47,7 +47,7 @@ describe('MenuBar', () => {
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
         imports: [CdkMenuModule, MenuBarRadioGroup],
-      }).compileComponents();
+      });
 
       fixture = TestBed.createComponent(MenuBarRadioGroup);
       fixture.detectChanges();
@@ -107,7 +107,7 @@ describe('MenuBar', () => {
       beforeEach(waitForAsync(() => {
         TestBed.configureTestingModule({
           imports: [CdkMenuModule, MultiMenuWithSubmenu],
-        }).compileComponents();
+        });
       }));
 
       beforeEach(() => {
@@ -531,7 +531,7 @@ describe('MenuBar', () => {
       beforeEach(waitForAsync(() => {
         TestBed.configureTestingModule({
           imports: [CdkMenuModule, MultiMenuWithSubmenu],
-        }).compileComponents();
+        });
       }));
 
       beforeEach(() => {
@@ -658,7 +658,7 @@ describe('MenuBar', () => {
       beforeEach(waitForAsync(() => {
         TestBed.configureTestingModule({
           imports: [CdkMenuModule, MenuWithCheckboxes],
-        }).compileComponents();
+        });
       }));
 
       beforeEach(() => {
@@ -724,7 +724,7 @@ describe('MenuBar', () => {
       beforeEach(waitForAsync(() => {
         TestBed.configureTestingModule({
           imports: [CdkMenuModule, MenuWithRadioButtons],
-        }).compileComponents();
+        });
       }));
 
       beforeEach(() => {
@@ -779,7 +779,7 @@ describe('MenuBar', () => {
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
         imports: [CdkMenuModule, MenuBarWithMenusAndInlineMenu],
-      }).compileComponents();
+      });
     }));
 
     beforeEach(() => {
@@ -898,7 +898,7 @@ describe('MenuBar', () => {
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
         imports: [CdkMenuModule, MultiMenuWithSubmenu],
-      }).compileComponents();
+      });
     }));
 
     beforeEach(() => {
@@ -1116,7 +1116,6 @@ describe('MenuBar', () => {
       </li>
     </ul>
   `,
-  standalone: true,
   imports: [CdkMenuModule],
 })
 class MenuBarRadioGroup {}
@@ -1152,7 +1151,6 @@ class MenuBarRadioGroup {}
       </ng-template>
     </div>
   `,
-  standalone: true,
   imports: [CdkMenuModule],
 })
 class MultiMenuWithSubmenu {
@@ -1179,7 +1177,6 @@ class MultiMenuWithSubmenu {
       </ng-template>
     </div>
   `,
-  standalone: true,
   imports: [CdkMenuModule],
 })
 class MenuWithCheckboxes {
@@ -1207,7 +1204,6 @@ class MenuWithCheckboxes {
       </ng-template>
     </div>
   `,
-  standalone: true,
   imports: [CdkMenuModule],
 })
 class MenuWithRadioButtons {
@@ -1241,7 +1237,6 @@ class MenuWithRadioButtons {
       <button #inline_menu_item cdkMenuItem></button>
     </div>
   `,
-  standalone: true,
   imports: [CdkMenuModule],
 })
 class MenuBarWithMenusAndInlineMenu {

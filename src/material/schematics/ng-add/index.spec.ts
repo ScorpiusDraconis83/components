@@ -45,19 +45,7 @@ describe('ng-add schematic', () => {
       .toContain(filePath);
   }
 
-  /** Removes the specified dependency from the /package.json in the given tree. */
-  function removePackageJsonDependency(tree: Tree, dependencyName: string) {
-    const packageContent = JSON.parse(getFileContent(tree, '/package.json')) as PackageJson;
-    delete packageContent.dependencies[dependencyName];
-    tree.overwrite('/package.json', JSON.stringify(packageContent, null, 2));
-  }
-
   it('should update package.json', async () => {
-    // By default, the Angular workspace schematic sets up "@angular/animations". In order
-    // to verify that we would set up the dependency properly if someone doesn't have the
-    // animations installed already, we remove the animations dependency explicitly.
-    removePackageJsonDependency(appTree, '@angular/animations');
-
     const tree = await runner.runSchematic('ng-add', baseOptions, appTree);
     const packageJson = JSON.parse(getFileContent(tree, '/package.json')) as PackageJson;
     const dependencies = packageJson.dependencies;
@@ -67,11 +55,6 @@ describe('ng-add schematic', () => {
     expect(dependencies['@angular/cdk']).toBe('~0.0.0-PLACEHOLDER');
     expect(dependencies['@angular/forms'])
       .withContext('Expected the @angular/forms package to have the same version as @angular/core.')
-      .toBe(angularCoreVersion);
-    expect(dependencies['@angular/animations'])
-      .withContext(
-        'Expected the @angular/animations package to have the same ' + 'version as @angular/core.',
-      )
       .toBe(angularCoreVersion);
 
     expect(Object.keys(dependencies))
@@ -124,7 +107,7 @@ describe('ng-add schematic', () => {
     const themeContent = buffer!.toString();
 
     expect(themeContent).toContain(`@use '@angular/material' as mat;`);
-    expect(themeContent).toContain(`$material-theme: mat.define-theme((`);
+    expect(themeContent).toContain(`@include mat.theme((`);
   });
 
   it('should create a custom theme file if no SCSS file could be found', async () => {
@@ -183,73 +166,6 @@ describe('ng-add schematic', () => {
     expect(htmlContent).toContain(
       'body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }',
     );
-  });
-
-  it('should add provideAnimationsAsync to the project module', async () => {
-    const tree = await runner.runSchematic('ng-add-setup-project', baseOptions, appTree);
-    const fileContent = getFileContent(tree, '/projects/material/src/app/app.module.ts');
-
-    expect(fileContent).toContain('provideAnimationsAsync()');
-    expect(fileContent).toContain(
-      `import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';`,
-    );
-  });
-
-  it('should add the provideAnimationsAsync to a bootstrapApplication call', async () => {
-    appTree.delete('/projects/material/src/app/app.module.ts');
-    appTree.create(
-      '/projects/material/src/app/app.config.ts',
-      `
-      export const appConfig = {
-        providers: [{ provide: 'foo', useValue: 1 }]
-      };
-    `,
-    );
-    appTree.overwrite(
-      '/projects/material/src/main.ts',
-      `
-        import { bootstrapApplication } from '@angular/platform-browser';
-        import { AppComponent } from './app/app.component';
-        import { appConfig } from './app/app.config';
-
-        bootstrapApplication(AppComponent, appConfig);
-      `,
-    );
-
-    const tree = await runner.runSchematic('ng-add-setup-project', baseOptions, appTree);
-    const fileContent = getFileContent(tree, '/projects/material/src/app/app.config.ts');
-
-    expect(fileContent).toContain(
-      `import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';`,
-    );
-    expect(fileContent).toContain(`[{ provide: 'foo', useValue: 1 }, provideAnimationsAsync()]`);
-  });
-
-  it("should add the provideAnimationAsync('noop') to the project module if animations are disabled", async () => {
-    const tree = await runner.runSchematic(
-      'ng-add-setup-project',
-      {...baseOptions, animations: 'disabled'},
-      appTree,
-    );
-    const fileContent = getFileContent(tree, '/projects/material/src/app/app.module.ts');
-
-    expect(fileContent).toContain(`provideAnimationsAsync('noop')`);
-    expect(fileContent).toContain(
-      `import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';`,
-    );
-  });
-
-  it('should not add any animations code if animations are excluded', async () => {
-    const tree = await runner.runSchematic(
-      'ng-add-setup-project',
-      {...baseOptions, animations: 'excluded'},
-      appTree,
-    );
-    const fileContent = getFileContent(tree, '/projects/material/src/app/app.module.ts');
-
-    expect(fileContent).not.toContain('provideAnimationsAsync');
-    expect(fileContent).not.toContain('@angular/platform-browser/animations');
-    expect(fileContent).not.toContain('@angular/animations');
   });
 
   describe('custom project builders', () => {
@@ -576,16 +492,6 @@ describe('ng-add schematic', () => {
         'body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }',
       );
     });
-
-    it('should add the provideAnimationsAsync to the project module', async () => {
-      const tree = await runner.runSchematic('ng-add-setup-project', baseOptions, appTree);
-      const fileContent = getFileContent(tree, '/projects/material/src/app/app.module.ts');
-
-      expect(fileContent).toContain('provideAnimationsAsync()');
-      expect(fileContent).toContain(
-        `import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';`,
-      );
-    });
   });
 
   describe('using browser-esbuild builder', () => {
@@ -646,15 +552,42 @@ describe('ng-add schematic', () => {
         'body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }',
       );
     });
+  });
 
-    it('should add the provideAnimationsAsync to the project module', async () => {
+  describe('using lower dependency builder', () => {
+    beforeEach(() => {
+      const config = {
+        version: 1,
+        projects: {
+          material: {
+            projectType: 'application',
+            root: 'projects/material',
+            sourceRoot: 'projects/material/src',
+            prefix: 'app',
+            architect: {
+              build: {
+                builder: '@angular/build:application',
+                options: {
+                  outputPath: 'dist/material',
+                  index: 'projects/material/src/index.html',
+                  browser: 'projects/material/src/main.ts',
+                  styles: ['projects/material/src/styles.css'],
+                },
+              },
+            },
+          },
+        },
+      };
+
+      appTree.overwrite('/angular.json', JSON.stringify(config, null, 2));
+    });
+
+    it('should add a theme', async () => {
       const tree = await runner.runSchematic('ng-add-setup-project', baseOptions, appTree);
-      const fileContent = getFileContent(tree, '/projects/material/src/app/app.module.ts');
+      const workspace = await getWorkspace(tree);
+      const project = getProjectFromWorkspace(workspace, baseOptions.project);
 
-      expect(fileContent).toContain('provideAnimationsAsync()');
-      expect(fileContent).toContain(
-        `import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';`,
-      );
+      expectProjectStyleFile(project, '@angular/material/prebuilt-themes/azure-blue.css');
     });
   });
 });

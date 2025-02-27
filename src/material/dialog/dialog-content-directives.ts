@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -13,16 +13,14 @@ import {
   OnChanges,
   OnDestroy,
   OnInit,
-  Optional,
   SimpleChanges,
+  inject,
 } from '@angular/core';
+import {_IdGenerator} from '@angular/cdk/a11y';
 import {CdkScrollable} from '@angular/cdk/scrolling';
 
 import {MatDialog} from './dialog';
 import {_closeDialogVia, MatDialogRef} from './dialog-ref';
-
-/** Counter used to generate unique IDs for dialog elements. */
-let dialogElementUid = 0;
 
 /**
  * Button that will close the current dialog.
@@ -30,7 +28,6 @@ let dialogElementUid = 0;
 @Directive({
   selector: '[mat-dialog-close], [matDialogClose]',
   exportAs: 'matDialogClose',
-  standalone: true,
   host: {
     '(click)': '_onButtonClick($event)',
     '[attr.aria-label]': 'ariaLabel || null',
@@ -38,6 +35,10 @@ let dialogElementUid = 0;
   },
 })
 export class MatDialogClose implements OnInit, OnChanges {
+  dialogRef = inject<MatDialogRef<any>>(MatDialogRef, {optional: true})!;
+  private _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  private _dialog = inject(MatDialog);
+
   /** Screen-reader label for the button. */
   @Input('aria-label') ariaLabel: string;
 
@@ -49,13 +50,8 @@ export class MatDialogClose implements OnInit, OnChanges {
 
   @Input('matDialogClose') _matDialogClose: any;
 
-  constructor(
-    // The dialog title directive is always used in combination with a `MatDialogRef`.
-    // tslint:disable-next-line: lightweight-tokens
-    @Optional() public dialogRef: MatDialogRef<any>,
-    private _elementRef: ElementRef<HTMLElement>,
-    private _dialog: MatDialog,
-  ) {}
+  constructor(...args: unknown[]);
+  constructor() {}
 
   ngOnInit() {
     if (!this.dialogRef) {
@@ -89,15 +85,15 @@ export class MatDialogClose implements OnInit, OnChanges {
   }
 }
 
-@Directive({standalone: true})
+@Directive()
 export abstract class MatDialogLayoutSection implements OnInit, OnDestroy {
-  constructor(
-    // The dialog title directive is always used in combination with a `MatDialogRef`.
-    // tslint:disable-next-line: lightweight-tokens
-    @Optional() protected _dialogRef: MatDialogRef<any>,
-    private _elementRef: ElementRef<HTMLElement>,
-    private _dialog: MatDialog,
-  ) {}
+  protected _dialogRef = inject<MatDialogRef<any>>(MatDialogRef, {optional: true})!;
+  private _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  private _dialog = inject(MatDialog);
+
+  constructor(...args: unknown[]);
+
+  constructor() {}
 
   protected abstract _onAdd(): void;
   protected abstract _onRemove(): void;
@@ -133,14 +129,13 @@ export abstract class MatDialogLayoutSection implements OnInit, OnDestroy {
 @Directive({
   selector: '[mat-dialog-title], [matDialogTitle]',
   exportAs: 'matDialogTitle',
-  standalone: true,
   host: {
     'class': 'mat-mdc-dialog-title mdc-dialog__title',
     '[id]': 'id',
   },
 })
 export class MatDialogTitle extends MatDialogLayoutSection {
-  @Input() id: string = `mat-mdc-dialog-title-${dialogElementUid++}`;
+  @Input() id: string = inject(_IdGenerator).getId('mat-mdc-dialog-title-');
 
   protected _onAdd() {
     // Note: we null check the queue, because there are some internal
@@ -159,7 +154,6 @@ export class MatDialogTitle extends MatDialogLayoutSection {
 @Directive({
   selector: `[mat-dialog-content], mat-dialog-content, [matDialogContent]`,
   host: {'class': 'mat-mdc-dialog-content mdc-dialog__content'},
-  standalone: true,
   hostDirectives: [CdkScrollable],
 })
 export class MatDialogContent {}
@@ -170,7 +164,6 @@ export class MatDialogContent {}
  */
 @Directive({
   selector: `[mat-dialog-actions], mat-dialog-actions, [matDialogActions]`,
-  standalone: true,
   host: {
     'class': 'mat-mdc-dialog-actions mdc-dialog__actions',
     '[class.mat-mdc-dialog-actions-align-start]': 'align === "start"',

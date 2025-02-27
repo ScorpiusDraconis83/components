@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, inject} from '@angular/core';
 import {DataSource} from '@angular/cdk/collections';
 import {FormValueContainer, CdkPopoverEditModule} from '@angular/cdk-experimental/popover-edit';
 import {NgForm, FormsModule} from '@angular/forms';
@@ -206,7 +206,6 @@ const FANTASY_ELEMENTS: readonly FantasyElement[] = [
   selector: 'popover-edit-mat-table-example',
   styleUrl: 'popover-edit-mat-table-example.css',
   templateUrl: 'popover-edit-mat-table-example.html',
-  standalone: true,
   imports: [
     MatTableModule,
     CdkPopoverEditModule,
@@ -221,6 +220,8 @@ const FANTASY_ELEMENTS: readonly FantasyElement[] = [
   ],
 })
 export class PopoverEditMatTableExample {
+  private readonly _snackBar = inject(MatSnackBar);
+
   displayedColumns: string[] = [
     'position',
     'name',
@@ -240,8 +241,6 @@ export class PopoverEditMatTableExample {
   readonly weightValues = new FormValueContainer<PeriodicElement, any>();
   readonly typeValues = new FormValueContainer<PeriodicElement, any>();
   readonly fantasyValues = new FormValueContainer<PeriodicElement, any>();
-
-  constructor(private readonly _snackBar: MatSnackBar) {}
 
   onSubmitName(element: PeriodicElement, f: NgForm) {
     if (!f.valid) {

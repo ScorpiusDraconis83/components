@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -13,7 +13,7 @@ import {
 } from '@angular/cdk/testing';
 import {TabLinkHarnessFilters} from './tab-harness-filters';
 
-/** Harness for interacting with an MDC-based Angular Material tab link in tests. */
+/** Harness for interacting with a Angular Material tab link in tests. */
 export class MatTabLinkHarness extends ComponentHarness {
   /** The selector for the host element of a `MatTabLink` instance. */
   static hostSelector = '.mat-mdc-tab-link';

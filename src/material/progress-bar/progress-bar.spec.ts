@@ -1,4 +1,4 @@
-import {TestBed, ComponentFixture} from '@angular/core/testing';
+import {dispatchFakeEvent} from '@angular/cdk/testing/private';
 import {
   ApplicationRef,
   Component,
@@ -6,14 +6,13 @@ import {
   EnvironmentProviders,
   Provider,
   Type,
-  provideZoneChangeDetection,
 } from '@angular/core';
+import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
-import {dispatchFakeEvent} from '@angular/cdk/testing/private';
-import {MatProgressBarModule, MAT_PROGRESS_BAR_DEFAULT_OPTIONS} from './index';
+import {MAT_PROGRESS_BAR_DEFAULT_OPTIONS, MatProgressBarModule} from './index';
 import {MatProgressBar} from './progress-bar';
 
-describe('MDC-based MatProgressBar', () => {
+describe('MatProgressBar', () => {
   function createComponent<T>(
     componentType: Type<T>,
     providers: (Provider | EnvironmentProviders)[] = [],
@@ -21,7 +20,7 @@ describe('MDC-based MatProgressBar', () => {
     TestBed.configureTestingModule({
       imports: [MatProgressBarModule, componentType],
       providers,
-    }).compileComponents();
+    });
 
     return TestBed.createComponent<T>(componentType);
   }
@@ -262,7 +261,7 @@ describe('MDC-based MatProgressBar', () => {
       let primaryValueBar: DebugElement;
 
       beforeEach(() => {
-        fixture = createComponent(BufferProgressBar, [provideZoneChangeDetection()]);
+        fixture = createComponent(BufferProgressBar);
 
         progressElement = fixture.debugElement.query(By.css('mat-progress-bar'))!;
         progressComponent = progressElement.componentInstance;
@@ -337,14 +336,12 @@ describe('MDC-based MatProgressBar', () => {
 
 @Component({
   template: '<mat-progress-bar></mat-progress-bar>',
-  standalone: true,
   imports: [MatProgressBar],
 })
 class BasicProgressBar {}
 
 @Component({
   template: '<mat-progress-bar mode="buffer"></mat-progress-bar>',
-  standalone: true,
   imports: [MatProgressBar],
 })
 class BufferProgressBar {}

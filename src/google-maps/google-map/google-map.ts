@@ -3,11 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 // Workaround for: https://github.com/bazelbuild/rules_nodejs/issues/1265
-/// <reference types="google.maps" />
+/// <reference types="google.maps" preserve="true" />
 
 import {
   ChangeDetectionStrategy,
@@ -19,7 +19,6 @@ import {
   OnInit,
   Output,
   ViewEncapsulation,
-  Inject,
   PLATFORM_ID,
   NgZone,
   SimpleChanges,
@@ -57,13 +56,14 @@ export const DEFAULT_WIDTH = '500px';
 @Component({
   selector: 'google-map',
   exportAs: 'googleMap',
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: '<div class="map-container"></div><ng-content />',
   encapsulation: ViewEncapsulation.None,
 })
 export class GoogleMap implements OnChanges, OnInit, OnDestroy {
-  private _eventManager: MapEventManager = new MapEventManager(inject(NgZone));
+  private readonly _elementRef = inject(ElementRef);
+  private _ngZone = inject(NgZone);
+  private _eventManager = new MapEventManager(inject(NgZone));
   private _mapEl: HTMLElement;
   private _existingAuthFailureCallback: GoogleMapsWindow['gm_authFailure'];
 
@@ -250,11 +250,10 @@ export class GoogleMap implements OnChanges, OnInit, OnDestroy {
   @Output() readonly zoomChanged: Observable<void> =
     this._eventManager.getLazyEmitter<void>('zoom_changed');
 
-  constructor(
-    private readonly _elementRef: ElementRef,
-    private _ngZone: NgZone,
-    @Inject(PLATFORM_ID) platformId: Object,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const platformId = inject<Object>(PLATFORM_ID);
     this._isBrowser = isPlatformBrowser(platformId);
 
     if (this._isBrowser) {

@@ -3,12 +3,12 @@ import {
   AfterContentInit,
   Component,
   ContentChildren,
-  Input,
   AfterViewInit,
   QueryList,
   ViewChild,
   ContentChild,
   forwardRef,
+  input,
 } from '@angular/core';
 import {MatSort, MatSortModule} from '@angular/material/sort';
 import {
@@ -49,7 +49,6 @@ const ELEMENT_DATA: PeriodicElement[] = [
   selector: 'table-wrapped-example',
   styleUrl: 'table-wrapped-example.css',
   templateUrl: 'table-wrapped-example.html',
-  standalone: true,
   imports: [MatButtonModule, forwardRef(() => WrapperTable), MatSortModule, MatTableModule],
 })
 export class TableWrappedExample implements AfterViewInit {
@@ -83,7 +82,6 @@ export class TableWrappedExample implements AfterViewInit {
       width: 100%;
     }
   `,
-  standalone: true,
   imports: [MatTableModule, MatSortModule],
 })
 export class WrapperTable<T> implements AfterContentInit {
@@ -94,9 +92,8 @@ export class WrapperTable<T> implements AfterContentInit {
 
   @ViewChild(MatTable, {static: true}) table: MatTable<T>;
 
-  @Input() columns: string[];
-
-  @Input() dataSource: DataSource<T>;
+  readonly columns = input.required<string[]>();
+  readonly dataSource = input.required<DataSource<T>>();
 
   ngAfterContentInit() {
     this.columnDefs.forEach(columnDef => this.table.addColumnDef(columnDef));

@@ -3,10 +3,9 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {CommonModule} from '@angular/common';
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
@@ -17,13 +16,13 @@ import {MatIconModule} from '@angular/material/icon';
   selector: 'button-toggle-demo',
   templateUrl: 'button-toggle-demo.html',
   styleUrl: 'button-toggle-demo.css',
-  standalone: true,
-  imports: [CommonModule, FormsModule, MatButtonToggleModule, MatCheckboxModule, MatIconModule],
+  imports: [FormsModule, MatButtonToggleModule, MatCheckboxModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ButtonToggleDemo {
   isVertical = false;
   isDisabled = false;
+  disabledInteractive = false;
   hideSingleSelectionIndicator = false;
   hideMultipleSelectionIndicator = false;
   favoritePie = 'Apple';

@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {inject, Inject, Injectable, OnDestroy} from '@angular/core';
+import {inject, Injectable, OnDestroy} from '@angular/core';
 import {BreakpointObserver} from '@angular/cdk/layout';
 import {Platform} from '@angular/cdk/platform';
 import {DOCUMENT} from '@angular/common';
@@ -41,20 +41,19 @@ export const HIGH_CONTRAST_MODE_ACTIVE_CSS_CLASS = 'cdk-high-contrast-active';
  */
 @Injectable({providedIn: 'root'})
 export class HighContrastModeDetector implements OnDestroy {
+  private _platform = inject(Platform);
+
   /**
    * Figuring out the high contrast mode and adding the body classes can cause
    * some expensive layouts. This flag is used to ensure that we only do it once.
    */
   private _hasCheckedHighContrastMode: boolean;
-  private _document: Document;
+  private _document = inject(DOCUMENT);
   private _breakpointSubscription: Subscription;
 
-  constructor(
-    private _platform: Platform,
-    @Inject(DOCUMENT) document: any,
-  ) {
-    this._document = document;
+  constructor(...args: unknown[]);
 
+  constructor() {
     this._breakpointSubscription = inject(BreakpointObserver)
       .observe('(forced-colors: active)')
       .subscribe(() => {

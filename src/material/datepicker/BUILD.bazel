@@ -1,5 +1,6 @@
 load(
     "//tools:defaults.bzl",
+    "extract_tokens",
     "markdown_to_html",
     "ng_module",
     "ng_test_library",
@@ -37,7 +38,6 @@ ng_module(
         "//src/material/core",
         "//src/material/form-field",
         "//src/material/input",
-        "@npm//@angular/animations",
         "@npm//@angular/common",
         "@npm//@angular/core",
         "@npm//@angular/forms",
@@ -135,6 +135,11 @@ ng_web_test_suite(
 markdown_to_html(
     name = "overview",
     srcs = [":datepicker.md"],
+)
+
+extract_tokens(
+    name = "tokens",
+    srcs = [":datepicker_scss_lib"],
 )
 
 filegroup(

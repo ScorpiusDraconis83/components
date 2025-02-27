@@ -2,13 +2,12 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "rootDir": "..",
+    "rootDirs": ["..", "../../tools"],
     "baseUrl": ".",
     "paths": {
       "@angular/cdk": ["../cdk"],
       "@angular/cdk/*": ["../cdk/*"],
-      "@angular/material/*": ["./*"],
-      "@material/*": ["../../node_modules/@material/*/index.d.ts"]
+      "@angular/material/*": ["./*"]
     }
   },
   "include": ["./**/*.ts", "../dev-mode-types.d.ts"]

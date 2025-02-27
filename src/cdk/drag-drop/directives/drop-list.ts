@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {NumberInput, coerceArray, coerceNumberProperty} from '@angular/cdk/coercion';
@@ -13,14 +13,13 @@ import {
   Input,
   OnDestroy,
   Output,
-  Optional,
   Directive,
   ChangeDetectorRef,
-  SkipSelf,
-  Inject,
   booleanAttribute,
+  inject,
 } from '@angular/core';
 import {Directionality} from '@angular/cdk/bidi';
+import {_IdGenerator} from '@angular/cdk/a11y';
 import {ScrollDispatcher} from '@angular/cdk/scrolling';
 import {CDK_DROP_LIST, CdkDrag} from './drag';
 import {CdkDragDrop, CdkDragEnter, CdkDragExit, CdkDragSortEvent} from '../drag-events';
@@ -33,14 +32,10 @@ import {merge, Subject} from 'rxjs';
 import {startWith, takeUntil} from 'rxjs/operators';
 import {assertElementNode} from './assertions';
 
-/** Counter used to generate unique ids for drop zones. */
-let _uniqueIdCounter = 0;
-
 /** Container that wraps a set of draggable items. */
 @Directive({
   selector: '[cdkDropList], cdk-drop-list',
   exportAs: 'cdkDropList',
-  standalone: true,
   providers: [
     // Prevent child drop lists from picking up the same group as their parent.
     {provide: CDK_DROP_LIST_GROUP, useValue: undefined},
@@ -55,6 +50,15 @@ let _uniqueIdCounter = 0;
   },
 })
 export class CdkDropList<T = any> implements OnDestroy {
+  element = inject<ElementRef<HTMLElement>>(ElementRef);
+  private _changeDetectorRef = inject(ChangeDetectorRef);
+  private _scrollDispatcher = inject(ScrollDispatcher);
+  private _dir = inject(Directionality, {optional: true});
+  private _group = inject<CdkDropListGroup<CdkDropList>>(CDK_DROP_LIST_GROUP, {
+    optional: true,
+    skipSelf: true,
+  });
+
   /** Emits when the list has been destroyed. */
   private readonly _destroyed = new Subject<void>();
 
@@ -85,7 +89,7 @@ export class CdkDropList<T = any> implements OnDestroy {
    * Unique ID for the drop zone. Can be used as a reference
    * in the `connectedTo` of another `CdkDropList`.
    */
-  @Input() id: string = `cdk-drop-list-${_uniqueIdCounter++}`;
+  @Input() id: string = inject(_IdGenerator).getId('cdk-drop-list-');
 
   /** Locks the position of the draggable elements inside the container along the specified axis. */
   @Input('cdkDropListLockAxis') lockAxis: DragAxis;
@@ -127,6 +131,22 @@ export class CdkDropList<T = any> implements OnDestroy {
   @Input('cdkDropListAutoScrollStep')
   autoScrollStep: NumberInput;
 
+  /**
+   * Selector that will be used to resolve an alternate element container for the drop list.
+   * Passing an alternate container is useful for the cases where one might not have control
+   * over the parent node of the draggable items within the list (e.g. due to content projection).
+   * This allows for usages like:
+   *
+   * ```
+   * <div cdkDropList cdkDropListElementContainer=".inner">
+   *   <div class="inner">
+   *     <div cdkDrag></div>
+   *   </div>
+   * </div>
+   * ```
+   */
+  @Input('cdkDropListElementContainer') elementContainerSelector: string | null;
+
   /** Emits when the user drops an item inside the container. */
   @Output('cdkDropListDropped')
   readonly dropped: EventEmitter<CdkDragDrop<T, any>> = new EventEmitter<CdkDragDrop<T, any>>();
@@ -157,24 +177,17 @@ export class CdkDropList<T = any> implements OnDestroy {
    */
   private _unsortedItems = new Set<CdkDrag>();
 
-  constructor(
-    /** Element that the drop list is attached to. */
-    public element: ElementRef<HTMLElement>,
-    dragDrop: DragDrop,
-    private _changeDetectorRef: ChangeDetectorRef,
-    private _scrollDispatcher: ScrollDispatcher,
-    @Optional() private _dir?: Directionality,
-    @Optional()
-    @Inject(CDK_DROP_LIST_GROUP)
-    @SkipSelf()
-    private _group?: CdkDropListGroup<CdkDropList>,
-    @Optional() @Inject(CDK_DRAG_CONFIG) config?: DragDropConfig,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const dragDrop = inject(DragDrop);
+    const config = inject<DragDropConfig>(CDK_DRAG_CONFIG, {optional: true});
+
     if (typeof ngDevMode === 'undefined' || ngDevMode) {
-      assertElementNode(element.nativeElement, 'cdkDropList');
+      assertElementNode(this.element.nativeElement, 'cdkDropList');
     }
 
-    this._dropListRef = dragDrop.createDropList(element);
+    this._dropListRef = dragDrop.createDropList(this.element);
     this._dropListRef.data = this;
 
     if (config) {
@@ -197,8 +210,8 @@ export class CdkDropList<T = any> implements OnDestroy {
     this._handleEvents(this._dropListRef);
     CdkDropList._dropLists.push(this);
 
-    if (_group) {
-      _group._items.add(this);
+    if (this._group) {
+      this._group._items.add(this);
     }
   }
 
@@ -206,6 +219,8 @@ export class CdkDropList<T = any> implements OnDestroy {
   addItem(item: CdkDrag): void {
     this._unsortedItems.add(item);
 
+    // Only sync the items while dragging since this method is
+    // called when items are being initialized one-by-one.
     if (this._dropListRef.isDragging()) {
       this._syncItemsWithRef();
     }
@@ -215,9 +230,8 @@ export class CdkDropList<T = any> implements OnDestroy {
   removeItem(item: CdkDrag): void {
     this._unsortedItems.delete(item);
 
-    if (this._dropListRef.isDragging()) {
-      this._syncItemsWithRef();
-    }
+    // This method might be called on destroy so we always want to sync with the ref.
+    this._syncItemsWithRef();
   }
 
   /** Gets the registered items in the list, sorted by their position in the DOM. */
@@ -293,6 +307,18 @@ export class CdkDropList<T = any> implements OnDestroy {
         // Only do this once since it involves traversing the DOM and the parents
         // shouldn't be able to change without the drop list being destroyed.
         this._scrollableParentsResolved = true;
+      }
+
+      if (this.elementContainerSelector) {
+        const container = this.element.nativeElement.querySelector(this.elementContainerSelector);
+
+        if (!container && (typeof ngDevMode === 'undefined' || ngDevMode)) {
+          throw new Error(
+            `CdkDropList could not find an element container matching the selector "${this.elementContainerSelector}"`,
+          );
+        }
+
+        ref.withElementContainer(container as HTMLElement);
       }
 
       ref.disabled = this.disabled;

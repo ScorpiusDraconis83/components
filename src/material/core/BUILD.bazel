@@ -1,6 +1,7 @@
 load("//src/material:config.bzl", "MATERIAL_SCSS_LIBS")
 load(
     "//tools:defaults.bzl",
+    "extract_tokens",
     "markdown_to_html",
     "ng_module",
     "ng_test_library",
@@ -24,6 +25,8 @@ ng_module(
         ":option/option.css",
         ":option/optgroup.css",
         ":internal-form-field/internal-form-field.css",
+        ":ripple/ripple-structure.css",
+        ":focus-indicators/structural-styles.css",
     ] + glob(["**/*.html"]),
     deps = [
         "//src:dev_mode_types",
@@ -33,6 +36,7 @@ ng_module(
         "//src/cdk/coercion",
         "//src/cdk/keycodes",
         "//src/cdk/platform",
+        "//src/cdk/private",
         "@npm//@angular/animations",
         "@npm//@angular/core",
         "@npm//@angular/forms",
@@ -55,10 +59,9 @@ sass_library(
     name = "core_scss_lib",
     srcs = glob(
         ["**/_*.scss"],
-        exclude = ALL_THEMING_FILES,
+        exclude = ALL_THEMING_FILES + ["./tokens/m3/definitions/unused/**/*_.scss"],
     ),
     deps = [
-        "//:mdc_sass_lib",
         "//src/cdk:sass_lib",
     ],
 )
@@ -69,6 +72,12 @@ sass_library(
     deps = MATERIAL_SCSS_LIBS + [
         "//src/cdk:sass_lib",
     ],
+)
+
+sass_binary(
+    name = "structural_styles_scss",
+    src = "focus-indicators/structural-styles.scss",
+    deps = [":core_scss_lib"],
 )
 
 sass_binary(
@@ -92,6 +101,12 @@ sass_binary(
 sass_binary(
     name = "internal_form_field_scss",
     src = "internal-form-field/internal-form-field.scss",
+    deps = [":core_scss_lib"],
+)
+
+sass_binary(
+    name = "ripple_structure_scss",
+    src = "ripple/ripple-structure.scss",
     deps = [":core_scss_lib"],
 )
 
@@ -188,6 +203,11 @@ markdown_to_html(
         "core.md",
         "ripple/ripple.md",
     ],
+)
+
+extract_tokens(
+    name = "tokens",
+    srcs = [":core_scss_lib"],
 )
 
 filegroup(

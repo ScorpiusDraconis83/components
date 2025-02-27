@@ -11,7 +11,7 @@ import {
   ViewChildren,
   provideZoneChangeDetection,
 } from '@angular/core';
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {FormControl, FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Subscription} from 'rxjs';
@@ -22,7 +22,7 @@ import {MatAutocomplete} from './autocomplete';
 import {MatAutocompleteTrigger} from './autocomplete-trigger';
 import {MatAutocompleteModule} from './module';
 
-describe('MDC-based MatAutocomplete Zone.js integration', () => {
+describe('MatAutocomplete Zone.js integration', () => {
   // Creates a test component fixture.
   function createComponent<T>(component: Type<T>, providers: Provider[] = []) {
     TestBed.configureTestingModule({
@@ -39,10 +39,33 @@ describe('MDC-based MatAutocomplete Zone.js integration', () => {
       declarations: [component],
     });
 
-    TestBed.compileComponents();
-
     return TestBed.createComponent<T>(component);
   }
+
+  describe('panel toggling', () => {
+    let fixture: ComponentFixture<SimpleAutocomplete>;
+
+    beforeEach(() => {
+      fixture = createComponent(SimpleAutocomplete);
+      fixture.detectChanges();
+    });
+
+    it('should show the panel when the first open is after the initial zone stabilization', waitForAsync(() => {
+      // Note that we're running outside the Angular zone, in order to be able
+      // to test properly without the subscription from `_subscribeToClosingActions`
+      // giving us a false positive.
+      fixture.ngZone!.runOutsideAngular(() => {
+        fixture.componentInstance.trigger.openPanel();
+
+        Promise.resolve().then(() => {
+          expect(fixture.componentInstance.panel.showPanel)
+            .withContext(`Expected panel to be visible.`)
+            .toBe(true);
+        });
+      });
+    }));
+  });
+
   it('should emit from `autocomplete.closed` after click outside inside the NgZone', waitForAsync(async () => {
     const inZoneSpy = jasmine.createSpy('in zone spy');
 
@@ -100,7 +123,7 @@ const SIMPLE_AUTOCOMPLETE_TEMPLATE = `
   </mat-autocomplete>
 `;
 
-@Component({template: SIMPLE_AUTOCOMPLETE_TEMPLATE})
+@Component({template: SIMPLE_AUTOCOMPLETE_TEMPLATE, standalone: false})
 class SimpleAutocomplete implements OnDestroy {
   stateCtrl = new FormControl<{name: string; code: string} | string | null>(null);
   filteredStates: any[];

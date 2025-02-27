@@ -3,19 +3,32 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {inject, Inject, Injectable, Optional} from '@angular/core';
+import {inject, Injectable} from '@angular/core';
 import {DateAdapter, MAT_DATE_LOCALE} from './date-adapter';
 
 /**
  * Matches strings that have the form of a valid RFC 3339 string
  * (https://tools.ietf.org/html/rfc3339). Note that the string may not actually be a valid date
- * because the regex will match strings an with out of bounds month, date, etc.
+ * because the regex will match strings with an out of bounds month, date, etc.
  */
 const ISO_8601_REGEX =
   /^\d{4}-\d{2}-\d{2}(?:T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|(?:(?:\+|-)\d{2}:\d{2}))?)?$/;
+
+/**
+ * Matches a time string. Supported formats:
+ * - {{hours}}:{{minutes}}
+ * - {{hours}}:{{minutes}}:{{seconds}}
+ * - {{hours}}:{{minutes}} AM/PM
+ * - {{hours}}:{{minutes}}:{{seconds}} AM/PM
+ * - {{hours}}.{{minutes}}
+ * - {{hours}}.{{minutes}}.{{seconds}}
+ * - {{hours}}.{{minutes}} AM/PM
+ * - {{hours}}.{{minutes}}.{{seconds}} AM/PM
+ */
+const TIME_REGEX = /^(\d?\d)[:.](\d?\d)(?:[:.](\d?\d))?\s*(AM|PM)?$/i;
 
 /** Creates an array and fills it with values. */
 function range<T>(length: number, valueFunction: (index: number) => T): T[] {
@@ -38,17 +51,17 @@ export class NativeDateAdapter extends DateAdapter<Date> {
   /** The injected locale. */
   private readonly _matDateLocale = inject(MAT_DATE_LOCALE, {optional: true});
 
-  constructor(
-    /**
-     * @deprecated Now injected via inject(), param to be removed.
-     * @breaking-change 18.0.0
-     */
-    @Optional() @Inject(MAT_DATE_LOCALE) matDateLocale?: string,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
     super();
+
+    const matDateLocale = inject(MAT_DATE_LOCALE, {optional: true});
+
     if (matDateLocale !== undefined) {
       this._matDateLocale = matDateLocale;
     }
+
     super.setLocale(this._matDateLocale);
   }
 
@@ -89,7 +102,24 @@ export class NativeDateAdapter extends DateAdapter<Date> {
   }
 
   getFirstDayOfWeek(): number {
-    // We can't tell using native JS Date what the first day of the week is, we default to Sunday.
+    // At the time of writing `Intl.Locale` isn't available
+    // in the internal types so we need to cast to `any`.
+    if (typeof Intl !== 'undefined' && (Intl as any).Locale) {
+      const locale = new (Intl as any).Locale(this.locale) as {
+        getWeekInfo?: () => {firstDay: number};
+        weekInfo?: {firstDay: number};
+      };
+
+      // Some browsers implement a `getWeekInfo` method while others have a `weekInfo` getter.
+      // Note that this isn't supported in all browsers so we need to null check it.
+      const firstDay = (locale.getWeekInfo?.() || locale.weekInfo)?.firstDay ?? 0;
+
+      // `weekInfo.firstDay` is a number between 1 and 7 where, starting from Monday,
+      // whereas our representation is 0 to 6 where 0 is Sunday so we need to normalize it.
+      return firstDay === 7 ? 0 : firstDay;
+    }
+
+    // Default to Sunday if the browser doesn't provide the week information.
     return 0;
   }
 
@@ -219,6 +249,69 @@ export class NativeDateAdapter extends DateAdapter<Date> {
     return new Date(NaN);
   }
 
+  override setTime(target: Date, hours: number, minutes: number, seconds: number): Date {
+    if (typeof ngDevMode === 'undefined' || ngDevMode) {
+      if (!inRange(hours, 0, 23)) {
+        throw Error(`Invalid hours "${hours}". Hours value must be between 0 and 23.`);
+      }
+
+      if (!inRange(minutes, 0, 59)) {
+        throw Error(`Invalid minutes "${minutes}". Minutes value must be between 0 and 59.`);
+      }
+
+      if (!inRange(seconds, 0, 59)) {
+        throw Error(`Invalid seconds "${seconds}". Seconds value must be between 0 and 59.`);
+      }
+    }
+
+    const clone = this.clone(target);
+    clone.setHours(hours, minutes, seconds, 0);
+    return clone;
+  }
+
+  override getHours(date: Date): number {
+    return date.getHours();
+  }
+
+  override getMinutes(date: Date): number {
+    return date.getMinutes();
+  }
+
+  override getSeconds(date: Date): number {
+    return date.getSeconds();
+  }
+
+  override parseTime(userValue: any, parseFormat?: any): Date | null {
+    if (typeof userValue !== 'string') {
+      return userValue instanceof Date ? new Date(userValue.getTime()) : null;
+    }
+
+    const value = userValue.trim();
+
+    if (value.length === 0) {
+      return null;
+    }
+
+    // Attempt to parse the value directly.
+    let result = this._parseTimeString(value);
+
+    // Some locales add extra characters around the time, but are otherwise parseable
+    // (e.g. `00:05 ч.` in bg-BG). Try replacing all non-number and non-colon characters.
+    if (result === null) {
+      const withoutExtras = value.replace(/[^0-9:(AM|PM)]/gi, '').trim();
+
+      if (withoutExtras.length > 0) {
+        result = this._parseTimeString(withoutExtras);
+      }
+    }
+
+    return result || this.invalid();
+  }
+
+  override addSeconds(date: Date, amount: number): Date {
+    return new Date(date.getTime() + amount * 1000);
+  }
+
   /** Creates a date but allows the month and date to overflow. */
   private _createDateWithOverflow(year: number, month: number, date: number) {
     // Passing the year to the constructor causes year numbers <100 to be converted to 19xx.
@@ -257,4 +350,47 @@ export class NativeDateAdapter extends DateAdapter<Date> {
     d.setUTCHours(date.getHours(), date.getMinutes(), date.getSeconds(), date.getMilliseconds());
     return dtf.format(d);
   }
+
+  /**
+   * Attempts to parse a time string into a date object. Returns null if it cannot be parsed.
+   * @param value Time string to parse.
+   */
+  private _parseTimeString(value: string): Date | null {
+    // Note: we can technically rely on the browser for the time parsing by generating
+    // an ISO string and appending the string to the end of it. We don't do it, because
+    // browsers aren't consistent in what they support. Some examples:
+    // - Safari doesn't support AM/PM.
+    // - Firefox produces a valid date object if the time string has overflows (e.g. 12:75) while
+    //   other browsers produce an invalid date.
+    // - Safari doesn't allow padded numbers.
+    const parsed = value.toUpperCase().match(TIME_REGEX);
+
+    if (parsed) {
+      let hours = parseInt(parsed[1]);
+      const minutes = parseInt(parsed[2]);
+      let seconds: number | undefined = parsed[3] == null ? undefined : parseInt(parsed[3]);
+      const amPm = parsed[4] as 'AM' | 'PM' | undefined;
+
+      if (hours === 12) {
+        hours = amPm === 'AM' ? 0 : hours;
+      } else if (amPm === 'PM') {
+        hours += 12;
+      }
+
+      if (
+        inRange(hours, 0, 23) &&
+        inRange(minutes, 0, 59) &&
+        (seconds == null || inRange(seconds, 0, 59))
+      ) {
+        return this.setTime(this.today(), hours, minutes, seconds || 0);
+      }
+    }
+
+    return null;
+  }
+}
+
+/** Checks whether a number is within a certain range. */
+function inRange(value: number, min: number, max: number): boolean {
+  return !isNaN(value) && value >= min && value <= max;
 }

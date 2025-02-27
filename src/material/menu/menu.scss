@@ -1,13 +1,9 @@
-@use 'sass:map';
 @use '@angular/cdk';
-@use '@material/list/evolution-mixins' as mdc-list-mixins;
-@use '@material/list/evolution-variables' as mdc-list-variables;
-@use '@material/typography/typography' as mdc-typography;
 @use '../core/tokens/m2/mat/menu' as tokens-mat-menu;
 @use '../core/tokens/token-utils';
-@use '../core/mdc-helpers/mdc-helpers';
 @use '../core/style/menu-common';
 @use '../core/style/button-common';
+@use '../core/style/vendor-prefixes';
 
 // Prevent rendering mat-menu as it can affect the flex layout.
 mat-menu {
@@ -15,11 +11,13 @@ mat-menu {
 }
 
 .mat-mdc-menu-content {
-  @include mdc-list-mixins.list-base($query: structure);
+  margin: 0;
+  padding: 8px 0;
+  outline: 0;
 
   &,
   .mat-mdc-menu-item .mat-mdc-menu-item-text {
-    @include mdc-typography.smooth-font();
+    @include vendor-prefixes.smooth-font();
     flex: 1;
     white-space: normal;
 
@@ -33,14 +31,38 @@ mat-menu {
   }
 }
 
+@keyframes _mat-menu-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes _mat-menu-exit {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
 .mat-mdc-menu-panel {
   @include menu-common.base;
   box-sizing: border-box;
   outline: 0;
+  animation: _mat-menu-enter 120ms cubic-bezier(0, 0, 0.2, 1);
 
   @include token-utils.use-tokens(tokens-mat-menu.$prefix, tokens-mat-menu.get-token-slots()) {
     @include token-utils.create-token-slot(border-radius, container-shape);
     @include token-utils.create-token-slot(background-color, container-color);
+    @include token-utils.create-token-slot(box-shadow, container-elevation-shadow);
   }
 
   // TODO(crisbeto): we don't need this for anything, but it was there when
@@ -49,6 +71,14 @@ mat-menu {
   // We should clean it up eventually and re-approve all the screenshots.
   will-change: transform, opacity;
 
+  &.mat-menu-panel-exit-animation {
+    animation: _mat-menu-exit 100ms 25ms linear forwards;
+  }
+
+  &.mat-menu-panel-animations-disabled {
+    animation: none;
+  }
+
   // Prevent users from interacting with the panel while it's animating. Note that
   // people won't be able to click through it, because the overlay pane will catch the click.
   // This fixes the following issues:
@@ -56,11 +86,18 @@ mat-menu {
   //  * Users accidentally tapping on content inside the sub-menu on touch devices, if the
   //    sub-menu overlaps the trigger. The issue is due to touch devices emulating the
   //    `mouseenter` event by dispatching it on tap.
-  &.ng-animating {
+  &.mat-menu-panel-animating {
     pointer-events: none;
+
+    // If the same menu is assigned to multiple triggers and the user moves quickly between them
+    // (e.g. in a nested menu), the panel for the old menu may show up as empty while it's
+    // animating away. Hide such cases since they can look off to users.
+    &:has(.mat-mdc-menu-content:empty) {
+      display: none;
+    }
   }
 
-  @include cdk.high-contrast(active, off) {
+  @include cdk.high-contrast {
     outline: solid 1px;
   }
 
@@ -70,37 +107,23 @@ mat-menu {
       tokens-mat-menu.$prefix,
       tokens-mat-menu.get-token-slots()
     ) {
-      color: var(#{token-utils.get-token-variable(divider-color)});
-      margin-bottom: var(#{token-utils.get-token-variable(divider-bottom-spacing)});
-      margin-top: var(#{token-utils.get-token-variable(divider-top-spacing)});
+      color: token-utils.get-token-variable(divider-color);
+      margin-bottom: token-utils.get-token-variable(divider-bottom-spacing);
+      margin-top: token-utils.get-token-variable(divider-top-spacing);
     }
   }
 }
 
 .mat-mdc-menu-item {
-  @include mdc-helpers.disable-mdc-fallback-declarations {
-    @include mdc-list-mixins.item-base;
-    @include token-utils.use-tokens(tokens-mat-menu.$prefix, tokens-mat-menu.get-token-slots()) {
-      @include mdc-list-mixins.item-spacing(
-        var(#{token-utils.get-token-variable(item-leading-spacing)}),
-        var(#{token-utils.get-token-variable(item-trailing-spacing)}),
-        $query: mdc-helpers.$mdc-base-styles-query
-      );
-
-      // stylelint-disable-next-line selector-class-pattern
-      &:has(.material-icons, mat-icon, [matButtonIcon]) {
-        @include mdc-list-mixins.item-spacing(
-          var(#{token-utils.get-token-variable(item-with-icon-leading-spacing)}),
-          var(#{token-utils.get-token-variable(item-with-icon-trailing-spacing)}),
-          $query: mdc-helpers.$mdc-base-styles-query
-        );
-      }
-    }
-  }
+  display: flex;
+  position: relative;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: hidden;
+  padding: 0;
 
   // MDC's menu items are `<li>` nodes which don't need resets, however ours
   // can be anything, including buttons, so we need to do the reset ourselves.
-  @include button-common.reset;
   cursor: pointer;
   width: 100%;
   text-align: left;
@@ -110,13 +133,33 @@ mat-menu {
   background: none;
   text-decoration: none;
   margin: 0; // Resolves an issue where buttons have an extra 2px margin on Safari.
-  align-items: center;
+  min-height: 48px;
 
-  // Set the `min-height` here ourselves, instead of going through
-  // the `mdc-list-one-line-item-density` mixin, because it sets a `height`
-  // which doesn't work well with multi-line items.
-  $height-config: map.get(mdc-list-variables.$one-line-item-density-config, height);
-  min-height: map.get($height-config, default);
+  @include token-utils.use-tokens(tokens-mat-menu.$prefix, tokens-mat-menu.get-token-slots()) {
+    @include token-utils.create-token-slot(padding-left, item-leading-spacing);
+    @include token-utils.create-token-slot(padding-right, item-trailing-spacing);
+  }
+
+  @include button-common.reset;
+
+  @include token-utils.use-tokens(tokens-mat-menu.$prefix, tokens-mat-menu.get-token-slots()) {
+    $icons-selector: '.material-icons, mat-icon, [matButtonIcon]';
+
+    [dir='rtl'] & {
+      @include token-utils.create-token-slot(padding-left, item-trailing-spacing);
+      @include token-utils.create-token-slot(padding-right, item-leading-spacing);
+    }
+
+    &:has(#{$icons-selector}) {
+      @include token-utils.create-token-slot(padding-left, item-with-icon-leading-spacing);
+      @include token-utils.create-token-slot(padding-right, item-with-icon-trailing-spacing);
+    }
+
+    [dir='rtl'] &:has(#{$icons-selector}) {
+      @include token-utils.create-token-slot(padding-left, item-with-icon-trailing-spacing);
+      @include token-utils.create-token-slot(padding-right, item-with-icon-leading-spacing);
+    }
+  }
 
   @include token-utils.use-tokens(tokens-mat-menu.$prefix, tokens-mat-menu.get-token-slots()) {
     // The class selector isn't specific enough to overide the link pseudo selectors so we need
@@ -134,10 +177,7 @@ mat-menu {
 
   &[disabled] {
     cursor: default;
-
-    // This is the same as `mdc-list-mixins.list-disabled-opacity` which
-    // we can't use directly, because it comes with some selectors.
-    opacity: mdc-list-variables.$content-disabled-opacity;
+    opacity: 0.38;
 
     // The browser prevents clicks on disabled buttons from propagating which prevents the menu
     // from closing, but clicks on child nodes still propagate which is inconsistent (see #16694).
@@ -154,12 +194,17 @@ mat-menu {
     }
   }
 
+  // Inherited from MDC and necessary for some internal tests.
+  &:focus {
+    outline: 0;
+  }
+
   .mat-icon {
     flex-shrink: 0;
     @include token-utils.use-tokens(tokens-mat-menu.$prefix, tokens-mat-menu.get-token-slots()) {
-      margin-right: var(#{token-utils.get-token-variable(item-spacing)});
-      height: var(#{token-utils.get-token-variable(item-icon-size)});
-      width: var(#{token-utils.get-token-variable(item-icon-size)});
+      margin-right: token-utils.get-token-variable(item-spacing);
+      height: token-utils.get-token-variable(item-icon-size);
+      width: token-utils.get-token-variable(item-icon-size);
     }
   }
 
@@ -169,7 +214,7 @@ mat-menu {
     .mat-icon {
       margin-right: 0;
       @include token-utils.use-tokens(tokens-mat-menu.$prefix, tokens-mat-menu.get-token-slots()) {
-        margin-left: var(#{token-utils.get-token-variable(item-spacing)});
+        margin-left: token-utils.get-token-variable(item-spacing);
       }
     }
   }
@@ -188,7 +233,7 @@ mat-menu {
     }
   }
 
-  @include cdk.high-contrast(active, off) {
+  @include cdk.high-contrast {
     $outline-width: 1px;
 
     // We need to move the item 1px down, because Firefox seems to have
@@ -200,8 +245,8 @@ mat-menu {
 .mat-mdc-menu-submenu-icon {
   @include token-utils.use-tokens(tokens-mat-menu.$prefix, tokens-mat-menu.get-token-slots()) {
     @include menu-common.item-submenu-icon(
-      var(#{token-utils.get-token-variable(item-spacing)}),
-      var(#{token-utils.get-token-variable(item-icon-size)})
+      token-utils.get-token-variable(item-spacing),
+      token-utils.get-token-variable(item-icon-size)
     );
   }
 }

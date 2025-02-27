@@ -3,10 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {MarkerClusterer} from '../map-marker-clusterer/marker-clusterer-types';
+import type {MarkerClusterer} from '../map-marker-clusterer/map-marker-clusterer-types';
+import {MarkerClusterer as DeprecatedMarkerClusterer} from '../deprecated-map-marker-clusterer/deprecated-marker-clusterer-types';
 
 // The global `window` variable is typed as an intersection of `Window` and `globalThis`.
 // We re-declare `window` here and omit `globalThis` as it is typed with the actual Google
@@ -43,6 +44,10 @@ export interface TestingWindow extends Window {
     };
   };
   MarkerClusterer?: jasmine.Spy;
+  markerClusterer?: {
+    MarkerClusterer?: jasmine.Spy;
+    defaultOnClusterClickHandler?: jasmine.Spy;
+  };
 }
 
 /** Creates a jasmine.SpyObj for a google.maps.Map. */
@@ -575,7 +580,43 @@ export function createBicyclingLayerConstructorSpy(
 
 /** Creates a jasmine.SpyObj for a MarkerClusterer */
 export function createMarkerClustererSpy(): jasmine.SpyObj<MarkerClusterer> {
-  const markerClustererSpy = jasmine.createSpyObj('MarkerClusterer', [
+  return jasmine.createSpyObj('MarkerClusterer', [
+    'addMarker',
+    'addMarkers',
+    'removeMarker',
+    'removeMarkers',
+    'clearMarkers',
+    'render',
+    'onAdd',
+    'onRemove',
+  ]);
+}
+
+/** Creates a jasmine.Spy to watch for the constructor of a MarkerClusterer */
+export function createMarkerClustererConstructorSpy(
+  markerClustererSpy: jasmine.SpyObj<MarkerClusterer>,
+  apiLoaded = true,
+): jasmine.Spy {
+  // The spy target function cannot be an arrow-function as this breaks when created through `new`.
+  const markerClustererConstructorSpy = jasmine.createSpy(
+    'MarkerClusterer constructor',
+    function () {
+      return markerClustererSpy;
+    },
+  );
+  if (apiLoaded) {
+    const testingWindow: TestingWindow = window;
+    testingWindow.markerClusterer = {
+      MarkerClusterer: markerClustererConstructorSpy,
+      defaultOnClusterClickHandler: jasmine.createSpy('defaultOnClusterClickHandler'),
+    };
+  }
+  return markerClustererConstructorSpy;
+}
+
+/** Creates a jasmine.SpyObj for a MarkerClusterer */
+export function createDeprecatedMarkerClustererSpy(): jasmine.SpyObj<DeprecatedMarkerClusterer> {
+  const deprecatedMarkerClustererSpy = jasmine.createSpyObj('DeprecatedMarkerClusterer', [
     'addListener',
     'addMarkers',
     'fitMapToMarkers',
@@ -619,26 +660,26 @@ export function createMarkerClustererSpy(): jasmine.SpyObj<MarkerClusterer> {
     'setZoomOnClick',
     'setOptions',
   ]);
-  markerClustererSpy.addListener.and.returnValue({remove: () => {}});
-  return markerClustererSpy;
+  deprecatedMarkerClustererSpy.addListener.and.returnValue({remove: () => {}});
+  return deprecatedMarkerClustererSpy;
 }
 
 /** Creates a jasmine.Spy to watch for the constructor of a MarkerClusterer */
-export function createMarkerClustererConstructorSpy(
-  markerClustererSpy: jasmine.SpyObj<MarkerClusterer>,
+export function createDeprecatedMarkerClustererConstructorSpy(
+  deprecatedMarkerClustererSpy: jasmine.SpyObj<DeprecatedMarkerClusterer>,
   apiLoaded = true,
 ): jasmine.Spy {
   // The spy target function cannot be an arrow-function as this breaks when created through `new`.
-  const markerClustererConstructorSpy = jasmine
-    .createSpy('MarkerClusterer constructor', function () {
-      return markerClustererSpy;
+  const deprecatedMarkerClustererConstructorSpy = jasmine
+    .createSpy('DeprecatedMarkerClusterer constructor', function () {
+      return deprecatedMarkerClustererSpy;
     })
     .and.callThrough();
   if (apiLoaded) {
     const testingWindow: TestingWindow = window;
-    testingWindow['MarkerClusterer'] = markerClustererConstructorSpy;
+    testingWindow['MarkerClusterer'] = deprecatedMarkerClustererConstructorSpy;
   }
-  return markerClustererConstructorSpy;
+  return deprecatedMarkerClustererConstructorSpy;
 }
 
 /** Creates a jasmine.SpyObj for DirectionsRenderer */

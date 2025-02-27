@@ -12,13 +12,12 @@ import {
   DebugElement,
   QueryList,
   ViewChildren,
-  provideZoneChangeDetection,
 } from '@angular/core';
 import {
   ComponentFixture,
+  TestBed,
   fakeAsync,
   flush,
-  TestBed,
   tick,
   waitForAsync,
 } from '@angular/core/testing';
@@ -26,16 +25,16 @@ import {FormControl, FormsModule, NgModel, ReactiveFormsModule} from '@angular/f
 import {ThemePalette} from '@angular/material/core';
 import {By} from '@angular/platform-browser';
 import {
+  MAT_LIST_CONFIG,
+  MatListConfig,
   MatListModule,
   MatListOption,
   MatListOptionTogglePosition,
   MatSelectionList,
   MatSelectionListChange,
-  MatListConfig,
-  MAT_LIST_CONFIG,
 } from './index';
 
-describe('MDC-based MatSelectionList without forms', () => {
+describe('MatSelectionList without forms', () => {
   const typeaheadInterval = 200;
 
   describe('with list option', () => {
@@ -45,7 +44,6 @@ describe('MDC-based MatSelectionList without forms', () => {
 
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
-        providers: [provideZoneChangeDetection()],
         imports: [
           MatListModule,
           SelectionListWithListOptions,
@@ -56,8 +54,6 @@ describe('MDC-based MatSelectionList without forms', () => {
           SelectionListWithSelectedOptionAndValue,
         ],
       });
-
-      TestBed.compileComponents();
     }));
 
     beforeEach(waitForAsync(() => {
@@ -153,6 +149,7 @@ describe('MDC-based MatSelectionList without forms', () => {
 
       // All options will be set to the "warn" color.
       fixture.componentInstance.selectionListColor = 'warn';
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(optionNativeElements.every(option => !option.classList.contains('mat-primary'))).toBe(
@@ -164,6 +161,7 @@ describe('MDC-based MatSelectionList without forms', () => {
 
       // Color will be set explicitly for an option and should take precedence.
       fixture.componentInstance.firstOptionColor = 'primary';
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(optionNativeElements[0].classList).not.toContain('mat-accent');
@@ -177,12 +175,14 @@ describe('MDC-based MatSelectionList without forms', () => {
       const classList = listOptions[0].nativeElement.classList;
 
       fixture.componentInstance.firstOptionColor = 'primary';
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(classList).not.toContain('mat-accent');
       expect(classList).not.toContain('mat-warn');
 
       fixture.componentInstance.firstOptionColor = 'accent';
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(classList).not.toContain('mat-primary');
@@ -239,6 +239,7 @@ describe('MDC-based MatSelectionList without forms', () => {
       expect(listOptions[0].nativeElement.getAttribute('aria-disabled')).toBe('true');
 
       testListItem.disabled = false;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(listOptions[0].nativeElement.getAttribute('aria-disabled')).toBe('false');
@@ -283,6 +284,7 @@ describe('MDC-based MatSelectionList without forms', () => {
       expect(selectionModel.selected.length).toBe(0);
 
       listOptions[1].componentInstance.disabled = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       testListItem.focus();
@@ -361,8 +363,9 @@ describe('MDC-based MatSelectionList without forms', () => {
       expect(event.defaultPrevented).toBe(true);
     });
 
-    it('should select all items using ctrl + a', () => {
+    it('should select and deselect all items using ctrl + a', () => {
       listOptions.forEach(option => (option.componentInstance.disabled = false));
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(listOptions.some(option => option.componentInstance.selected)).toBe(false);
@@ -372,10 +375,34 @@ describe('MDC-based MatSelectionList without forms', () => {
       fixture.detectChanges();
 
       expect(listOptions.every(option => option.componentInstance.selected)).toBe(true);
+
+      dispatchKeyboardEvent(listOptions[2].nativeElement, 'keydown', A, 'A', {control: true});
+      fixture.detectChanges();
+
+      expect(listOptions.every(option => option.componentInstance.selected)).toBe(false);
+    });
+
+    it('should select and deselect all items using meta + a', () => {
+      listOptions.forEach(option => (option.componentInstance.disabled = false));
+      fixture.changeDetectorRef.markForCheck();
+      fixture.detectChanges();
+
+      expect(listOptions.some(option => option.componentInstance.selected)).toBe(false);
+
+      listOptions[2].nativeElement.focus();
+      dispatchKeyboardEvent(listOptions[2].nativeElement, 'keydown', A, 'A', {meta: true});
+      fixture.detectChanges();
+
+      expect(listOptions.every(option => option.componentInstance.selected)).toBe(true);
+      dispatchKeyboardEvent(listOptions[2].nativeElement, 'keydown', A, 'A', {meta: true});
+      fixture.detectChanges();
+
+      expect(listOptions.every(option => option.componentInstance.selected)).toBe(false);
     });
 
     it('should not select disabled items when pressing ctrl + a', () => {
       listOptions.slice(0, 2).forEach(option => (option.componentInstance.disabled = true));
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(listOptions.map(option => option.componentInstance.selected)).toEqual([
@@ -401,6 +428,7 @@ describe('MDC-based MatSelectionList without forms', () => {
 
     it('should select all items using ctrl + a if some items are selected', () => {
       listOptions.slice(0, 2).forEach(option => (option.componentInstance.selected = true));
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(listOptions.some(option => option.componentInstance.selected)).toBe(true);
@@ -414,6 +442,7 @@ describe('MDC-based MatSelectionList without forms', () => {
 
     it('should deselect all with ctrl + a if all options are selected', () => {
       listOptions.forEach(option => (option.componentInstance.selected = true));
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(listOptions.every(option => option.componentInstance.selected)).toBe(true);
@@ -428,6 +457,7 @@ describe('MDC-based MatSelectionList without forms', () => {
     it('should dispatch the selectionChange event when selecting via ctrl + a', () => {
       const spy = spyOn(fixture.componentInstance, 'onSelectionChange');
       listOptions.forEach(option => (option.componentInstance.disabled = false));
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       listOptions[2].nativeElement.focus();
@@ -526,6 +556,7 @@ describe('MDC-based MatSelectionList without forms', () => {
       const list: MatSelectionList = selectionList.componentInstance;
 
       list.options.forEach(option => (option.disabled = true));
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(list.options.toArray().every(option => option.selected)).toBe(false);
@@ -571,6 +602,7 @@ describe('MDC-based MatSelectionList without forms', () => {
 
       listOptions[0].componentInstance.selected = true;
       listOptions[2].componentInstance.selected = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(list.selectedOptions.isEmpty()).toBe(false);
@@ -631,6 +663,7 @@ describe('MDC-based MatSelectionList without forms', () => {
         .toBe(0);
 
       fixture.componentInstance.listRippleDisabled = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       dispatchMouseEvent(rippleTarget, 'mousedown');
@@ -654,7 +687,7 @@ describe('MDC-based MatSelectionList without forms', () => {
 
       expect(
         optionNativeElements.every(
-          element => element.querySelector('.mat-mdc-focus-indicator') !== null,
+          element => element.querySelector('.mat-focus-indicator') !== null,
         ),
       ).toBe(true);
     });
@@ -674,11 +707,8 @@ describe('MDC-based MatSelectionList without forms', () => {
 
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
-        providers: [provideZoneChangeDetection()],
         imports: [MatListModule, SelectionListWithSelectedOption],
       });
-
-      TestBed.compileComponents();
     }));
 
     beforeEach(waitForAsync(() => {
@@ -713,11 +743,8 @@ describe('MDC-based MatSelectionList without forms', () => {
 
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
-        providers: [provideZoneChangeDetection()],
         imports: [MatListModule, SingleSelectionListWithSelectedOption],
       });
-
-      TestBed.compileComponents();
     }));
 
     beforeEach(waitForAsync(() => {
@@ -754,8 +781,6 @@ describe('MDC-based MatSelectionList without forms', () => {
         imports: [MatListModule, SingleSelectionListWithSelectedOption],
         providers: [{provide: MAT_LIST_CONFIG, useValue: matListConfig}],
       });
-
-      TestBed.compileComponents();
     }));
 
     beforeEach(waitForAsync(() => {
@@ -786,11 +811,8 @@ describe('MDC-based MatSelectionList without forms', () => {
 
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
-        providers: [provideZoneChangeDetection()],
         imports: [MatListModule, SelectionListWithDisabledOption],
       });
-
-      TestBed.compileComponents();
     }));
 
     beforeEach(waitForAsync(() => {
@@ -810,6 +832,7 @@ describe('MDC-based MatSelectionList without forms', () => {
         .toBe(false);
 
       fixture.componentInstance.disableItem = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(listOption.rippleDisabled)
@@ -821,6 +844,7 @@ describe('MDC-based MatSelectionList without forms', () => {
       expect(listOptionEl.classList).not.toContain('mdc-list-item--disabled');
 
       fixture.componentInstance.disableItem = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(listOptionEl.classList).toContain('mdc-list-item--disabled');
@@ -834,7 +858,6 @@ describe('MDC-based MatSelectionList without forms', () => {
 
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
-        providers: [provideZoneChangeDetection()],
         imports: [
           MatListModule,
           SelectionListWithListOptions,
@@ -843,8 +866,6 @@ describe('MDC-based MatSelectionList without forms', () => {
           SelectionListWithOnlyOneOption,
         ],
       });
-
-      TestBed.compileComponents();
     }));
 
     beforeEach(waitForAsync(() => {
@@ -875,6 +896,7 @@ describe('MDC-based MatSelectionList without forms', () => {
         .toBe(true);
 
       fixture.componentInstance.disabled = false;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(testOption.rippleDisabled)
@@ -885,6 +907,7 @@ describe('MDC-based MatSelectionList without forms', () => {
     // when the entire list is disabled, its listitems should always have tabindex="-1"
     it('should remove all listitems from the tab order when disabled state is enabled', () => {
       fixture.componentInstance.disabled = false;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
       let testListItem = listOption[2].injector.get<MatListOption>(MatListOption);
       testListItem.focus();
@@ -897,6 +920,7 @@ describe('MDC-based MatSelectionList without forms', () => {
         .toBeGreaterThanOrEqual(1);
 
       fixture.componentInstance.disabled = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(
@@ -908,6 +932,7 @@ describe('MDC-based MatSelectionList without forms', () => {
 
     it('should not allow focusin event to change the tabindex', () => {
       fixture.componentInstance.disabled = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(
@@ -932,7 +957,6 @@ describe('MDC-based MatSelectionList without forms', () => {
 
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
-        providers: [provideZoneChangeDetection()],
         imports: [
           MatListModule,
           SelectionListWithListOptions,
@@ -941,8 +965,6 @@ describe('MDC-based MatSelectionList without forms', () => {
           SelectionListWithOnlyOneOption,
         ],
       });
-
-      TestBed.compileComponents();
     }));
 
     beforeEach(waitForAsync(() => {
@@ -963,9 +985,8 @@ describe('MDC-based MatSelectionList without forms', () => {
   describe('with list item elements', () => {
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
-        providers: [provideZoneChangeDetection()],
         imports: [MatListModule, SelectionListWithAvatar, SelectionListWithIcon],
-      }).compileComponents();
+      });
     }));
 
     function expectCheckboxAtPosition(
@@ -1053,11 +1074,13 @@ describe('MDC-based MatSelectionList without forms', () => {
       expectIconAt(listOption, 'before');
 
       fixture.componentInstance.togglePosition = 'before';
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
       expectCheckboxAtPosition(listOption, 'before');
       expectIconAt(listOption, 'after');
 
       fixture.componentInstance.togglePosition = 'after';
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
       expectCheckboxAtPosition(listOption, 'after');
       expectIconAt(listOption, 'before');
@@ -1074,11 +1097,13 @@ describe('MDC-based MatSelectionList without forms', () => {
       expectAvatarAt(listOption, 'before');
 
       fixture.componentInstance.togglePosition = 'before';
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
       expectCheckboxAtPosition(listOption, 'before');
       expectAvatarAt(listOption, 'after');
 
       fixture.componentInstance.togglePosition = 'after';
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
       expectCheckboxAtPosition(listOption, 'after');
       expectAvatarAt(listOption, 'before');
@@ -1092,12 +1117,12 @@ describe('MDC-based MatSelectionList without forms', () => {
 
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
-        providers: [provideZoneChangeDetection()],
         imports: [MatListModule, SelectionListWithListOptions],
-      }).compileComponents();
+      });
 
       fixture = TestBed.createComponent(SelectionListWithListOptions);
       fixture.componentInstance.multiple = false;
+      fixture.changeDetectorRef.markForCheck();
       listOptions = fixture.debugElement.queryAll(By.directive(MatListOption));
       selectionList = fixture.debugElement.query(By.directive(MatSelectionList))!;
       fixture.detectChanges();
@@ -1153,6 +1178,7 @@ describe('MDC-based MatSelectionList without forms', () => {
 
     it('throws an exception when toggling single/multiple mode after bootstrap', () => {
       fixture.componentInstance.multiple = true;
+      fixture.changeDetectorRef.markForCheck();
       expect(() => fixture.detectChanges()).toThrow(
         new Error('Cannot change `multiple` mode of mat-selection-list after initialization.'),
       );
@@ -1217,9 +1243,8 @@ describe('MDC-based MatSelectionList without forms', () => {
 
     beforeEach(waitForAsync(() => {
       TestBed.configureTestingModule({
-        providers: [provideZoneChangeDetection()],
         imports: [MatListModule, ListOptionWithTwoWayBinding],
-      }).compileComponents();
+      });
 
       fixture = TestBed.createComponent(ListOptionWithTwoWayBinding);
       fixture.detectChanges();
@@ -1232,6 +1257,7 @@ describe('MDC-based MatSelectionList without forms', () => {
       expect(option.selected).toBe(false);
 
       fixture.componentInstance.selected = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(option.selected).toBe(true);
@@ -1248,10 +1274,9 @@ describe('MDC-based MatSelectionList without forms', () => {
   });
 });
 
-describe('MDC-based MatSelectionList with forms', () => {
+describe('MatSelectionList with forms', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      providers: [provideZoneChangeDetection()],
       imports: [
         MatListModule,
         FormsModule,
@@ -1264,8 +1289,6 @@ describe('MDC-based MatSelectionList with forms', () => {
         SelectionListWithCustomComparator,
       ],
     });
-
-    TestBed.compileComponents();
   }));
 
   describe('and ngModel', () => {
@@ -1321,6 +1344,7 @@ describe('MDC-based MatSelectionList with forms', () => {
         .toBe(0);
 
       fixture.componentInstance.selectedOptions = ['opt3'];
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       tick();
@@ -1332,6 +1356,7 @@ describe('MDC-based MatSelectionList with forms', () => {
 
     it('should focus the first option when the list items are changed', fakeAsync(() => {
       fixture.componentInstance.options = ['first option', 'second option'];
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       tick();
@@ -1376,6 +1401,7 @@ describe('MDC-based MatSelectionList with forms', () => {
     it('should be pristine by default', fakeAsync(() => {
       fixture = TestBed.createComponent(SelectionListWithModel);
       fixture.componentInstance.selectedOptions = ['opt2'];
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       ngModel = fixture.debugElement
@@ -1453,6 +1479,7 @@ describe('MDC-based MatSelectionList with forms', () => {
 
     it('should be able to programmatically set an array with duplicate values', fakeAsync(() => {
       fixture.componentInstance.options = ['one', 'two', 'two', 'two', 'three'];
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
       tick();
 
@@ -1461,6 +1488,7 @@ describe('MDC-based MatSelectionList with forms', () => {
         .map(optionDebugEl => optionDebugEl.componentInstance);
 
       fixture.componentInstance.selectedOptions = ['one', 'two', 'two'];
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
       tick();
 
@@ -1472,6 +1500,7 @@ describe('MDC-based MatSelectionList with forms', () => {
       fixture = TestBed.createComponent(SelectionListWithModel);
       fixture.componentInstance.multiple = false;
       fixture.componentInstance.selectedOptions = ['opt3'];
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
       const options = fixture.debugElement
         .queryAll(By.directive(MatListOption))
@@ -1511,6 +1540,8 @@ describe('MDC-based MatSelectionList with forms', () => {
     });
 
     it('should be able to disable options from the control', () => {
+      const optionElements = listOptions.map(option => option._elementRef.nativeElement);
+      const inputs = optionElements.map(element => element.querySelector('input')!);
       selectionList.focus();
       expect(selectionList.disabled)
         .withContext('Expected the selection list to be enabled.')
@@ -1518,12 +1549,14 @@ describe('MDC-based MatSelectionList with forms', () => {
       expect(listOptions.every(option => !option.disabled))
         .withContext('Expected every list option to be enabled.')
         .toBe(true);
-      expect(
-        listOptions.some(
-          option => option._elementRef.nativeElement.getAttribute('tabindex') === '0',
-        ),
-      )
+      expect(optionElements.some(el => el.getAttribute('tabindex') === '0'))
         .withContext('Expected one list item to be in the tab order')
+        .toBe(true);
+      // Note: assert the disabled of the inner inputs, because they're placed inside of the
+      // view of the individual options which is detected separately from the host. The tabindex
+      // check above isn't enough, because it doesn't go through change detection.
+      expect(inputs.every(input => !input.disabled))
+        .withContext('Expected all options to be enabled')
         .toBe(true);
 
       fixture.componentInstance.formControl.disable();
@@ -1535,12 +1568,11 @@ describe('MDC-based MatSelectionList with forms', () => {
       expect(listOptions.every(option => option.disabled))
         .withContext('Expected every list option to be disabled.')
         .toBe(true);
-      expect(
-        listOptions.every(
-          option => option._elementRef.nativeElement.getAttribute('tabindex') === '-1',
-        ),
-      )
+      expect(optionElements.every(el => el.getAttribute('tabindex') === '-1'))
         .withContext('Expected every list option to be removed from the tab order')
+        .toBe(true);
+      expect(inputs.every(input => input.disabled))
+        .withContext('Expected all options to be disabled')
         .toBe(true);
     });
 
@@ -1561,6 +1593,7 @@ describe('MDC-based MatSelectionList with forms', () => {
       // property. Calling FormControl#disable should not lock the disabled property.
       // See: https://github.com/angular/material2/issues/12107
       selectionList.disabled = false;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(listOptions.every(option => !option.disabled))
@@ -1634,6 +1667,7 @@ describe('MDC-based MatSelectionList with forms', () => {
       expect(fixture.componentInstance.formControl.value).toEqual(['opt2']);
 
       fixture.componentInstance.renderList = false;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
       tick();
       fixture.detectChanges();
@@ -1646,6 +1680,7 @@ describe('MDC-based MatSelectionList with forms', () => {
       fixture.detectChanges();
 
       fixture.componentInstance.renderExtraOption = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       listOptions = fixture.debugElement
@@ -1715,6 +1750,7 @@ describe('MDC-based MatSelectionList with forms', () => {
         .and.callThrough();
 
       testComponent.selectedOptions = [{id: 2, label: 'Two'}];
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
       tick();
 
@@ -1752,7 +1788,6 @@ describe('MDC-based MatSelectionList with forms', () => {
       </mat-list-option>
     }
   </mat-selection-list>`,
-  standalone: true,
   imports: [MatListModule],
 })
 class SelectionListWithListOptions {
@@ -1781,7 +1816,6 @@ class SelectionListWithListOptions {
       Drafts
     </mat-list-option>
   </mat-selection-list>`,
-  standalone: true,
   imports: [MatListModule],
 })
 class SelectionListWithCheckboxPositionAfter {}
@@ -1802,7 +1836,6 @@ class SelectionListWithCheckboxPositionAfter {}
       Drafts
     </mat-list-option>
   </mat-selection-list>`,
-  standalone: true,
   imports: [MatListModule],
 })
 class SelectionListWithListDisabled {
@@ -1815,7 +1848,6 @@ class SelectionListWithListDisabled {
     <mat-list-option [disabled]="disableItem">Item</mat-list-option>
   </mat-selection-list>
   `,
-  standalone: true,
   imports: [MatListModule],
 })
 class SelectionListWithDisabledOption {
@@ -1830,7 +1862,6 @@ class SelectionListWithDisabledOption {
     <mat-list-option [selected]="true">Pre-selected - Item #3</mat-list-option>
     <mat-list-option>Not selected - Item #4</mat-list-option>
   </mat-selection-list>`,
-  standalone: true,
   imports: [MatListModule],
 })
 class SelectionListWithSelectedOption {}
@@ -1841,7 +1872,6 @@ class SelectionListWithSelectedOption {}
     <mat-list-option>Not selected - Item #1</mat-list-option>
     <mat-list-option [selected]="true">Pre-selected - Item #2</mat-list-option>
   </mat-selection-list>`,
-  standalone: true,
   imports: [MatListModule],
 })
 class SingleSelectionListWithSelectedOption {}
@@ -1851,7 +1881,6 @@ class SingleSelectionListWithSelectedOption {}
   <mat-selection-list>
     <mat-list-option [selected]="true" [value]="itemValue">Item</mat-list-option>
   </mat-selection-list>`,
-  standalone: true,
   imports: [MatListModule],
 })
 class SelectionListWithSelectedOptionAndValue {
@@ -1865,7 +1894,6 @@ class SelectionListWithSelectedOptionAndValue {
       Inbox
     </mat-list-option>
   </mat-selection-list>`,
-  standalone: true,
   imports: [MatListModule],
 })
 class SelectionListWithOnlyOneOption {}
@@ -1880,7 +1908,6 @@ class SelectionListWithOnlyOneOption {}
         <mat-list-option [value]="option">{{option}}</mat-list-option>
       }
     </mat-selection-list>`,
-  standalone: true,
   imports: [MatListModule, FormsModule, ReactiveFormsModule],
 })
 class SelectionListWithModel {
@@ -1903,7 +1930,6 @@ class SelectionListWithModel {
       </mat-selection-list>
     }
   `,
-  standalone: true,
   imports: [MatListModule, FormsModule, ReactiveFormsModule],
 })
 class SelectionListWithFormControl {
@@ -1918,7 +1944,6 @@ class SelectionListWithFormControl {
       <mat-list-option value="opt1">Option 1</mat-list-option>
       <mat-list-option value="opt2" selected>Option 2</mat-list-option>
     </mat-selection-list>`,
-  standalone: true,
   imports: [MatListModule, FormsModule, ReactiveFormsModule],
 })
 class SelectionListWithPreselectedOption {
@@ -1931,7 +1956,6 @@ class SelectionListWithPreselectedOption {
       <mat-list-option value="opt1">Option 1</mat-list-option>
       <mat-list-option value="opt2" selected>Option 2</mat-list-option>
     </mat-selection-list>`,
-  standalone: true,
   imports: [MatListModule, FormsModule, ReactiveFormsModule],
 })
 class SelectionListWithPreselectedOptionAndModel {
@@ -1947,7 +1971,6 @@ class SelectionListWithPreselectedOptionAndModel {
       }
     </mat-selection-list>
   `,
-  standalone: true,
   imports: [MatListModule, FormsModule, ReactiveFormsModule],
 })
 class SelectionListWithPreselectedFormControlOnPush {
@@ -1962,7 +1985,6 @@ class SelectionListWithPreselectedFormControlOnPush {
         <mat-list-option [value]="option">{{option.label}}</mat-list-option>
       }
     </mat-selection-list>`,
-  standalone: true,
   imports: [MatListModule, FormsModule, ReactiveFormsModule],
 })
 class SelectionListWithCustomComparator {
@@ -1985,7 +2007,6 @@ class SelectionListWithCustomComparator {
       </mat-list-option>
     </mat-selection-list>
   `,
-  standalone: true,
   imports: [MatListModule],
 })
 class SelectionListWithAvatar {
@@ -2001,7 +2022,6 @@ class SelectionListWithAvatar {
       </mat-list-option>
     </mat-selection-list>
   `,
-  standalone: true,
   imports: [MatListModule],
 })
 class SelectionListWithIcon {
@@ -2017,7 +2037,6 @@ class SelectionListWithIcon {
         <mat-list-option [value]="2">Two</mat-list-option>
       }
     </mat-selection-list>`,
-  standalone: true,
   imports: [MatListModule],
 })
 class SelectionListWithIndirectChildOptions {
@@ -2030,7 +2049,6 @@ class SelectionListWithIndirectChildOptions {
     <mat-list-option [(selected)]="selected">Item</mat-list-option>
   </mat-selection-list>
 `,
-  standalone: true,
   imports: [MatListModule],
 })
 class ListOptionWithTwoWayBinding {

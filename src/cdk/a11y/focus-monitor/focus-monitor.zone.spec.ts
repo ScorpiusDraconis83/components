@@ -16,7 +16,7 @@ describe('FocusMonitor observable stream Zone.js integration', () => {
     TestBed.configureTestingModule({
       imports: [A11yModule, PlainButton],
       providers: [{provide: Platform, useValue: fakePlatform}, provideZoneChangeDetection()],
-    }).compileComponents();
+    });
   });
 
   beforeEach(inject([FocusMonitor], (fm: FocusMonitor) => {
@@ -41,7 +41,6 @@ describe('FocusMonitor observable stream Zone.js integration', () => {
 
 @Component({
   template: `<div class="parent"><button>focus me!</button></div>`,
-  standalone: true,
   imports: [A11yModule],
 })
 class PlainButton {}

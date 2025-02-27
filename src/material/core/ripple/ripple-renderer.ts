@@ -3,12 +3,20 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
-import {ElementRef, NgZone} from '@angular/core';
+import {
+  ElementRef,
+  NgZone,
+  Component,
+  ChangeDetectionStrategy,
+  ViewEncapsulation,
+  Injector,
+} from '@angular/core';
 import {Platform, normalizePassiveListenerOptions, _getEventTarget} from '@angular/cdk/platform';
 import {isFakeMousedownFromScreenReader, isFakeTouchstartFromScreenReader} from '@angular/cdk/a11y';
 import {coerceElement} from '@angular/cdk/coercion';
+import {_CdkPrivateStyleLoader} from '@angular/cdk/private';
 import {RippleRef, RippleState, RippleConfig} from './ripple-ref';
 import {RippleEventManager} from './ripple-event-manager';
 
@@ -28,6 +36,7 @@ export interface RippleTarget {
 interface RippleEventListeners {
   onTransitionEnd: EventListener;
   onTransitionCancel: EventListener;
+  fallbackTimer: ReturnType<typeof setTimeout> | null;
 }
 
 /**
@@ -56,6 +65,15 @@ const pointerDownEvents = ['mousedown', 'touchstart'];
 
 /** Events that signal that the pointer is up. */
 const pointerUpEvents = ['mouseup', 'mouseleave', 'touchend', 'touchcancel'];
+
+@Component({
+  template: '',
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
+  styleUrl: 'ripple-structure.css',
+  host: {'mat-ripple-style-loader': ''},
+})
+export class _MatRippleStylesLoader {}
 
 /**
  * Helper service that performs DOM manipulations. Not intended to be used outside this module.
@@ -104,10 +122,15 @@ export class RippleRenderer implements EventListenerObject {
     private _ngZone: NgZone,
     elementOrElementRef: HTMLElement | ElementRef<HTMLElement>,
     private _platform: Platform,
+    injector?: Injector,
   ) {
     // Only do anything if we're on the browser.
     if (_platform.isBrowser) {
       this._containerElement = coerceElement(elementOrElementRef);
+    }
+
+    if (injector) {
+      injector.get(_CdkPrivateStyleLoader).load(_MatRippleStylesLoader);
     }
   }
 
@@ -193,14 +216,31 @@ export class RippleRenderer implements EventListenerObject {
     // are set to zero. The events won't fire anyway and we can save resources here.
     if (!animationForciblyDisabledThroughCss && (enterDuration || animationConfig.exitDuration)) {
       this._ngZone.runOutsideAngular(() => {
-        const onTransitionEnd = () => this._finishRippleTransition(rippleRef);
+        const onTransitionEnd = () => {
+          // Clear the fallback timer since the transition fired correctly.
+          if (eventListeners) {
+            eventListeners.fallbackTimer = null;
+          }
+          clearTimeout(fallbackTimer);
+          this._finishRippleTransition(rippleRef);
+        };
         const onTransitionCancel = () => this._destroyRipple(rippleRef);
+
+        // In some cases where there's a higher load on the browser, it can choose not to dispatch
+        // neither `transitionend` nor `transitioncancel` (see b/227356674). This timer serves as a
+        // fallback for such cases so that the ripple doesn't become stuck. We add a 100ms buffer
+        // because timers aren't precise. Note that another approach can be to transition the ripple
+        // to the `VISIBLE` state immediately above and to `FADING_IN` afterwards inside
+        // `transitionstart`. We go with the timer because it's one less event listener and
+        // it's less likely to break existing tests.
+        const fallbackTimer = setTimeout(onTransitionCancel, enterDuration + 100);
+
         ripple.addEventListener('transitionend', onTransitionEnd);
         // If the transition is cancelled (e.g. due to DOM removal), we destroy the ripple
         // directly as otherwise we would keep it part of the ripple container forever.
         // https://www.w3.org/TR/css-transitions-1/#:~:text=no%20longer%20in%20the%20document.
         ripple.addEventListener('transitioncancel', onTransitionCancel);
-        eventListeners = {onTransitionEnd, onTransitionCancel};
+        eventListeners = {onTransitionEnd, onTransitionCancel, fallbackTimer};
       });
     }
 
@@ -352,6 +392,9 @@ export class RippleRenderer implements EventListenerObject {
     if (eventListeners !== null) {
       rippleRef.element.removeEventListener('transitionend', eventListeners.onTransitionEnd);
       rippleRef.element.removeEventListener('transitioncancel', eventListeners.onTransitionCancel);
+      if (eventListeners.fallbackTimer !== null) {
+        clearTimeout(eventListeners.fallbackTimer);
+      }
     }
     rippleRef.element.remove();
   }

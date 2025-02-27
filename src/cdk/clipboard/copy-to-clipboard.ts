@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -13,9 +13,8 @@ import {
   Output,
   NgZone,
   InjectionToken,
-  Inject,
-  Optional,
   OnDestroy,
+  inject,
 } from '@angular/core';
 import {Clipboard} from './clipboard';
 import {PendingCopy} from './pending-copy';
@@ -40,9 +39,11 @@ export const CDK_COPY_TO_CLIPBOARD_CONFIG = new InjectionToken<CdkCopyToClipboar
   host: {
     '(click)': 'copy()',
   },
-  standalone: true,
 })
 export class CdkCopyToClipboard implements OnDestroy {
+  private _clipboard = inject(Clipboard);
+  private _ngZone = inject(NgZone);
+
   /** Content to be copied. */
   @Input('cdkCopyToClipboard') text: string = '';
 
@@ -67,11 +68,11 @@ export class CdkCopyToClipboard implements OnDestroy {
   /** Timeout for the current copy attempt. */
   private _currentTimeout: any;
 
-  constructor(
-    private _clipboard: Clipboard,
-    private _ngZone: NgZone,
-    @Optional() @Inject(CDK_COPY_TO_CLIPBOARD_CONFIG) config?: CdkCopyToClipboardConfig,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const config = inject(CDK_COPY_TO_CLIPBOARD_CONFIG, {optional: true});
+
     if (config && config.attempts != null) {
       this.attempts = config.attempts;
     }

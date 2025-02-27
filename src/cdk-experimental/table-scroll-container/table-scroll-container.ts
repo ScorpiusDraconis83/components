@@ -3,10 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {CSP_NONCE, Directive, ElementRef, Inject, OnDestroy, OnInit, Optional} from '@angular/core';
+import {CSP_NONCE, Directive, ElementRef, OnDestroy, OnInit, inject} from '@angular/core';
+import {_IdGenerator} from '@angular/cdk/a11y';
 import {DOCUMENT} from '@angular/common';
 import {Directionality} from '@angular/cdk/bidi';
 import {_getShadowRoot} from '@angular/cdk/platform';
@@ -16,8 +17,6 @@ import {
   StickySize,
   StickyUpdate,
 } from '@angular/cdk/table';
-
-let nextId = 0;
 
 /**
  * Applies styles to the host element that make its scrollbars match up with
@@ -36,10 +35,14 @@ let nextId = 0;
     'class': 'cdk-table-scroll-container',
   },
   providers: [{provide: STICKY_POSITIONING_LISTENER, useExisting: CdkTableScrollContainer}],
-  standalone: true,
 })
 export class CdkTableScrollContainer implements StickyPositioningListener, OnDestroy, OnInit {
-  private readonly _uniqueClassName: string;
+  private readonly _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly _document = inject<Document>(DOCUMENT);
+  private readonly _directionality = inject(Directionality, {optional: true});
+  private readonly _nonce = inject(CSP_NONCE, {optional: true});
+
+  private readonly _uniqueClassName = inject(_IdGenerator).getId('cdk-table-scroll-container-');
   private _styleRoot!: Node;
   private _styleElement?: HTMLStyleElement;
 
@@ -49,20 +52,8 @@ export class CdkTableScrollContainer implements StickyPositioningListener, OnDes
   private _headerSizes: StickySize[] = [];
   private _footerSizes: StickySize[] = [];
 
-  constructor(
-    private readonly _elementRef: ElementRef<HTMLElement>,
-    @Inject(DOCUMENT) private readonly _document: Document,
-    @Optional() private readonly _directionality?: Directionality,
-    @Optional() @Inject(CSP_NONCE) private readonly _nonce?: string | null,
-  ) {
-    this._uniqueClassName = `cdk-table-scroll-container-${++nextId}`;
-    _elementRef.nativeElement.classList.add(this._uniqueClassName);
-  }
-
   ngOnInit() {
-    // Note that we need to look up the root node in ngOnInit, rather than the constructor, because
-    // Angular seems to create the element outside the shadow root and then moves it inside, if the
-    // node is inside an `ngIf` and a ShadowDom-encapsulated component.
+    this._elementRef.nativeElement.classList.add(this._uniqueClassName);
     this._styleRoot = _getShadowRoot(this._elementRef.nativeElement) ?? this._document.head;
   }
 

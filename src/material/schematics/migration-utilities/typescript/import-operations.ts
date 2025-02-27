@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Update} from '../update';
@@ -40,7 +40,7 @@ export function updateNamedImport(
   for (let i = 0; i < node.elements.length; i++) {
     const n = node.elements[i];
     const name = n.propertyName ? n.propertyName : n.name;
-    if (name.escapedText === opts.oldExport) {
+    if (name.text === opts.oldExport) {
       return {
         offset: name.pos,
         updateFn: (text: string) => {

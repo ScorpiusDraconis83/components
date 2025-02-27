@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Injectable, InjectionToken, NgZone, inject} from '@angular/core';
@@ -33,7 +33,8 @@ export class _CoalescedStyleScheduler {
   private _currentSchedule: _Schedule | null = null;
   private _ngZone = inject(NgZone);
 
-  constructor(_unusedNgZone?: NgZone) {}
+  constructor(...args: unknown[]);
+  constructor() {}
 
   /**
    * Schedules the specified task to run at the end of the current VM turn.

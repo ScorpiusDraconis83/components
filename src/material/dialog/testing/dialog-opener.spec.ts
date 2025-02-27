@@ -1,16 +1,14 @@
-import {Component, Inject} from '@angular/core';
+import {Component, inject} from '@angular/core';
 import {TestBed, fakeAsync, flush} from '@angular/core/testing';
 import {MAT_DIALOG_DATA, MatDialogRef, MatDialogState} from '@angular/material/dialog';
 import {MatTestDialogOpener, MatTestDialogOpenerModule} from '@angular/material/dialog/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-describe('MDC-based MatTestDialogOpener', () => {
+describe('MatTestDialogOpener', () => {
   beforeEach(fakeAsync(() => {
     TestBed.configureTestingModule({
       imports: [MatTestDialogOpenerModule, NoopAnimationsModule, ExampleComponent],
     });
-
-    TestBed.compileComponents();
   }));
 
   it('should open a dialog when created', fakeAsync(() => {
@@ -63,13 +61,10 @@ interface ExampleDialogResult {
     Data: {{data}}
     <button id="close-btn" (click)="close()">Close</button>
   `,
-  standalone: true,
 })
 class ExampleComponent {
-  constructor(
-    public dialogRef: MatDialogRef<ExampleComponent, ExampleDialogResult>,
-    @Inject(MAT_DIALOG_DATA) public data: any,
-  ) {}
+  dialogRef = inject<MatDialogRef<ExampleComponent, ExampleDialogResult>>(MatDialogRef);
+  data = inject(MAT_DIALOG_DATA);
 
   close() {
     this.dialogRef.close({reason: 'closed'});

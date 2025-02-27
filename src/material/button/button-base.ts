@@ -3,13 +3,13 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {FocusMonitor, FocusOrigin} from '@angular/cdk/a11y';
-import {Platform} from '@angular/cdk/platform';
 import {
   AfterViewInit,
+  ANIMATION_MODULE_TYPE,
   booleanAttribute,
   Directive,
   ElementRef,
@@ -19,14 +19,18 @@ import {
   NgZone,
   numberAttribute,
   OnDestroy,
-  OnInit,
+  Renderer2,
 } from '@angular/core';
-import {MatRipple, MatRippleLoader} from '@angular/material/core';
+import {_StructuralStylesLoader, MatRippleLoader, ThemePalette} from '@angular/material/core';
+import {_CdkPrivateStyleLoader} from '@angular/cdk/private';
 
 /** Object that can be used to configure the default options for the button component. */
 export interface MatButtonConfig {
   /** Whether disabled buttons should be interactive. */
   disabledInteractive?: boolean;
+
+  /** Default palette color to apply to buttons. */
+  color?: ThemePalette;
 }
 
 /** Injection token that can be used to provide the default options the button component. */
@@ -47,7 +51,12 @@ export const MAT_BUTTON_HOST = {
   // wants to target all Material buttons.
   '[class.mat-mdc-button-base]': 'true',
   '[class]': 'color ? "mat-" + color : ""',
+  '[attr.tabindex]': '_getTabIndex()',
 };
+
+function transformTabIndex(value: unknown): number | undefined {
+  return value == null ? undefined : numberAttribute(value);
+}
 
 /** List of classes to add to buttons instances based on host attribute selector. */
 const HOST_SELECTOR_MDC_CLASS_PAIR: {attribute: string; mdcClasses: string[]}[] = [
@@ -69,11 +78,11 @@ const HOST_SELECTOR_MDC_CLASS_PAIR: {attribute: string; mdcClasses: string[]}[] 
   },
   {
     attribute: 'mat-fab',
-    mdcClasses: ['mdc-fab', 'mat-mdc-fab'],
+    mdcClasses: ['mdc-fab', 'mat-mdc-fab-base', 'mat-mdc-fab'],
   },
   {
     attribute: 'mat-mini-fab',
-    mdcClasses: ['mdc-fab', 'mdc-fab--mini', 'mat-mdc-mini-fab'],
+    mdcClasses: ['mdc-fab', 'mat-mdc-fab-base', 'mdc-fab--mini', 'mat-mdc-mini-fab'],
   },
   {
     attribute: 'mat-icon-button',
@@ -84,30 +93,33 @@ const HOST_SELECTOR_MDC_CLASS_PAIR: {attribute: string; mdcClasses: string[]}[] 
 /** Base class for all buttons.  */
 @Directive()
 export class MatButtonBase implements AfterViewInit, OnDestroy {
+  _elementRef = inject(ElementRef);
+  _ngZone = inject(NgZone);
+  _animationMode = inject(ANIMATION_MODULE_TYPE, {optional: true});
+
   private readonly _focusMonitor = inject(FocusMonitor);
+  private _cleanupClick: (() => void) | undefined;
+  private _renderer = inject(Renderer2);
 
   /**
    * Handles the lazy creation of the MatButton ripple.
    * Used to improve initial load time of large applications.
    */
-  _rippleLoader: MatRippleLoader = inject(MatRippleLoader);
+  protected _rippleLoader: MatRippleLoader = inject(MatRippleLoader);
+
+  /** Whether the button is set on an anchor node. */
+  protected _isAnchor: boolean;
 
   /** Whether this button is a FAB. Used to apply the correct class on the ripple. */
-  _isFab = false;
+  protected _isFab = false;
 
   /**
-   * Reference to the MatRipple instance of the button.
-   * @deprecated Considered an implementation detail. To be removed.
-   * @breaking-change 17.0.0
+   * Theme color of the button. This API is supported in M2 themes only, it has
+   * no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/button/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
    */
-  get ripple(): MatRipple {
-    return this._rippleLoader?.getRipple(this._elementRef.nativeElement)!;
-  }
-  set ripple(v: MatRipple) {
-    this._rippleLoader?.attachRipple(this._elementRef.nativeElement, v);
-  }
-
-  /** Theme color palette of the button */
   @Input() color?: string | null;
 
   /** Whether the ripple effect is disabled or not. */
@@ -150,17 +162,30 @@ export class MatButtonBase implements AfterViewInit, OnDestroy {
   @Input({transform: booleanAttribute})
   disabledInteractive: boolean;
 
-  constructor(
-    public _elementRef: ElementRef,
-    public _platform: Platform,
-    public _ngZone: NgZone,
-    public _animationMode?: string,
-  ) {
+  /** Tab index for the button. */
+  @Input({transform: transformTabIndex})
+  tabIndex: number;
+
+  /**
+   * Backwards-compatibility input that handles pre-existing `[tabindex]` bindings.
+   * @docs-private
+   */
+  @Input({alias: 'tabindex', transform: transformTabIndex})
+  set _tabindex(value: number) {
+    this.tabIndex = value;
+  }
+
+  constructor(...args: unknown[]);
+
+  constructor() {
+    inject(_CdkPrivateStyleLoader).load(_StructuralStylesLoader);
     const config = inject(MAT_BUTTON_CONFIG, {optional: true});
-    const element = _elementRef.nativeElement;
+    const element: HTMLElement = this._elementRef.nativeElement;
     const classList = (element as HTMLElement).classList;
 
+    this._isAnchor = element.tagName === 'A';
     this.disabledInteractive = config?.disabledInteractive ?? false;
+    this.color = config?.color ?? null;
     this._rippleLoader?.configureRipple(element, {className: 'mat-mdc-button-ripple'});
 
     // For each of the variant selectors that is present in the button's host
@@ -174,9 +199,16 @@ export class MatButtonBase implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     this._focusMonitor.monitor(this._elementRef, true);
+
+    // Some internal tests depend on the timing of this,
+    // otherwise we could bind it in the constructor.
+    if (this._isAnchor) {
+      this._setupAsAnchor();
+    }
   }
 
   ngOnDestroy() {
+    this._cleanupClick?.();
     this._focusMonitor.stopMonitoring(this._elementRef);
     this._rippleLoader?.destroyRipple(this._elementRef.nativeElement);
   }
@@ -195,6 +227,10 @@ export class MatButtonBase implements AfterViewInit, OnDestroy {
       return this.ariaDisabled;
     }
 
+    if (this._isAnchor) {
+      return this.disabled || null;
+    }
+
     return this.disabled && this.disabledInteractive ? true : null;
   }
 
@@ -208,66 +244,30 @@ export class MatButtonBase implements AfterViewInit, OnDestroy {
       this.disableRipple || this.disabled,
     );
   }
+
+  protected _getTabIndex() {
+    if (this._isAnchor) {
+      return this.disabled && !this.disabledInteractive ? -1 : this.tabIndex;
+    }
+    return this.tabIndex;
+  }
+
+  private _setupAsAnchor() {
+    this._cleanupClick = this._ngZone.runOutsideAngular(() =>
+      this._renderer.listen(this._elementRef.nativeElement, 'click', (event: Event) => {
+        if (this.disabled) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+      }),
+    );
+  }
 }
 
-/** Shared host configuration for buttons using the `<a>` tag. */
-export const MAT_ANCHOR_HOST = {
-  '[attr.disabled]': '_getDisabledAttribute()',
-  '[class.mat-mdc-button-disabled]': 'disabled',
-  '[class.mat-mdc-button-disabled-interactive]': 'disabledInteractive',
-  '[class._mat-animation-noopable]': '_animationMode === "NoopAnimations"',
-
-  // Note that we ignore the user-specified tabindex when it's disabled for
-  // consistency with the `mat-button` applied on native buttons where even
-  // though they have an index, they're not tabbable.
-  '[attr.tabindex]': 'disabled && !disabledInteractive ? -1 : tabIndex',
-  '[attr.aria-disabled]': '_getDisabledAttribute()',
-  // MDC automatically applies the primary theme color to the button, but we want to support
-  // an unthemed version. If color is undefined, apply a CSS class that makes it easy to
-  // select and style this "theme".
-  '[class.mat-unthemed]': '!color',
-  // Add a class that applies to all buttons. This makes it easier to target if somebody
-  // wants to target all Material buttons.
-  '[class.mat-mdc-button-base]': 'true',
-  '[class]': 'color ? "mat-" + color : ""',
-};
-
+// tslint:disable:variable-name
 /**
  * Anchor button base.
  */
-@Directive()
-export class MatAnchorBase extends MatButtonBase implements OnInit, OnDestroy {
-  @Input({
-    transform: (value: unknown) => {
-      return value == null ? undefined : numberAttribute(value);
-    },
-  })
-  tabIndex: number;
-
-  constructor(elementRef: ElementRef, platform: Platform, ngZone: NgZone, animationMode?: string) {
-    super(elementRef, platform, ngZone, animationMode);
-  }
-
-  ngOnInit(): void {
-    this._ngZone.runOutsideAngular(() => {
-      this._elementRef.nativeElement.addEventListener('click', this._haltDisabledEvents);
-    });
-  }
-
-  override ngOnDestroy(): void {
-    super.ngOnDestroy();
-    this._elementRef.nativeElement.removeEventListener('click', this._haltDisabledEvents);
-  }
-
-  _haltDisabledEvents = (event: Event): void => {
-    // A disabled button shouldn't apply any actions
-    if (this.disabled) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-    }
-  };
-
-  protected override _getAriaDisabled() {
-    return this.ariaDisabled == null ? this.disabled : this.ariaDisabled;
-  }
-}
+export const MatAnchorBase = MatButtonBase;
+export type MatAnchorBase = MatButtonBase;
+// tslint:enable:variable-name

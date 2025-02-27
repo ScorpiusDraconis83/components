@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {InjectionToken} from '@angular/core';
+import {InjectionToken, Signal} from '@angular/core';
 
 /**
  * Describes a parent component that manages a list of options.
@@ -14,7 +14,7 @@ import {InjectionToken} from '@angular/core';
  * @docs-private
  */
 export interface MatOptionParentComponent {
-  disableRipple?: boolean;
+  disableRipple?: boolean | Signal<boolean>;
   multiple?: boolean;
   inertGroups?: boolean;
   hideSingleSelectionIndicator?: boolean;

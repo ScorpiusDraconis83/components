@@ -13,7 +13,7 @@ describe('MatMenuBar', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [MatMenuBarModule, SimpleMatMenuBar],
-    }).compileComponents();
+    });
   }));
 
   beforeEach(() => {
@@ -55,7 +55,6 @@ describe('MatMenuBar', () => {
       <mat-menubar-item id="second"></mat-menubar-item>
     </mat-menubar>
   `,
-  standalone: true,
   imports: [MatMenuBarModule],
 })
 class SimpleMatMenuBar {

@@ -3,34 +3,28 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {AriaDescriber, InteractivityChecker} from '@angular/cdk/a11y';
+import {_IdGenerator, AriaDescriber, InteractivityChecker} from '@angular/cdk/a11y';
 import {DOCUMENT} from '@angular/common';
 import {
-  ApplicationRef,
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
-  createComponent,
   Directive,
   ElementRef,
-  EnvironmentInjector,
   inject,
-  Inject,
   Input,
   NgZone,
   OnDestroy,
   OnInit,
-  Optional,
   Renderer2,
   ViewEncapsulation,
   ANIMATION_MODULE_TYPE,
 } from '@angular/core';
 import {ThemePalette} from '@angular/material/core';
-
-let nextId = 0;
+import {_CdkPrivateStyleLoader, _VisuallyHiddenLoader} from '@angular/cdk/private';
 
 /** Allowed position options for matBadgePosition */
 export type MatBadgePosition =
@@ -48,15 +42,11 @@ export type MatBadgeSize = 'small' | 'medium' | 'large';
 
 const BADGE_CONTENT_CLASS = 'mat-badge-content';
 
-/** Keeps track of the apps currently containing badges. */
-const badgeApps = new Set<ApplicationRef>();
-
 /**
  * Component used to load the structural styles of the badge.
  * @docs-private
  */
 @Component({
-  standalone: true,
   styleUrl: 'badge.css',
   encapsulation: ViewEncapsulation.None,
   template: '',
@@ -80,10 +70,22 @@ export class _MatBadgeStyleLoader {}
     '[class.mat-badge-hidden]': 'hidden || !content',
     '[class.mat-badge-disabled]': 'disabled',
   },
-  standalone: true,
 })
 export class MatBadge implements OnInit, OnDestroy {
-  /** The color of the badge. Can be `primary`, `accent`, or `warn`. */
+  private _ngZone = inject(NgZone);
+  private _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  private _ariaDescriber = inject(AriaDescriber);
+  private _renderer = inject(Renderer2);
+  private _animationMode = inject(ANIMATION_MODULE_TYPE, {optional: true});
+  private _idGenerator = inject(_IdGenerator);
+
+  /**
+   * Theme color of the badge. This API is supported in M2 themes only, it
+   * has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/badge/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   @Input('matBadgeColor')
   get color(): ThemePalette {
     return this._color;
@@ -132,9 +134,6 @@ export class MatBadge implements OnInit, OnDestroy {
   /** Whether the badge is hidden. */
   @Input({alias: 'matBadgeHidden', transform: booleanAttribute}) hidden: boolean;
 
-  /** Unique id for the badge */
-  _id: number = nextId++;
-
   /** Visible badge element. */
   private _badgeElement: HTMLElement | undefined;
 
@@ -149,43 +148,24 @@ export class MatBadge implements OnInit, OnDestroy {
 
   private _document = inject(DOCUMENT);
 
-  constructor(
-    private _ngZone: NgZone,
-    private _elementRef: ElementRef<HTMLElement>,
-    private _ariaDescriber: AriaDescriber,
-    private _renderer: Renderer2,
-    @Optional() @Inject(ANIMATION_MODULE_TYPE) private _animationMode?: string,
-  ) {
-    const appRef = inject(ApplicationRef);
+  constructor(...args: unknown[]);
 
-    if (!badgeApps.has(appRef)) {
-      badgeApps.add(appRef);
-
-      const componentRef = createComponent(_MatBadgeStyleLoader, {
-        environmentInjector: inject(EnvironmentInjector),
-      });
-
-      appRef.onDestroy(() => {
-        badgeApps.delete(appRef);
-        if (badgeApps.size === 0) {
-          componentRef.destroy();
-        }
-      });
-    }
+  constructor() {
+    const styleLoader = inject(_CdkPrivateStyleLoader);
+    styleLoader.load(_MatBadgeStyleLoader);
+    styleLoader.load(_VisuallyHiddenLoader);
 
     if (typeof ngDevMode === 'undefined' || ngDevMode) {
-      const nativeElement = _elementRef.nativeElement;
+      const nativeElement = this._elementRef.nativeElement;
       if (nativeElement.nodeType !== nativeElement.ELEMENT_NODE) {
         throw Error('matBadge must be attached to an element node.');
       }
-
-      const matIconTagName: string = 'mat-icon';
 
       // Heads-up for developers to avoid putting matBadge on <mat-icon>
       // as it is aria-hidden by default docs mention this at:
       // https://material.angular.io/components/badge/overview#accessibility
       if (
-        nativeElement.tagName.toLowerCase() === matIconTagName &&
+        nativeElement.tagName.toLowerCase() === 'mat-icon' &&
         nativeElement.getAttribute('aria-hidden') === 'true'
       ) {
         console.warn(
@@ -253,7 +233,7 @@ export class MatBadge implements OnInit, OnDestroy {
     const badgeElement = this._renderer.createElement('span');
     const activeClass = 'mat-badge-active';
 
-    badgeElement.setAttribute('id', `mat-badge-content-${this._id}`);
+    badgeElement.setAttribute('id', this._idGenerator.getId('mat-badge-content-'));
 
     // The badge is aria-hidden because we don't want it to appear in the page's navigation
     // flow. Instead, we use the badge to describe the decorated element with aria-describedby.

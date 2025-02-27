@@ -3,36 +3,32 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {BooleanInput, coerceBooleanProperty} from '@angular/cdk/coercion';
 import {SelectionModel} from '@angular/cdk/collections';
 import {
-  ANIMATION_MODULE_TYPE,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   ContentChildren,
   ElementRef,
   EventEmitter,
-  Inject,
   InjectionToken,
   Input,
-  NgZone,
   OnDestroy,
   OnInit,
-  Optional,
   Output,
   QueryList,
   ViewChild,
   ViewEncapsulation,
+  inject,
 } from '@angular/core';
-import {MAT_RIPPLE_GLOBAL_OPTIONS, RippleGlobalOptions, ThemePalette} from '@angular/material/core';
+import {ThemePalette} from '@angular/material/core';
 import {MatListBase, MatListItemBase} from './list-base';
 import {LIST_OPTION, ListOption, MatListOptionTogglePosition} from './list-option-types';
 import {MatListItemLine, MatListItemTitle} from './list-item-sections';
-import {Platform} from '@angular/cdk/platform';
 import {NgTemplateOutlet} from '@angular/common';
 import {CdkObserveContent} from '@angular/cdk/observers';
 
@@ -44,7 +40,7 @@ import {CdkObserveContent} from '@angular/cdk/observers';
 export const SELECTION_LIST = new InjectionToken<SelectionList>('SelectionList');
 
 /**
- * Interface describing the containing list of an list option. This is used to avoid
+ * Interface describing the containing list of a list option. This is used to avoid
  * circular dependencies between the list-option and the selection list.
  * @docs-private
  */
@@ -83,6 +79,10 @@ export interface SelectionList extends MatListBase {
     '[class.mdc-list-item--with-trailing-checkbox]': '_hasCheckboxAt("after")',
     '[class.mdc-list-item--with-leading-radio]': '_hasRadioAt("before")',
     '[class.mdc-list-item--with-trailing-radio]': '_hasRadioAt("after")',
+
+    // Utility class that makes it easier to target the case where there's both a leading
+    // and a trailing icon. Avoids having to write out all the combinations.
+    '[class.mat-mdc-list-item-both-leading-and-trailing]': '_hasBothLeadingAndTrailing()',
     '[class.mat-accent]': 'color !== "primary" && color !== "warn"',
     '[class.mat-warn]': 'color === "warn"',
     '[class._mat-animation-noopable]': '_noopAnimations',
@@ -97,10 +97,12 @@ export interface SelectionList extends MatListBase {
     {provide: MatListItemBase, useExisting: MatListOption},
     {provide: LIST_OPTION, useExisting: MatListOption},
   ],
-  standalone: true,
   imports: [NgTemplateOutlet, CdkObserveContent],
 })
 export class MatListOption extends MatListItemBase implements ListOption, OnInit, OnDestroy {
+  private _selectionList = inject<SelectionList>(SELECTION_LIST);
+  private _changeDetectorRef = inject(ChangeDetectorRef);
+
   @ContentChildren(MatListItemLine, {descendants: true}) _lines: QueryList<MatListItemLine>;
   @ContentChildren(MatListItemTitle, {descendants: true}) _titles: QueryList<MatListItemTitle>;
   @ViewChild('unscopedContent') _unscopedContent: ElementRef<HTMLSpanElement>;
@@ -129,7 +131,14 @@ export class MatListOption extends MatListItemBase implements ListOption, OnInit
     this.togglePosition = value;
   }
 
-  /** Theme color of the list option. This sets the color of the checkbox/radio. */
+  /**
+   * Theme color of the list option. This sets the color of the checkbox/radio.
+   * This API is supported in M2 themes only, it has no effect in M3 themes. For color customization
+   * in M3, see https://material.angular.io/components/list/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   @Input()
   get color(): ThemePalette {
     return this._color || this._selectionList.color;
@@ -176,20 +185,6 @@ export class MatListOption extends MatListItemBase implements ListOption, OnInit
    * clear the value of `selected` in the first cycle.
    */
   private _inputsInitialized = false;
-
-  constructor(
-    elementRef: ElementRef<HTMLElement>,
-    ngZone: NgZone,
-    @Inject(SELECTION_LIST) private _selectionList: SelectionList,
-    platform: Platform,
-    private _changeDetectorRef: ChangeDetectorRef,
-    @Optional()
-    @Inject(MAT_RIPPLE_GLOBAL_OPTIONS)
-    globalRippleOptions?: RippleGlobalOptions,
-    @Optional() @Inject(ANIMATION_MODULE_TYPE) animationMode?: string,
-  ) {
-    super(elementRef, ngZone, _selectionList, platform, globalRippleOptions, animationMode);
-  }
 
   ngOnInit() {
     const list = this._selectionList;
@@ -330,5 +325,19 @@ export class MatListOption extends MatListItemBase implements ListOption, OnInit
   /** Sets the tabindex of the list option. */
   _setTabindex(value: number) {
     this._hostElement.setAttribute('tabindex', value + '');
+  }
+
+  protected _hasBothLeadingAndTrailing(): boolean {
+    const hasLeading =
+      this._hasProjected('avatars', 'before') ||
+      this._hasProjected('icons', 'before') ||
+      this._hasCheckboxAt('before') ||
+      this._hasRadioAt('before');
+    const hasTrailing =
+      this._hasProjected('icons', 'after') ||
+      this._hasProjected('avatars', 'after') ||
+      this._hasCheckboxAt('after') ||
+      this._hasRadioAt('after');
+    return hasLeading && hasTrailing;
   }
 }

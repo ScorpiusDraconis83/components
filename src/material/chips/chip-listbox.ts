@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -83,7 +83,6 @@ export const MAT_CHIP_LISTBOX_CONTROL_VALUE_ACCESSOR: any = {
   providers: [MAT_CHIP_LISTBOX_CONTROL_VALUE_ACCESSOR],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
 })
 export class MatChipListbox
   extends MatChipSet
@@ -103,9 +102,6 @@ export class MatChipListbox
 
   // TODO: MDC uses `grid` here
   protected override _defaultRole = 'listbox';
-
-  /** Value that was assigned before the listbox was initialized. */
-  private _pendingInitialValue: any;
 
   /** Default chip options. */
   private _defaultOptions = inject(MAT_CHIPS_DEFAULT_OPTIONS, {optional: true});
@@ -185,7 +181,9 @@ export class MatChipListbox
     return this._value;
   }
   set value(value: any) {
-    this.writeValue(value);
+    if (this._chips && this._chips.length) {
+      this._setSelectionByValue(value, false);
+    }
     this._value = value;
   }
   protected _value: any;
@@ -203,14 +201,12 @@ export class MatChipListbox
   override _chips: QueryList<MatChipOption> = undefined!;
 
   ngAfterContentInit() {
-    if (this._pendingInitialValue !== undefined) {
-      Promise.resolve().then(() => {
-        this._setSelectionByValue(this._pendingInitialValue, false);
-        this._pendingInitialValue = undefined;
-      });
-    }
-
     this._chips.changes.pipe(startWith(null), takeUntil(this._destroyed)).subscribe(() => {
+      if (this.value !== undefined) {
+        Promise.resolve().then(() => {
+          this._setSelectionByValue(this.value, false);
+        });
+      }
       // Update listbox selectable/multiple properties on chips
       this._syncListboxProperties();
     });
@@ -256,10 +252,10 @@ export class MatChipListbox
    * @docs-private
    */
   writeValue(value: any): void {
-    if (this._chips) {
-      this._setSelectionByValue(value, false);
-    } else if (value != null) {
-      this._pendingInitialValue = value;
+    if (value != null) {
+      this.value = value;
+    } else {
+      this.value = undefined;
     }
   }
 

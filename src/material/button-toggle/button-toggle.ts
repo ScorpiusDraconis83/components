@@ -3,15 +3,19 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {FocusMonitor} from '@angular/cdk/a11y';
+import {_IdGenerator, FocusMonitor} from '@angular/cdk/a11y';
+import {Direction, Directionality} from '@angular/cdk/bidi';
 import {SelectionModel} from '@angular/cdk/collections';
-import {DOWN_ARROW, LEFT_ARROW, RIGHT_ARROW, UP_ARROW, SPACE, ENTER} from '@angular/cdk/keycodes';
+import {DOWN_ARROW, ENTER, LEFT_ARROW, RIGHT_ARROW, SPACE, UP_ARROW} from '@angular/cdk/keycodes';
+import {_CdkPrivateStyleLoader} from '@angular/cdk/private';
 import {
   AfterContentInit,
-  Attribute,
+  AfterViewInit,
+  ANIMATION_MODULE_TYPE,
+  booleanAttribute,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
@@ -20,22 +24,19 @@ import {
   ElementRef,
   EventEmitter,
   forwardRef,
+  HostAttributeToken,
+  inject,
+  InjectionToken,
   Input,
   OnDestroy,
   OnInit,
-  Optional,
   Output,
   QueryList,
   ViewChild,
   ViewEncapsulation,
-  InjectionToken,
-  Inject,
-  AfterViewInit,
-  booleanAttribute,
 } from '@angular/core';
-import {Direction, Directionality} from '@angular/cdk/bidi';
 import {ControlValueAccessor, NG_VALUE_ACCESSOR} from '@angular/forms';
-import {MatRipple, MatPseudoCheckbox} from '@angular/material/core';
+import {_StructuralStylesLoader, MatPseudoCheckbox, MatRipple} from '@angular/material/core';
 
 /**
  * @deprecated No longer used.
@@ -56,10 +57,12 @@ export interface MatButtonToggleDefaultOptions {
    * setting an appearance on a button toggle or group.
    */
   appearance?: MatButtonToggleAppearance;
-  /** Whetehr icon indicators should be hidden for single-selection button toggle groups. */
+  /** Whether icon indicators should be hidden for single-selection button toggle groups. */
   hideSingleSelectionIndicator?: boolean;
   /** Whether icon indicators should be hidden for multiple-selection button toggle groups. */
   hideMultipleSelectionIndicator?: boolean;
+  /** Whether disabled toggle buttons should be interactive. */
+  disabledInteractive?: boolean;
 }
 
 /**
@@ -78,6 +81,7 @@ export function MAT_BUTTON_TOGGLE_GROUP_DEFAULT_OPTIONS_FACTORY(): MatButtonTogg
   return {
     hideSingleSelectionIndicator: false,
     hideMultipleSelectionIndicator: false,
+    disabledInteractive: false,
   };
 }
 
@@ -100,9 +104,6 @@ export const MAT_BUTTON_TOGGLE_GROUP_VALUE_ACCESSOR: any = {
   useExisting: forwardRef(() => MatButtonToggleGroup),
   multi: true,
 };
-
-// Counter used to generate unique IDs.
-let uniqueIdCounter = 0;
 
 /** Change event object emitted by button toggle. */
 export class MatButtonToggleChange {
@@ -131,11 +132,14 @@ export class MatButtonToggleChange {
     '[class.mat-button-toggle-group-appearance-standard]': 'appearance === "standard"',
   },
   exportAs: 'matButtonToggleGroup',
-  standalone: true,
 })
 export class MatButtonToggleGroup implements ControlValueAccessor, OnInit, AfterContentInit {
+  private _changeDetector = inject(ChangeDetectorRef);
+  private _dir = inject(Directionality, {optional: true});
+
   private _multiple = false;
   private _disabled = false;
+  private _disabledInteractive = false;
   private _selectionModel: SelectionModel<MatButtonToggle>;
 
   /**
@@ -175,7 +179,7 @@ export class MatButtonToggleGroup implements ControlValueAccessor, OnInit, After
     this._name = value;
     this._markButtonsForCheck();
   }
-  private _name = `mat-button-toggle-group-${uniqueIdCounter++}`;
+  private _name = inject(_IdGenerator).getId('mat-button-toggle-group-');
 
   /** Whether the toggle group is vertical. */
   @Input({transform: booleanAttribute}) vertical: boolean;
@@ -229,6 +233,16 @@ export class MatButtonToggleGroup implements ControlValueAccessor, OnInit, After
     this._markButtonsForCheck();
   }
 
+  /** Whether buttons in the group should be interactive while they're disabled. */
+  @Input({transform: booleanAttribute})
+  get disabledInteractive(): boolean {
+    return this._disabledInteractive;
+  }
+  set disabledInteractive(value: boolean) {
+    this._disabledInteractive = value;
+    this._markButtonsForCheck();
+  }
+
   /** The layout direction of the toggle button group. */
   get dir(): Direction {
     return this._dir && this._dir.value === 'rtl' ? 'rtl' : 'ltr';
@@ -260,13 +274,14 @@ export class MatButtonToggleGroup implements ControlValueAccessor, OnInit, After
   }
   private _hideMultipleSelectionIndicator: boolean;
 
-  constructor(
-    private _changeDetector: ChangeDetectorRef,
-    @Optional()
-    @Inject(MAT_BUTTON_TOGGLE_DEFAULT_OPTIONS)
-    defaultOptions?: MatButtonToggleDefaultOptions,
-    @Optional() private _dir?: Directionality,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const defaultOptions = inject<MatButtonToggleDefaultOptions>(
+      MAT_BUTTON_TOGGLE_DEFAULT_OPTIONS,
+      {optional: true},
+    );
+
     this.appearance =
       defaultOptions && defaultOptions.appearance ? defaultOptions.appearance : 'standard';
     this.hideSingleSelectionIndicator = defaultOptions?.hideSingleSelectionIndicator ?? false;
@@ -320,35 +335,33 @@ export class MatButtonToggleGroup implements ControlValueAccessor, OnInit, After
       return toggle.buttonId === buttonId;
     });
 
-    let nextButton;
+    let nextButton: MatButtonToggle | null = null;
     switch (event.keyCode) {
       case SPACE:
       case ENTER:
-        nextButton = this._buttonToggles.get(index);
+        nextButton = this._buttonToggles.get(index) || null;
         break;
       case UP_ARROW:
-        nextButton = this._buttonToggles.get(this._getNextIndex(index, -1));
+        nextButton = this._getNextButton(index, -1);
         break;
       case LEFT_ARROW:
-        nextButton = this._buttonToggles.get(
-          this._getNextIndex(index, this.dir === 'ltr' ? -1 : 1),
-        );
+        nextButton = this._getNextButton(index, this.dir === 'ltr' ? -1 : 1);
         break;
       case DOWN_ARROW:
-        nextButton = this._buttonToggles.get(this._getNextIndex(index, 1));
+        nextButton = this._getNextButton(index, 1);
         break;
       case RIGHT_ARROW:
-        nextButton = this._buttonToggles.get(
-          this._getNextIndex(index, this.dir === 'ltr' ? 1 : -1),
-        );
+        nextButton = this._getNextButton(index, this.dir === 'ltr' ? 1 : -1);
         break;
       default:
         return;
     }
 
-    event.preventDefault();
-    nextButton?._onButtonClick();
-    nextButton?.focus();
+    if (nextButton) {
+      event.preventDefault();
+      nextButton._onButtonClick();
+      nextButton.focus();
+    }
   }
 
   /** Dispatch change event with current selection and group value. */
@@ -423,22 +436,33 @@ export class MatButtonToggleGroup implements ControlValueAccessor, OnInit, After
     });
     if (this.selected) {
       (this.selected as MatButtonToggle).tabIndex = 0;
-    } else if (this._buttonToggles.length > 0) {
-      this._buttonToggles.get(0)!.tabIndex = 0;
+    } else {
+      for (let i = 0; i < this._buttonToggles.length; i++) {
+        const toggle = this._buttonToggles.get(i)!;
+
+        if (!toggle.disabled) {
+          toggle.tabIndex = 0;
+          break;
+        }
+      }
     }
     this._markButtonsForCheck();
   }
 
-  /** Obtain the subsequent index to which the focus shifts. */
-  private _getNextIndex(index: number, offset: number): number {
-    let nextIndex = index + offset;
-    if (nextIndex === this._buttonToggles.length) {
-      nextIndex = 0;
+  /** Obtain the subsequent toggle to which the focus shifts. */
+  private _getNextButton(startIndex: number, offset: number): MatButtonToggle | null {
+    const items = this._buttonToggles;
+
+    for (let i = 1; i <= items.length; i++) {
+      const index = (startIndex + offset * i + items.length) % items.length;
+      const item = items.get(index);
+
+      if (item && !item.disabled) {
+        return item;
+      }
     }
-    if (nextIndex === -1) {
-      nextIndex = this._buttonToggles.length - 1;
-    }
-    return nextIndex;
+
+    return null;
   }
 
   /** Updates the selection state of the toggles in the group based on a value. */
@@ -449,16 +473,28 @@ export class MatButtonToggleGroup implements ControlValueAccessor, OnInit, After
       return;
     }
 
+    const toggles = this._buttonToggles.toArray();
+
     if (this.multiple && value) {
       if (!Array.isArray(value) && (typeof ngDevMode === 'undefined' || ngDevMode)) {
         throw Error('Value must be an array in multiple-selection mode.');
       }
 
       this._clearSelection();
-      value.forEach((currentValue: any) => this._selectValue(currentValue));
+      value.forEach((currentValue: any) => this._selectValue(currentValue, toggles));
     } else {
       this._clearSelection();
-      this._selectValue(value);
+      this._selectValue(value, toggles);
+    }
+
+    // In single selection mode we need at least one enabled toggle to always be focusable.
+    if (!this.multiple && toggles.every(toggle => toggle.tabIndex === -1)) {
+      for (const toggle of toggles) {
+        if (!toggle.disabled) {
+          toggle.tabIndex = 0;
+          break;
+        }
+      }
     }
   }
 
@@ -475,17 +511,16 @@ export class MatButtonToggleGroup implements ControlValueAccessor, OnInit, After
   }
 
   /** Selects a value if there's a toggle that corresponds to it. */
-  private _selectValue(value: any) {
-    const correspondingOption = this._buttonToggles.find(toggle => {
-      return toggle.value != null && toggle.value === value;
-    });
-
-    if (correspondingOption) {
-      correspondingOption.checked = true;
-      this._selectionModel.select(correspondingOption);
-      if (!this.multiple) {
-        // If the button toggle is in single select mode, reset the tabIndex.
-        correspondingOption.tabIndex = 0;
+  private _selectValue(value: any, toggles: MatButtonToggle[]) {
+    for (const toggle of toggles) {
+      if (toggle.value === value) {
+        toggle.checked = true;
+        this._selectionModel.select(toggle);
+        if (!this.multiple) {
+          // If the button toggle is in single select mode, reset the tabIndex.
+          toggle.tabIndex = 0;
+        }
+        break;
       }
     }
   }
@@ -520,6 +555,7 @@ export class MatButtonToggleGroup implements ControlValueAccessor, OnInit, After
     '[class.mat-button-toggle-standalone]': '!buttonToggleGroup',
     '[class.mat-button-toggle-checked]': 'checked',
     '[class.mat-button-toggle-disabled]': 'disabled',
+    '[class.mat-button-toggle-disabled-interactive]': 'disabledInteractive',
     '[class.mat-button-toggle-appearance-standard]': 'appearance === "standard"',
     'class': 'mat-button-toggle',
     '[attr.aria-label]': 'null',
@@ -529,10 +565,14 @@ export class MatButtonToggleGroup implements ControlValueAccessor, OnInit, After
     '(focus)': 'focus()',
     'role': 'presentation',
   },
-  standalone: true,
   imports: [MatRipple, MatPseudoCheckbox],
 })
 export class MatButtonToggle implements OnInit, AfterViewInit, OnDestroy {
+  private _changeDetectorRef = inject(ChangeDetectorRef);
+  private _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  private _focusMonitor = inject(FocusMonitor);
+  private _idGenerator = inject(_IdGenerator);
+  private _animationMode = inject(ANIMATION_MODULE_TYPE, {optional: true});
   private _checked = false;
 
   /**
@@ -572,8 +612,10 @@ export class MatButtonToggle implements OnInit, AfterViewInit, OnDestroy {
     return this._tabIndex;
   }
   set tabIndex(value: number | null) {
-    this._tabIndex = value;
-    this._markForCheck();
+    if (value !== this._tabIndex) {
+      this._tabIndex = value;
+      this._markForCheck();
+    }
   }
   private _tabIndex: number | null;
 
@@ -617,30 +659,44 @@ export class MatButtonToggle implements OnInit, AfterViewInit, OnDestroy {
   }
   private _disabled: boolean = false;
 
+  /** Whether the button should remain interactive when it is disabled. */
+  @Input({transform: booleanAttribute})
+  get disabledInteractive(): boolean {
+    return (
+      this._disabledInteractive ||
+      (this.buttonToggleGroup !== null && this.buttonToggleGroup.disabledInteractive)
+    );
+  }
+  set disabledInteractive(value: boolean) {
+    this._disabledInteractive = value;
+  }
+  private _disabledInteractive: boolean;
+
   /** Event emitted when the group value changes. */
   @Output() readonly change: EventEmitter<MatButtonToggleChange> =
     new EventEmitter<MatButtonToggleChange>();
 
-  constructor(
-    @Optional() @Inject(MAT_BUTTON_TOGGLE_GROUP) toggleGroup: MatButtonToggleGroup,
-    private _changeDetectorRef: ChangeDetectorRef,
-    private _elementRef: ElementRef<HTMLElement>,
-    private _focusMonitor: FocusMonitor,
-    @Attribute('tabindex') defaultTabIndex: string,
-    @Optional()
-    @Inject(MAT_BUTTON_TOGGLE_DEFAULT_OPTIONS)
-    defaultOptions?: MatButtonToggleDefaultOptions,
-  ) {
-    const parsedTabIndex = Number(defaultTabIndex);
-    this.tabIndex = parsedTabIndex || parsedTabIndex === 0 ? parsedTabIndex : null;
+  constructor(...args: unknown[]);
+
+  constructor() {
+    inject(_CdkPrivateStyleLoader).load(_StructuralStylesLoader);
+    const toggleGroup = inject<MatButtonToggleGroup>(MAT_BUTTON_TOGGLE_GROUP, {optional: true})!;
+    const defaultTabIndex = inject(new HostAttributeToken('tabindex'), {optional: true}) || '';
+    const defaultOptions = inject<MatButtonToggleDefaultOptions>(
+      MAT_BUTTON_TOGGLE_DEFAULT_OPTIONS,
+      {optional: true},
+    );
+
+    this._tabIndex = parseInt(defaultTabIndex) || 0;
     this.buttonToggleGroup = toggleGroup;
     this.appearance =
       defaultOptions && defaultOptions.appearance ? defaultOptions.appearance : 'standard';
+    this.disabledInteractive = defaultOptions?.disabledInteractive ?? false;
   }
 
   ngOnInit() {
     const group = this.buttonToggleGroup;
-    this.id = this.id || `mat-button-toggle-${uniqueIdCounter++}`;
+    this.id = this.id || this._idGenerator.getId('mat-button-toggle-');
 
     if (group) {
       if (group._isPrechecked(this)) {
@@ -656,6 +712,14 @@ export class MatButtonToggle implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
+    // This serves two purposes:
+    // 1. We don't want the animation to fire on the first render for pre-checked toggles so we
+    //    delay adding the class until the view is rendered.
+    // 2. We don't want animation if the `NoopAnimationsModule` is provided.
+    if (this._animationMode !== 'NoopAnimations') {
+      this._elementRef.nativeElement.classList.add('mat-button-toggle-animations-enabled');
+    }
+
     this._focusMonitor.monitor(this._elementRef, true);
   }
 
@@ -678,6 +742,10 @@ export class MatButtonToggle implements OnInit, AfterViewInit, OnDestroy {
 
   /** Checks the button toggle due to an interaction with the underlying native button. */
   _onButtonClick() {
+    if (this.disabled) {
+      return;
+    }
+
     const newChecked = this.isSingleSelector() ? true : !this._checked;
 
     if (newChecked !== this._checked) {

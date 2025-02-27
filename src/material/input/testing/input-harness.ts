@@ -3,11 +3,12 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {HarnessPredicate, parallel} from '@angular/cdk/testing';
 import {MatFormFieldControlHarness} from '@angular/material/form-field/testing/control';
+import {coerceBooleanProperty} from '@angular/cdk/coercion';
 import {InputHarnessFilters} from './input-harness-filters';
 
 /** Harness for interacting with a standard Material inputs in tests. */
@@ -35,7 +36,14 @@ export class MatInputHarness extends MatFormFieldControlHarness {
 
   /** Whether the input is disabled. */
   async isDisabled(): Promise<boolean> {
-    return (await this.host()).getProperty<boolean>('disabled');
+    const host = await this.host();
+    const disabled = await host.getAttribute('disabled');
+
+    if (disabled !== null) {
+      return coerceBooleanProperty(disabled);
+    }
+
+    return (await host.getAttribute('aria-disabled')) === 'true';
   }
 
   /** Whether the input is required. */

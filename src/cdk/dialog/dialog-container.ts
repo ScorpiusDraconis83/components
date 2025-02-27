@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -30,11 +30,10 @@ import {
   ComponentRef,
   ElementRef,
   EmbeddedViewRef,
-  Inject,
   Injector,
   NgZone,
   OnDestroy,
-  Optional,
+  Renderer2,
   ViewChild,
   ViewEncapsulation,
   afterNextRender,
@@ -58,7 +57,6 @@ export function throwDialogContentAlreadyAttachedError() {
   // Using OnPush for dialogs caused some G3 sync issues. Disabled until we can track them down.
   // tslint:disable-next-line:validate-decorators
   changeDetection: ChangeDetectionStrategy.Default,
-  standalone: true,
   imports: [CdkPortalOutlet],
   host: {
     'class': 'cdk-dialog-container',
@@ -75,8 +73,17 @@ export class CdkDialogContainer<C extends DialogConfig = DialogConfig>
   extends BasePortalOutlet
   implements OnDestroy
 {
+  protected _elementRef = inject(ElementRef);
+  protected _focusTrapFactory = inject(FocusTrapFactory);
+  readonly _config: C;
+  private _interactivityChecker = inject(InteractivityChecker);
+  protected _ngZone = inject(NgZone);
+  private _overlayRef = inject(OverlayRef);
+  private _focusMonitor = inject(FocusMonitor);
+  private _renderer = inject(Renderer2);
+
   private _platform = inject(Platform);
-  protected _document: Document;
+  protected _document = inject(DOCUMENT, {optional: true})!;
 
   /** The portal outlet inside of this container into which the dialog content will be loaded. */
   @ViewChild(CdkPortalOutlet, {static: true}) _portalOutlet: CdkPortalOutlet;
@@ -108,19 +115,14 @@ export class CdkDialogContainer<C extends DialogConfig = DialogConfig>
 
   private _isDestroyed = false;
 
-  constructor(
-    protected _elementRef: ElementRef,
-    protected _focusTrapFactory: FocusTrapFactory,
-    @Optional() @Inject(DOCUMENT) _document: any,
-    @Inject(DialogConfig) readonly _config: C,
-    private _interactivityChecker: InteractivityChecker,
-    protected _ngZone: NgZone,
-    private _overlayRef: OverlayRef,
-    private _focusMonitor?: FocusMonitor,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
     super();
 
-    this._document = _document;
+    // Callback is primarily for some internal tests
+    // that were instantiating the dialog container manually.
+    this._config = (inject(DialogConfig, {optional: true}) || new DialogConfig()) as C;
 
     if (this._config.ariaLabelledBy) {
       this._ariaLabelledByQueue.push(this._config.ariaLabelledBy);
@@ -223,13 +225,13 @@ export class CdkDialogContainer<C extends DialogConfig = DialogConfig>
       // The tabindex attribute should be removed to avoid navigating to that element again
       this._ngZone.runOutsideAngular(() => {
         const callback = () => {
-          element.removeEventListener('blur', callback);
-          element.removeEventListener('mousedown', callback);
+          deregisterBlur();
+          deregisterMousedown();
           element.removeAttribute('tabindex');
         };
 
-        element.addEventListener('blur', callback);
-        element.addEventListener('mousedown', callback);
+        const deregisterBlur = this._renderer.listen(element, 'blur', callback);
+        const deregisterMousedown = this._renderer.listen(element, 'mousedown', callback);
       });
     }
     element.focus(options);
@@ -257,57 +259,43 @@ export class CdkDialogContainer<C extends DialogConfig = DialogConfig>
       return;
     }
 
-    const element = this._elementRef.nativeElement;
     // If were to attempt to focus immediately, then the content of the dialog would not yet be
     // ready in instances where change detection has to run first. To deal with this, we simply
-    // wait for the microtask queue to be empty when setting focus when autoFocus isn't set to
-    // dialog. If the element inside the dialog can't be focused, then the container is focused
-    // so the user can't tab into other elements behind it.
-    const autoFocus = this._config.autoFocus;
-    switch (autoFocus) {
-      case false:
-      case 'dialog':
-        // Ensure that focus is on the dialog container. It's possible that a different
-        // component tried to move focus while the open animation was running. See:
-        // https://github.com/angular/components/issues/16215. Note that we only want to do this
-        // if the focus isn't inside the dialog already, because it's possible that the consumer
-        // turned off `autoFocus` in order to move focus themselves.
-        afterNextRender(
-          () => {
+    // wait until after the next render.
+    afterNextRender(
+      () => {
+        const element = this._elementRef.nativeElement;
+        switch (this._config.autoFocus) {
+          case false:
+          case 'dialog':
+            // Ensure that focus is on the dialog container. It's possible that a different
+            // component tried to move focus while the open animation was running. See:
+            // https://github.com/angular/components/issues/16215. Note that we only want to do this
+            // if the focus isn't inside the dialog already, because it's possible that the consumer
+            // turned off `autoFocus` in order to move focus themselves.
             if (!this._containsFocus()) {
               element.focus();
             }
-          },
-          {injector: this._injector},
-        );
-        break;
-      case true:
-      case 'first-tabbable':
-        this._focusTrap?.focusInitialElementWhenReady().then(focusedSuccessfully => {
-          // If we weren't able to find a focusable element in the dialog, then focus the dialog
-          // container instead.
-          if (!focusedSuccessfully) {
-            this._focusDialogContainer();
-          }
-        });
-        break;
-      case 'first-heading':
-        afterNextRender(
-          () => {
+            break;
+          case true:
+          case 'first-tabbable':
+            const focusedSuccessfully = this._focusTrap?.focusInitialElement();
+            // If we weren't able to find a focusable element in the dialog, then focus the dialog
+            // container instead.
+            if (!focusedSuccessfully) {
+              this._focusDialogContainer();
+            }
+            break;
+          case 'first-heading':
             this._focusByCssSelector('h1, h2, h3, h4, h5, h6, [role="heading"]');
-          },
-          {injector: this._injector},
-        );
-        break;
-      default:
-        afterNextRender(
-          () => {
-            this._focusByCssSelector(autoFocus!);
-          },
-          {injector: this._injector},
-        );
-        break;
-    }
+            break;
+          default:
+            this._focusByCssSelector(this._config.autoFocus!);
+            break;
+        }
+      },
+      {injector: this._injector},
+    );
   }
 
   /** Restores focus to the element that was focused before the dialog opened. */

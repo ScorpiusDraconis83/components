@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {FocusMonitor, FocusOrigin} from '@angular/cdk/a11y';
@@ -11,21 +11,22 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  ElementRef,
   Input,
   OnDestroy,
   ViewEncapsulation,
   TemplateRef,
   AfterViewInit,
+  inject,
 } from '@angular/core';
 import {Subscription} from 'rxjs';
 import {MatStepLabel} from './step-label';
 import {MatStepperIntl} from './stepper-intl';
 import {MatStepperIconContext} from './stepper-icon';
 import {CdkStepHeader, StepState} from '@angular/cdk/stepper';
-import {MatRipple, ThemePalette} from '@angular/material/core';
+import {_StructuralStylesLoader, MatRipple, ThemePalette} from '@angular/material/core';
 import {MatIcon} from '@angular/material/icon';
 import {NgTemplateOutlet} from '@angular/common';
+import {_CdkPrivateStyleLoader, _VisuallyHiddenLoader} from '@angular/cdk/private';
 
 @Component({
   selector: 'mat-step-header',
@@ -38,10 +39,12 @@ import {NgTemplateOutlet} from '@angular/common';
   },
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [MatRipple, NgTemplateOutlet, MatIcon],
 })
 export class MatStepHeader extends CdkStepHeader implements AfterViewInit, OnDestroy {
+  _intl = inject(MatStepperIntl);
+  private _focusMonitor = inject(FocusMonitor);
+
   private _intlSubscription: Subscription;
 
   /** State of the given step. */
@@ -71,17 +74,25 @@ export class MatStepHeader extends CdkStepHeader implements AfterViewInit, OnDes
   /** Whether the ripple should be disabled. */
   @Input() disableRipple: boolean;
 
-  /** Theme palette color of the step header. */
+  /**
+   * Theme color of the step header. This API is supported in M2 themes only, it
+   * has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/stepper/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   @Input() color: ThemePalette;
 
-  constructor(
-    public _intl: MatStepperIntl,
-    private _focusMonitor: FocusMonitor,
-    _elementRef: ElementRef<HTMLElement>,
-    changeDetectorRef: ChangeDetectorRef,
-  ) {
-    super(_elementRef);
-    this._intlSubscription = _intl.changes.subscribe(() => changeDetectorRef.markForCheck());
+  constructor(...args: unknown[]);
+
+  constructor() {
+    super();
+
+    const styleLoader = inject(_CdkPrivateStyleLoader);
+    styleLoader.load(_StructuralStylesLoader);
+    styleLoader.load(_VisuallyHiddenLoader);
+    const changeDetectorRef = inject(ChangeDetectorRef);
+    this._intlSubscription = this._intl.changes.subscribe(() => changeDetectorRef.markForCheck());
   }
 
   ngAfterViewInit() {

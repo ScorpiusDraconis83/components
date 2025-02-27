@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -13,22 +13,20 @@ import {
   OnDestroy,
   Type,
   StaticProvider,
-  Inject,
-  Optional,
-  SkipSelf,
   ComponentRef,
+  inject,
 } from '@angular/core';
 import {BasePortalOutlet, ComponentPortal, TemplatePortal} from '@angular/cdk/portal';
 import {of as observableOf, Observable, Subject, defer} from 'rxjs';
 import {DialogRef} from './dialog-ref';
 import {DialogConfig} from './dialog-config';
 import {Directionality} from '@angular/cdk/bidi';
+import {_IdGenerator} from '@angular/cdk/a11y';
 import {
   ComponentType,
   Overlay,
   OverlayRef,
   OverlayConfig,
-  ScrollStrategy,
   OverlayContainer,
 } from '@angular/cdk/overlay';
 import {startWith} from 'rxjs/operators';
@@ -36,16 +34,20 @@ import {startWith} from 'rxjs/operators';
 import {DEFAULT_DIALOG_CONFIG, DIALOG_DATA, DIALOG_SCROLL_STRATEGY} from './dialog-injectors';
 import {CdkDialogContainer} from './dialog-container';
 
-/** Unique id for the created dialog. */
-let uniqueId = 0;
-
 @Injectable({providedIn: 'root'})
 export class Dialog implements OnDestroy {
+  private _overlay = inject(Overlay);
+  private _injector = inject(Injector);
+  private _defaultOptions = inject<DialogConfig>(DEFAULT_DIALOG_CONFIG, {optional: true});
+  private _parentDialog = inject(Dialog, {optional: true, skipSelf: true});
+  private _overlayContainer = inject(OverlayContainer);
+  private _idGenerator = inject(_IdGenerator);
+
   private _openDialogsAtThisLevel: DialogRef<any, any>[] = [];
   private readonly _afterAllClosedAtThisLevel = new Subject<void>();
   private readonly _afterOpenedAtThisLevel = new Subject<DialogRef>();
   private _ariaHiddenElements = new Map<Element, string | null>();
-  private _scrollStrategy: () => ScrollStrategy;
+  private _scrollStrategy = inject(DIALOG_SCROLL_STRATEGY);
 
   /** Keeps track of the currently-open dialogs. */
   get openDialogs(): readonly DialogRef<any, any>[] {
@@ -67,16 +69,9 @@ export class Dialog implements OnDestroy {
       : this._getAfterAllClosed().pipe(startWith(undefined)),
   );
 
-  constructor(
-    private _overlay: Overlay,
-    private _injector: Injector,
-    @Optional() @Inject(DEFAULT_DIALOG_CONFIG) private _defaultOptions: DialogConfig,
-    @Optional() @SkipSelf() private _parentDialog: Dialog,
-    private _overlayContainer: OverlayContainer,
-    @Inject(DIALOG_SCROLL_STRATEGY) scrollStrategy: any,
-  ) {
-    this._scrollStrategy = scrollStrategy;
-  }
+  constructor(...args: unknown[]);
+
+  constructor() {}
 
   /**
    * Opens a modal dialog containing the given component.
@@ -114,7 +109,7 @@ export class Dialog implements OnDestroy {
       DialogRef<R, C>
     >;
     config = {...defaults, ...config};
-    config.id = config.id || `cdk-dialog-${uniqueId++}`;
+    config.id = config.id || this._idGenerator.getId('cdk-dialog-');
 
     if (
       config.id &&
@@ -244,7 +239,6 @@ export class Dialog implements OnDestroy {
       containerType,
       config.viewContainerRef,
       Injector.create({parent: userInjector || this._injector, providers}),
-      config.componentFactoryResolver,
     );
     const containerRef = overlay.attach(containerPortal);
 
@@ -284,12 +278,7 @@ export class Dialog implements OnDestroy {
     } else {
       const injector = this._createInjector(config, dialogRef, dialogContainer, this._injector);
       const contentRef = dialogContainer.attachComponentPortal<C>(
-        new ComponentPortal(
-          componentOrTemplateRef,
-          config.viewContainerRef,
-          injector,
-          config.componentFactoryResolver,
-        ),
+        new ComponentPortal(componentOrTemplateRef, config.viewContainerRef, injector),
       );
       (dialogRef as {componentRef: ComponentRef<C>}).componentRef = contentRef;
       (dialogRef as {componentInstance: C}).componentInstance = contentRef.instance;

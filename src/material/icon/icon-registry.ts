@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {DOCUMENT} from '@angular/common';
@@ -39,9 +39,8 @@ export function getMatIconNameNotFoundError(iconName: string): Error {
  */
 export function getMatIconNoHttpProviderError(): Error {
   return Error(
-    'Could not find HttpClient provider for use with Angular Material icons. ' +
-      'Please include the HttpClientModule from @angular/common/http in your ' +
-      'app imports.',
+    'Could not find HttpClient for use with Angular Material icons. ' +
+      'Please add provideHttpClient() to your providers.',
   );
 }
 

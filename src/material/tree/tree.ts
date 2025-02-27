@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CdkTree} from '@angular/cdk/tree';
@@ -19,7 +19,6 @@ import {MatTreeNodeOutlet} from './outlet';
   template: `<ng-container matTreeNodeOutlet></ng-container>`,
   host: {
     'class': 'mat-tree',
-    'role': 'tree',
   },
   styleUrl: 'tree.css',
   encapsulation: ViewEncapsulation.None,
@@ -27,7 +26,6 @@ import {MatTreeNodeOutlet} from './outlet';
   // tslint:disable-next-line:validate-decorators
   changeDetection: ChangeDetectionStrategy.Default,
   providers: [{provide: CdkTree, useExisting: MatTree}],
-  standalone: true,
   imports: [MatTreeNodeOutlet],
 })
 export class MatTree<T, K = T> extends CdkTree<T, K> {

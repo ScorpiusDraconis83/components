@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ChangeDetectionStrategy, Component, ViewEncapsulation} from '@angular/core';
@@ -29,6 +29,5 @@ import {CDK_MENU, CdkMenuBar, CdkMenuGroup, MENU_STACK, MenuStack} from '@angula
     {provide: CDK_MENU, useExisting: MatMenuBar},
     {provide: MENU_STACK, useClass: MenuStack},
   ],
-  standalone: true,
 })
 export class MatMenuBar extends CdkMenuBar {}

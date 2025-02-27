@@ -3,12 +3,12 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
+import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
+import {AsyncPipe} from '@angular/common';
 import {BreakpointObserver, BreakpointState, Breakpoints, LayoutModule} from '@angular/cdk/layout';
-import {CommonModule} from '@angular/common';
-import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {MatGridListModule} from '@angular/material/grid-list';
 import {MatIconModule} from '@angular/material/icon';
 import {Observable} from 'rxjs';
@@ -17,8 +17,7 @@ import {Observable} from 'rxjs';
   selector: 'screen-type',
   templateUrl: 'screen-type-demo.html',
   styleUrl: 'screen-type-demo.css',
-  standalone: true,
-  imports: [CommonModule, LayoutModule, MatGridListModule, MatIconModule],
+  imports: [AsyncPipe, LayoutModule, MatGridListModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ScreenTypeDemo {
@@ -28,7 +27,9 @@ export class ScreenTypeDemo {
   isPortrait: Observable<BreakpointState>;
   isLandscape: Observable<BreakpointState>;
 
-  constructor(breakpointObserver: BreakpointObserver) {
+  constructor() {
+    const breakpointObserver = inject(BreakpointObserver);
+
     this.isHandset = breakpointObserver.observe([
       Breakpoints.HandsetLandscape,
       Breakpoints.HandsetPortrait,

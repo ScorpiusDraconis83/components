@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {DIALOG_DATA, Dialog, DialogConfig, DialogModule, DialogRef} from '@angular/cdk/dialog';
@@ -11,7 +11,6 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  Inject,
   TemplateRef,
   ViewChild,
   ViewEncapsulation,
@@ -26,11 +25,12 @@ const defaultDialogConfig = new DialogConfig();
   templateUrl: 'dialog-demo.html',
   styleUrl: 'dialog-demo.css',
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
   imports: [DialogModule, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DialogDemo {
+  dialog = inject(Dialog);
+
   dialogRef: DialogRef<string> | null;
   result: string;
   actionsAlignment: 'start' | 'center' | 'end';
@@ -54,8 +54,6 @@ export class DialogDemo {
   @ViewChild(TemplateRef) template: TemplateRef<any>;
 
   readonly cdr = inject(ChangeDetectorRef);
-
-  constructor(public dialog: Dialog) {}
 
   openJazz() {
     this.dialogRef = this.dialog.open<string>(JazzDialog, this.config);
@@ -110,16 +108,13 @@ export class DialogDemo {
       opacity: 0;
     }
   `,
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class JazzDialog {
-  private _dimensionToggle = false;
+  dialogRef = inject<DialogRef<string>>(DialogRef);
+  data = inject(DIALOG_DATA);
 
-  constructor(
-    public dialogRef: DialogRef<string>,
-    @Inject(DIALOG_DATA) public data: any,
-  ) {}
+  private _dimensionToggle = false;
 
   togglePosition(): void {
     this._dimensionToggle = !this._dimensionToggle;

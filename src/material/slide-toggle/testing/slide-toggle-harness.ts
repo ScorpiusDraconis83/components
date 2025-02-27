@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -70,8 +70,14 @@ export class MatSlideToggleHarness extends ComponentHarness {
 
   /** Whether the slide-toggle is disabled. */
   async isDisabled(): Promise<boolean> {
-    const disabled = (await this._nativeElement()).getAttribute('disabled');
-    return coerceBooleanProperty(await disabled);
+    const nativeElement = await this._nativeElement();
+    const disabled = await nativeElement.getAttribute('disabled');
+
+    if (disabled !== null) {
+      return coerceBooleanProperty(disabled);
+    }
+
+    return (await nativeElement.getAttribute('aria-disabled')) === 'true';
   }
 
   /** Whether the slide-toggle is required. */

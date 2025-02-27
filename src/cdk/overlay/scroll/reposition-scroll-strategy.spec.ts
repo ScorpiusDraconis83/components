@@ -29,8 +29,6 @@ describe('RepositionScrollStrategy', () => {
         },
       ],
     });
-
-    TestBed.compileComponents();
   }));
 
   beforeEach(inject([Overlay], (o: Overlay) => {
@@ -117,7 +115,6 @@ describe('RepositionScrollStrategy', () => {
 /** Simple component that we can attach to the overlay. */
 @Component({
   template: '<p>Pasta</p>',
-  standalone: true,
   imports: [OverlayModule, PortalModule],
 })
 class PastaMsg {}

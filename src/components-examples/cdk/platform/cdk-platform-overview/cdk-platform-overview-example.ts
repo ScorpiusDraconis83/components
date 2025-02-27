@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, inject} from '@angular/core';
 import {
   getSupportedInputTypes,
   Platform,
@@ -12,12 +12,11 @@ import {
 @Component({
   selector: 'cdk-platform-overview-example',
   templateUrl: 'cdk-platform-overview-example.html',
-  standalone: true,
 })
 export class CdkPlatformOverviewExample {
+  platform = inject(Platform);
+
   supportedInputTypes = Array.from(getSupportedInputTypes()).join(', ');
   supportsPassiveEventListeners = supportsPassiveEventListeners();
   supportsScrollBehavior = supportsScrollBehavior();
-
-  constructor(public platform: Platform) {}
 }

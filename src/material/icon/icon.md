@@ -20,8 +20,8 @@ By default, `<mat-icon>` expects the
 [Material icons font](https://google.github.io/material-design-icons/#icon-font-for-the-web).
 (You will still need to include the HTML to load the font and its CSS, as described in the link).
 
-You can specify a different font, such as Material's latest icons, 
-[Material Symbols](https://fonts.google.com/icons), by setting the `fontSet` input to either the 
+You can specify a different font, such as Material's latest icons,
+[Material Symbols](https://fonts.google.com/icons), by setting the `fontSet` input to either the
 CSS class to apply to use the desired font, or to an alias previously registered with
 `MatIconRegistry.registerFontClassAlias`. Alternatively you can set the default for all
 your application's icons using `MatIconRegistry.setDefaultFontSetClass`.
@@ -52,7 +52,7 @@ In order to guard against XSS vulnerabilities, any SVG URLs and HTML strings pas
 `MatIconRegistry` must be marked as trusted by using Angular's `DomSanitizer` service.
 
 `MatIconRegistry` fetches all remote SVG icons via Angular's `HttpClient` service. If you haven't
-included [`HttpClientModule` from the `@angular/common/http` package](https://angular.io/guide/http)
+included [`HttpClientModule` from the `@angular/common/http` package](https://angular.dev/guide/http)
 in your `NgModule` imports, you will get an error at runtime.
 
 Note that `HttpClient` fetches SVG icons registered with a URL via `XmlHttpRequest`, subject to the
@@ -82,12 +82,6 @@ as for individually registered icons.
 
 Multiple icon sets can be registered in the same namespace. Requesting an icon whose id appears in
 more than one icon set, the icon from the most recently registered set will be used.
-
-### Theming
-
-By default, icons will use the current font color (`currentColor`). this color can be changed to
-match the current theme's colors using the `color` attribute. This can be changed to
-`'primary'`, `'accent'`, or `'warn'`.
 
 ### Accessibility
 

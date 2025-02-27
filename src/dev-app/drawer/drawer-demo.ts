@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ChangeDetectionStrategy, Component} from '@angular/core';
@@ -15,7 +15,6 @@ import {MatSidenavModule} from '@angular/material/sidenav';
   selector: 'drawer-demo',
   templateUrl: 'drawer-demo.html',
   styleUrl: 'drawer-demo.css',
-  standalone: true,
   imports: [MatButtonModule, MatListModule, MatSidenavModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

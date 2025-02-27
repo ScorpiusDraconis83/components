@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Direction} from '@angular/cdk/bidi';
@@ -16,6 +16,7 @@ export interface DevAppState {
   animations: boolean;
   zoneless: boolean;
   darkTheme: boolean;
+  systemTheme: boolean;
   rippleDisabled: boolean;
   strongFocusEnabled: boolean;
   m3Enabled: boolean;
@@ -42,9 +43,10 @@ export function getAppState(): DevAppState {
       animations: true,
       zoneless: false,
       darkTheme: false,
+      systemTheme: false,
       rippleDisabled: false,
       strongFocusEnabled: false,
-      m3Enabled: false,
+      m3Enabled: true,
       direction: 'ltr',
       colorApiBackCompat: true,
     };

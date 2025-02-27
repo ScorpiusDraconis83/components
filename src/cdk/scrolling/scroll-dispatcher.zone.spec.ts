@@ -11,8 +11,6 @@ describe('ScrollDispatcher Zone.js integration', () => {
       imports: [ScrollingModule, ScrollingComponent],
       providers: [provideZoneChangeDetection()],
     });
-
-    TestBed.compileComponents();
   }));
 
   describe('Basic usage', () => {
@@ -43,7 +41,6 @@ describe('ScrollDispatcher Zone.js integration', () => {
 /** Simple component that contains a large div and can be scrolled. */
 @Component({
   template: `<div #scrollingElement cdkScrollable style="height: 9999px"></div>`,
-  standalone: true,
   imports: [ScrollingModule],
 })
 class ScrollingComponent {

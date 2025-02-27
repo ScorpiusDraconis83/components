@@ -6,26 +6,21 @@
 
 import { ActiveDescendantKeyManager } from '@angular/cdk/a11y';
 import { AfterContentInit } from '@angular/core';
-import { AnimationTriggerMetadata } from '@angular/animations';
 import { CdkConnectedOverlay } from '@angular/cdk/overlay';
 import { CdkOverlayOrigin } from '@angular/cdk/overlay';
 import { ChangeDetectorRef } from '@angular/core';
 import { ConnectedPosition } from '@angular/cdk/overlay';
 import { ControlValueAccessor } from '@angular/forms';
-import { Directionality } from '@angular/cdk/bidi';
 import { DoCheck } from '@angular/core';
 import { ElementRef } from '@angular/core';
 import { ErrorStateMatcher } from '@angular/material/core';
 import { EventEmitter } from '@angular/core';
-import { FormGroupDirective } from '@angular/forms';
 import * as i0 from '@angular/core';
-import * as i1 from '@angular/common';
-import * as i2 from '@angular/cdk/overlay';
-import * as i3 from '@angular/material/core';
-import * as i5 from '@angular/cdk/scrolling';
-import * as i6 from '@angular/material/form-field';
+import * as i1 from '@angular/cdk/overlay';
+import * as i2 from '@angular/material/core';
+import * as i4 from '@angular/cdk/scrolling';
+import * as i5 from '@angular/material/form-field';
 import { InjectionToken } from '@angular/core';
-import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { MatError } from '@angular/material/form-field';
 import { MatFormField } from '@angular/material/form-field';
 import { MatFormFieldControl } from '@angular/material/form-field';
@@ -37,8 +32,6 @@ import { MatOptionSelectionChange } from '@angular/material/core';
 import { MatPrefix } from '@angular/material/form-field';
 import { MatSuffix } from '@angular/material/form-field';
 import { NgControl } from '@angular/forms';
-import { NgForm } from '@angular/forms';
-import { NgZone } from '@angular/core';
 import { Observable } from 'rxjs';
 import { OnChanges } from '@angular/core';
 import { OnDestroy } from '@angular/core';
@@ -86,11 +79,13 @@ export { MatPrefix }
 
 // @public (undocumented)
 export class MatSelect implements AfterContentInit, OnChanges, OnDestroy, OnInit, DoCheck, ControlValueAccessor, MatFormFieldControl<any> {
-    constructor(_viewportRuler: ViewportRuler, _changeDetectorRef: ChangeDetectorRef,
-    _unusedNgZone: NgZone, defaultErrorStateMatcher: ErrorStateMatcher, _elementRef: ElementRef, _dir: Directionality, parentForm: NgForm, parentFormGroup: FormGroupDirective, _parentFormField: MatFormField, ngControl: NgControl, tabIndex: string, scrollStrategyFactory: any, _liveAnnouncer: LiveAnnouncer, _defaultOptions?: MatSelectConfig | undefined);
+    constructor(...args: unknown[]);
+    // (undocumented)
+    protected _animationsDisabled: boolean;
     ariaLabel: string;
     ariaLabelledby: string;
     protected _canOpen(): boolean;
+    canSelectNullableOptions: boolean;
     // (undocumented)
     protected _changeDetectorRef: ChangeDetectorRef;
     close(): void;
@@ -100,14 +95,14 @@ export class MatSelect implements AfterContentInit, OnChanges, OnDestroy, OnInit
     controlType: string;
     customTrigger: MatSelectTrigger;
     // (undocumented)
-    protected _defaultOptions?: MatSelectConfig | undefined;
+    protected _defaultOptions: MatSelectConfig | null;
     protected readonly _destroy: Subject<void>;
     readonly disableAutomaticLabeling = true;
     disabled: boolean;
     disableOptionCentering: boolean;
     disableRipple: boolean;
     // (undocumented)
-    readonly _elementRef: ElementRef;
+    readonly _elementRef: ElementRef<any>;
     get empty(): boolean;
     get errorState(): boolean;
     set errorState(value: boolean);
@@ -119,6 +114,7 @@ export class MatSelect implements AfterContentInit, OnChanges, OnDestroy, OnInit
     _getPanelAriaLabelledby(): string | null;
     _getPanelTheme(): string;
     _handleKeydown(event: KeyboardEvent): void;
+    protected _handleOverlayKeydown(event: KeyboardEvent): void;
     get hideSingleSelectionIndicator(): boolean;
     set hideSingleSelectionIndicator(value: boolean);
     get id(): string;
@@ -127,6 +123,8 @@ export class MatSelect implements AfterContentInit, OnChanges, OnDestroy, OnInit
     _keyManager: ActiveDescendantKeyManager<MatOption>;
     get multiple(): boolean;
     set multiple(value: boolean);
+    // (undocumented)
+    static ngAcceptInputType_canSelectNullableOptions: unknown;
     // (undocumented)
     static ngAcceptInputType_disabled: unknown;
     // (undocumented)
@@ -155,7 +153,6 @@ export class MatSelect implements AfterContentInit, OnChanges, OnDestroy, OnInit
     ngOnDestroy(): void;
     // (undocumented)
     ngOnInit(): void;
-    _onAttached(): void;
     _onBlur(): void;
     _onChange: (value: any) => void;
     onContainerClick(): void;
@@ -176,12 +173,10 @@ export class MatSelect implements AfterContentInit, OnChanges, OnDestroy, OnInit
     panelClass: string | string[] | Set<string> | {
         [key: string]: any;
     };
-    protected _panelDoneAnimating(isOpen: boolean): void;
-    readonly _panelDoneAnimatingStream: Subject<string>;
     get panelOpen(): boolean;
     panelWidth: string | number | null;
     // (undocumented)
-    protected _parentFormField: MatFormField;
+    protected _parentFormField: MatFormField | null;
     get placeholder(): string;
     set placeholder(value: string);
     _positions: ConnectedPosition[];
@@ -193,7 +188,7 @@ export class MatSelect implements AfterContentInit, OnChanges, OnDestroy, OnInit
     _scrollOptionIntoView(index: number): void;
     _scrollStrategy: ScrollStrategy;
     get selected(): MatOption | MatOption[];
-    readonly selectionChange: EventEmitter<MatSelectChange>;
+    readonly selectionChange: EventEmitter<MatSelectChange<any>>;
     _selectionModel: SelectionModel<MatOption>;
     setDescribedByIds(ids: string[]): void;
     setDisabledState(isDisabled: boolean): void;
@@ -216,28 +211,29 @@ export class MatSelect implements AfterContentInit, OnChanges, OnDestroy, OnInit
     protected _viewportRuler: ViewportRuler;
     writeValue(value: any): void;
     // (undocumented)
-    static ɵcmp: i0.ɵɵComponentDeclaration<MatSelect, "mat-select", ["matSelect"], { "userAriaDescribedBy": { "alias": "aria-describedby"; "required": false; }; "panelClass": { "alias": "panelClass"; "required": false; }; "disabled": { "alias": "disabled"; "required": false; }; "disableRipple": { "alias": "disableRipple"; "required": false; }; "tabIndex": { "alias": "tabIndex"; "required": false; }; "hideSingleSelectionIndicator": { "alias": "hideSingleSelectionIndicator"; "required": false; }; "placeholder": { "alias": "placeholder"; "required": false; }; "required": { "alias": "required"; "required": false; }; "multiple": { "alias": "multiple"; "required": false; }; "disableOptionCentering": { "alias": "disableOptionCentering"; "required": false; }; "compareWith": { "alias": "compareWith"; "required": false; }; "value": { "alias": "value"; "required": false; }; "ariaLabel": { "alias": "aria-label"; "required": false; }; "ariaLabelledby": { "alias": "aria-labelledby"; "required": false; }; "errorStateMatcher": { "alias": "errorStateMatcher"; "required": false; }; "typeaheadDebounceInterval": { "alias": "typeaheadDebounceInterval"; "required": false; }; "sortComparator": { "alias": "sortComparator"; "required": false; }; "id": { "alias": "id"; "required": false; }; "panelWidth": { "alias": "panelWidth"; "required": false; }; }, { "openedChange": "openedChange"; "_openedStream": "opened"; "_closedStream": "closed"; "selectionChange": "selectionChange"; "valueChange": "valueChange"; }, ["customTrigger", "options", "optionGroups"], ["mat-select-trigger", "*"], true, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<MatSelect, "mat-select", ["matSelect"], { "userAriaDescribedBy": { "alias": "aria-describedby"; "required": false; }; "panelClass": { "alias": "panelClass"; "required": false; }; "disabled": { "alias": "disabled"; "required": false; }; "disableRipple": { "alias": "disableRipple"; "required": false; }; "tabIndex": { "alias": "tabIndex"; "required": false; }; "hideSingleSelectionIndicator": { "alias": "hideSingleSelectionIndicator"; "required": false; }; "placeholder": { "alias": "placeholder"; "required": false; }; "required": { "alias": "required"; "required": false; }; "multiple": { "alias": "multiple"; "required": false; }; "disableOptionCentering": { "alias": "disableOptionCentering"; "required": false; }; "compareWith": { "alias": "compareWith"; "required": false; }; "value": { "alias": "value"; "required": false; }; "ariaLabel": { "alias": "aria-label"; "required": false; }; "ariaLabelledby": { "alias": "aria-labelledby"; "required": false; }; "errorStateMatcher": { "alias": "errorStateMatcher"; "required": false; }; "typeaheadDebounceInterval": { "alias": "typeaheadDebounceInterval"; "required": false; }; "sortComparator": { "alias": "sortComparator"; "required": false; }; "id": { "alias": "id"; "required": false; }; "panelWidth": { "alias": "panelWidth"; "required": false; }; "canSelectNullableOptions": { "alias": "canSelectNullableOptions"; "required": false; }; }, { "openedChange": "openedChange"; "_openedStream": "opened"; "_closedStream": "closed"; "selectionChange": "selectionChange"; "valueChange": "valueChange"; }, ["customTrigger", "options", "optionGroups"], ["mat-select-trigger", "*"], true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<MatSelect, [null, null, null, null, null, { optional: true; }, { optional: true; }, { optional: true; }, { optional: true; }, { optional: true; self: true; }, { attribute: "tabindex"; }, null, null, { optional: true; }]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<MatSelect, never>;
 }
 
-// @public
+// @public @deprecated
 export const matSelectAnimations: {
-    readonly transformPanelWrap: AnimationTriggerMetadata;
-    readonly transformPanel: AnimationTriggerMetadata;
+    readonly transformPanelWrap: any;
+    readonly transformPanel: any;
 };
 
 // @public
-export class MatSelectChange {
+export class MatSelectChange<T = any> {
     constructor(
     source: MatSelect,
-    value: any);
+    value: T);
     source: MatSelect;
-    value: any;
+    value: T;
 }
 
 // @public
 export interface MatSelectConfig {
+    canSelectNullableOptions?: boolean;
     disableOptionCentering?: boolean;
     hideSingleSelectionIndicator?: boolean;
     overlayPanelClass?: string | string[];
@@ -252,7 +248,7 @@ export class MatSelectModule {
     // (undocumented)
     static ɵinj: i0.ɵɵInjectorDeclaration<MatSelectModule>;
     // (undocumented)
-    static ɵmod: i0.ɵɵNgModuleDeclaration<MatSelectModule, never, [typeof i1.CommonModule, typeof i2.OverlayModule, typeof i3.MatOptionModule, typeof i3.MatCommonModule, typeof i4.MatSelect, typeof i4.MatSelectTrigger], [typeof i5.CdkScrollableModule, typeof i6.MatFormFieldModule, typeof i4.MatSelect, typeof i4.MatSelectTrigger, typeof i3.MatOptionModule, typeof i3.MatCommonModule]>;
+    static ɵmod: i0.ɵɵNgModuleDeclaration<MatSelectModule, never, [typeof i1.OverlayModule, typeof i2.MatOptionModule, typeof i2.MatCommonModule, typeof i3.MatSelect, typeof i3.MatSelectTrigger], [typeof i4.CdkScrollableModule, typeof i5.MatFormFieldModule, typeof i3.MatSelect, typeof i3.MatSelectTrigger, typeof i2.MatOptionModule, typeof i2.MatCommonModule]>;
 }
 
 // @public

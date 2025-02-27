@@ -3,28 +3,25 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {hasModifierKey, TAB} from '@angular/cdk/keycodes';
+import {DOWN_ARROW, hasModifierKey, TAB, UP_ARROW} from '@angular/cdk/keycodes';
 import {
   AfterContentInit,
   AfterViewInit,
   booleanAttribute,
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   ContentChildren,
   DoCheck,
-  ElementRef,
   EventEmitter,
   Input,
   OnDestroy,
-  Optional,
   Output,
   QueryList,
-  Self,
   ViewEncapsulation,
+  inject,
 } from '@angular/core';
 import {
   ControlValueAccessor,
@@ -33,15 +30,14 @@ import {
   NgForm,
   Validators,
 } from '@angular/forms';
-import {ErrorStateMatcher, _ErrorStateTracker} from '@angular/material/core';
+import {_ErrorStateTracker, ErrorStateMatcher} from '@angular/material/core';
 import {MatFormFieldControl} from '@angular/material/form-field';
-import {MatChipTextControl} from './chip-text-control';
-import {Observable, Subject, merge} from 'rxjs';
+import {merge, Observable, Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 import {MatChipEvent} from './chip';
 import {MatChipRow} from './chip-row';
 import {MatChipSet} from './chip-set';
-import {Directionality} from '@angular/cdk/bidi';
+import {MatChipTextControl} from './chip-text-control';
 
 /** Change event object that is emitted when the chip grid value has changed. */
 export class MatChipGridChange {
@@ -80,7 +76,6 @@ export class MatChipGridChange {
   providers: [{provide: MatFormFieldControl, useExisting: MatChipGrid}],
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
 })
 export class MatChipGrid
   extends MatChipSet
@@ -92,6 +87,8 @@ export class MatChipGrid
     MatFormFieldControl<any>,
     OnDestroy
 {
+  ngControl = inject(NgControl, {optional: true, self: true})!;
+
   /**
    * Implemented as part of MatFormFieldControl.
    * @docs-private
@@ -132,6 +129,7 @@ export class MatChipGrid
   override set disabled(value: boolean) {
     this._disabled = value;
     this._syncChipsState();
+    this.stateChanges.next();
   }
 
   /**
@@ -254,16 +252,14 @@ export class MatChipGrid
     this._errorStateTracker.errorState = value;
   }
 
-  constructor(
-    elementRef: ElementRef,
-    changeDetectorRef: ChangeDetectorRef,
-    @Optional() dir: Directionality,
-    @Optional() parentForm: NgForm,
-    @Optional() parentFormGroup: FormGroupDirective,
-    defaultErrorStateMatcher: ErrorStateMatcher,
-    @Optional() @Self() public ngControl: NgControl,
-  ) {
-    super(elementRef, changeDetectorRef, dir);
+  constructor(...args: unknown[]);
+
+  constructor() {
+    super();
+
+    const parentForm = inject(NgForm, {optional: true});
+    const parentFormGroup = inject(FormGroupDirective, {optional: true});
+    const defaultErrorStateMatcher = inject(ErrorStateMatcher);
 
     if (this.ngControl) {
       this.ngControl.valueAccessor = this;
@@ -271,7 +267,7 @@ export class MatChipGrid
 
     this._errorStateTracker = new _ErrorStateTracker(
       defaultErrorStateMatcher,
-      ngControl,
+      this.ngControl,
       parentFormGroup,
       parentForm,
       this.stateChanges,
@@ -340,8 +336,14 @@ export class MatChipGrid
       // Delay until the next tick, because this can cause a "changed after checked"
       // error if the input does something on focus (e.g. opens an autocomplete).
       Promise.resolve().then(() => this._chipInput.focus());
-    } else if (this._chips.length) {
-      this._keyManager.setFirstItemActive();
+    } else {
+      const activeItem = this._keyManager.activeItem;
+
+      if (activeItem) {
+        activeItem.focus();
+      } else {
+        this._keyManager.setFirstItemActive();
+      }
     }
 
     this.stateChanges.next();
@@ -426,7 +428,10 @@ export class MatChipGrid
 
   /** Handles custom keyboard events. */
   override _handleKeydown(event: KeyboardEvent) {
-    if (event.keyCode === TAB) {
+    const keyCode = event.keyCode;
+    const activeItem = this._keyManager.activeItem;
+
+    if (keyCode === TAB) {
       if (
         this._chipInput.focused &&
         hasModifierKey(event, 'shiftKey') &&
@@ -435,8 +440,8 @@ export class MatChipGrid
       ) {
         event.preventDefault();
 
-        if (this._keyManager.activeItem) {
-          this._keyManager.setActiveItem(this._keyManager.activeItem);
+        if (activeItem) {
+          this._keyManager.setActiveItem(activeItem);
         } else {
           this._focusLastChip();
         }
@@ -447,7 +452,25 @@ export class MatChipGrid
         super._allowFocusEscape();
       }
     } else if (!this._chipInput.focused) {
-      super._handleKeydown(event);
+      // The up and down arrows are supposed to navigate between the individual rows in the grid.
+      // We do this by filtering the actions down to the ones that have the same `_isPrimary`
+      // flag as the active action and moving focus between them ourseles instead of delegating
+      // to the key manager. For more information, see #29359 and:
+      // https://www.w3.org/WAI/ARIA/apg/patterns/grid/examples/layout-grids/#ex2_label
+      if ((keyCode === UP_ARROW || keyCode === DOWN_ARROW) && activeItem) {
+        const eligibleActions = this._chipActions.filter(
+          action => action._isPrimary === activeItem._isPrimary && !this._skipPredicate(action),
+        );
+        const currentIndex = eligibleActions.indexOf(activeItem);
+        const delta = event.keyCode === UP_ARROW ? -1 : 1;
+
+        event.preventDefault();
+        if (currentIndex > -1 && this._isValidIndex(currentIndex + delta)) {
+          this._keyManager.setActiveItem(eligibleActions[currentIndex + delta]);
+        }
+      } else {
+        super._handleKeydown(event);
+      }
     }
 
     this.stateChanges.next();

@@ -3,53 +3,47 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
+import {FocusMonitor, _IdGenerator} from '@angular/cdk/a11y';
+import {BACKSPACE, DELETE} from '@angular/cdk/keycodes';
+import {_CdkPrivateStyleLoader, _VisuallyHiddenLoader} from '@angular/cdk/private';
+import {DOCUMENT} from '@angular/common';
 import {
-  AfterViewInit,
+  ANIMATION_MODULE_TYPE,
   AfterContentInit,
-  Component,
+  AfterViewInit,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  Component,
   ContentChild,
+  ContentChildren,
+  DoCheck,
   ElementRef,
   EventEmitter,
-  Inject,
+  Injector,
   Input,
   NgZone,
   OnDestroy,
-  Optional,
-  Output,
-  ViewEncapsulation,
-  ViewChild,
-  Attribute,
-  ContentChildren,
-  QueryList,
   OnInit,
-  DoCheck,
-  inject,
+  Output,
+  QueryList,
+  ViewChild,
+  ViewEncapsulation,
   booleanAttribute,
-  numberAttribute,
-  ANIMATION_MODULE_TYPE,
-  afterNextRender,
-  Injector,
+  inject,
 } from '@angular/core';
-import {DOCUMENT} from '@angular/common';
 import {
-  MatRipple,
   MAT_RIPPLE_GLOBAL_OPTIONS,
-  RippleGlobalOptions,
   MatRippleLoader,
+  RippleGlobalOptions,
+  _StructuralStylesLoader,
 } from '@angular/material/core';
-import {FocusMonitor} from '@angular/cdk/a11y';
-import {merge, Subject, Subscription} from 'rxjs';
-import {MatChipAvatar, MatChipTrailingIcon, MatChipRemove} from './chip-icons';
+import {Subject, Subscription, merge} from 'rxjs';
 import {MatChipAction} from './chip-action';
-import {BACKSPACE, DELETE} from '@angular/cdk/keycodes';
+import {MatChipAvatar, MatChipRemove, MatChipTrailingIcon} from './chip-icons';
 import {MAT_CHIP, MAT_CHIP_AVATAR, MAT_CHIP_REMOVE, MAT_CHIP_TRAILING_ICON} from './tokens';
-
-let uid = 0;
 
 /** Represents an event fired on an individual `mat-chip`. */
 export interface MatChipEvent {
@@ -85,18 +79,24 @@ export interface MatChipEvent {
     '[class._mat-animation-noopable]': '_animationsDisabled',
     '[id]': 'id',
     '[attr.role]': 'role',
-    '[attr.tabindex]': '_getTabIndex()',
     '[attr.aria-label]': 'ariaLabel',
     '(keydown)': '_handleKeydown($event)',
   },
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [{provide: MAT_CHIP, useExisting: MatChip}],
-  standalone: true,
   imports: [MatChipAction],
 })
 export class MatChip implements OnInit, AfterViewInit, AfterContentInit, DoCheck, OnDestroy {
-  protected _document: Document;
+  _changeDetectorRef = inject(ChangeDetectorRef);
+  _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  protected _ngZone = inject(NgZone);
+  private _focusMonitor = inject(FocusMonitor);
+  private _globalRippleOptions = inject<RippleGlobalOptions>(MAT_RIPPLE_GLOBAL_OPTIONS, {
+    optional: true,
+  });
+
+  protected _document = inject(DOCUMENT);
 
   /** Emits when the chip is focused. */
   readonly _onFocus = new Subject<MatChipEvent>();
@@ -139,7 +139,7 @@ export class MatChip implements OnInit, AfterViewInit, AfterContentInit, DoCheck
   }
 
   /** A unique id for the chip. If none is supplied, it will be auto-generated. */
-  @Input() id: string = `mat-mdc-chip-${uid++}`;
+  @Input() id: string = inject(_IdGenerator).getId('mat-mdc-chip-');
 
   // TODO(#26104): Consider deprecating and using `_computeAriaAccessibleName` instead.
   // `ariaLabel` may be unnecessary, and `_computeAriaAccessibleName` only supports
@@ -155,6 +155,9 @@ export class MatChip implements OnInit, AfterViewInit, AfterContentInit, DoCheck
 
   /** Id of a span that contains this chip's aria description. */
   _ariaDescriptionId = `${this.id}-aria-description`;
+
+  /** Whether the chip list is disabled. */
+  _chipListDisabled: boolean = false;
 
   private _textElement!: HTMLElement;
 
@@ -172,7 +175,13 @@ export class MatChip implements OnInit, AfterViewInit, AfterContentInit, DoCheck
   protected _value: any;
 
   // TODO: should be typed as `ThemePalette` but internal apps pass in arbitrary strings.
-  /** Theme color palette of the chip. */
+  /**
+   * Theme color of the chip. This API is supported in M2 themes only, it has no
+   * effect in M3 themes. For color customization in M3, see https://material.angular.io/components/chips/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   @Input() color?: string | null;
 
   /**
@@ -193,13 +202,13 @@ export class MatChip implements OnInit, AfterViewInit, AfterContentInit, DoCheck
 
   /** Whether the chip is disabled. */
   @Input({transform: booleanAttribute})
-  disabled: boolean = false;
-
-  /** Tab index of the chip. */
-  @Input({
-    transform: (value: unknown) => (value == null ? undefined : numberAttribute(value)),
-  })
-  tabIndex: number = -1;
+  get disabled(): boolean {
+    return this._disabled || this._chipListDisabled;
+  }
+  set disabled(value: boolean) {
+    this._disabled = value;
+  }
+  private _disabled = false;
 
   /** Emitted when a chip is to be removed. */
   @Output() readonly removed: EventEmitter<MatChipEvent> = new EventEmitter<MatChipEvent>();
@@ -219,18 +228,6 @@ export class MatChip implements OnInit, AfterViewInit, AfterContentInit, DoCheck
   /** The chip's trailing remove icon. */
   @ContentChild(MAT_CHIP_REMOVE) removeIcon: MatChipRemove;
 
-  /**
-   * Reference to the MatRipple instance of the chip.
-   * @deprecated Considered an implementation detail. To be removed.
-   * @breaking-change 17.0.0
-   */
-  get ripple(): MatRipple {
-    return this._rippleLoader?.getRipple(this._elementRef.nativeElement)!;
-  }
-  set ripple(v: MatRipple) {
-    this._rippleLoader?.attachRipple(this._elementRef.nativeElement, v);
-  }
-
   /** Action receiving the primary set of user interactions. */
   @ViewChild(MatChipAction) primaryAction: MatChipAction;
 
@@ -238,27 +235,18 @@ export class MatChip implements OnInit, AfterViewInit, AfterContentInit, DoCheck
    * Handles the lazy creation of the MatChip ripple.
    * Used to improve initial load time of large applications.
    */
-  _rippleLoader: MatRippleLoader = inject(MatRippleLoader);
+  private _rippleLoader: MatRippleLoader = inject(MatRippleLoader);
 
-  private _injector = inject(Injector);
+  protected _injector = inject(Injector);
 
-  constructor(
-    public _changeDetectorRef: ChangeDetectorRef,
-    public _elementRef: ElementRef<HTMLElement>,
-    protected _ngZone: NgZone,
-    private _focusMonitor: FocusMonitor,
-    @Inject(DOCUMENT) _document: any,
-    @Optional() @Inject(ANIMATION_MODULE_TYPE) animationMode?: string,
-    @Optional()
-    @Inject(MAT_RIPPLE_GLOBAL_OPTIONS)
-    private _globalRippleOptions?: RippleGlobalOptions,
-    @Attribute('tabindex') tabIndex?: string,
-  ) {
-    this._document = _document;
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const styleLoader = inject(_CdkPrivateStyleLoader);
+    styleLoader.load(_StructuralStylesLoader);
+    styleLoader.load(_VisuallyHiddenLoader);
+    const animationMode = inject(ANIMATION_MODULE_TYPE, {optional: true});
     this._animationsDisabled = animationMode === 'NoopAnimations';
-    if (tabIndex != null) {
-      this.tabIndex = parseInt(tabIndex) ?? -1;
-    }
     this._monitorFocus();
 
     this._rippleLoader?.configureRipple(this._elementRef.nativeElement, {
@@ -390,14 +378,6 @@ export class MatChip implements OnInit, AfterViewInit, AfterContentInit, DoCheck
     // Empty here, but is overwritten in child classes.
   }
 
-  /** Gets the tabindex of the chip. */
-  _getTabIndex() {
-    if (!this.role) {
-      return null;
-    }
-    return this.disabled ? -1 : this.tabIndex;
-  }
-
   /** Starts the focus monitoring process on the chip. */
   private _monitorFocus() {
     this._focusMonitor.monitor(this._elementRef, true).subscribe(origin => {
@@ -411,11 +391,10 @@ export class MatChip implements OnInit, AfterViewInit, AfterContentInit, DoCheck
         } else {
           // When animations are enabled, Angular may end up removing the chip from the DOM a little
           // earlier than usual, causing it to be blurred and throwing off the logic in the chip list
-          // that moves focus not the next item. To work around the issue, we defer marking the chip
+          // that moves focus to the next item. To work around the issue, we defer marking the chip
           // as not focused until after the next render.
-          afterNextRender(() => this._ngZone.run(() => this._onBlur.next({chip: this})), {
-            injector: this._injector,
-          });
+          this._changeDetectorRef.markForCheck();
+          setTimeout(() => this._ngZone.run(() => this._onBlur.next({chip: this})));
         }
       }
     });

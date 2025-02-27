@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Directive, forwardRef, Provider} from '@angular/core';
@@ -31,6 +31,5 @@ export const MAT_CHECKBOX_REQUIRED_VALIDATOR: Provider = {
   selector: `mat-checkbox[required][formControlName],
              mat-checkbox[required][formControl], mat-checkbox[required][ngModel]`,
   providers: [MAT_CHECKBOX_REQUIRED_VALIDATOR],
-  standalone: true,
 })
 export class MatCheckboxRequiredValidator extends CheckboxRequiredValidator {}

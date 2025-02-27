@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {BooleanInput, coerceBooleanProperty} from '@angular/cdk/coercion';
@@ -32,7 +32,6 @@ import {SelectableWithIndex, SelectionChange, SelectionSet} from './selection-se
 @Directive({
   selector: '[cdkSelection]',
   exportAs: 'cdkSelection',
-  standalone: true,
 })
 export class CdkSelection<T> implements OnInit, AfterContentChecked, CollectionViewer, OnDestroy {
   viewChange: Observable<ListRange>;

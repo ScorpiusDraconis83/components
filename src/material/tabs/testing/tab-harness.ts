@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -14,7 +14,7 @@ import {
 } from '@angular/cdk/testing';
 import {TabHarnessFilters} from './tab-harness-filters';
 
-/** Harness for interacting with an MDC_based Angular Material tab in tests. */
+/** Harness for interacting with an Angular Material tab in tests. */
 export class MatTabHarness extends ContentContainerComponentHarness<string> {
   /** The selector for the host element of a `MatTab` instance. */
   static hostSelector = '.mat-mdc-tab';

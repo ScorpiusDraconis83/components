@@ -3,17 +3,27 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import {InjectionToken} from '@angular/core';
 import {ThemePalette} from '@angular/material/core';
 
 /** Default `mat-checkbox` options that can be overridden. */
 export interface MatCheckboxDefaultOptions {
-  /** Default theme color palette to be used for checkboxes. */
+  /**
+   * Default theme color of the checkbox. This API is supported in M2 themes
+   * only, it has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/checkbox/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   color?: ThemePalette;
+
   /** Default checkbox click action for checkboxes. */
   clickAction?: MatCheckboxClickAction;
+
+  /** Whether disabled checkboxes should be interactive. */
+  disabledInteractive?: boolean;
 }
 
 /** Injection token to be used to override the default options for `mat-checkbox`. */
@@ -30,6 +40,7 @@ export function MAT_CHECKBOX_DEFAULT_OPTIONS_FACTORY(): MatCheckboxDefaultOption
   return {
     color: 'accent',
     clickAction: 'check-indeterminate',
+    disabledInteractive: false,
   };
 }
 

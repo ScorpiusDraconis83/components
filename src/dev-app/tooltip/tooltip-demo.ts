@@ -3,14 +3,13 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import {
   TooltipAutoHideExample,
   TooltipCustomClassExample,
   TooltipDelayExample,
   TooltipDisabledExample,
-  TooltipHarnessExample,
   TooltipManualExample,
   TooltipMessageExample,
   TooltipModifiedDefaultsExample,
@@ -23,7 +22,6 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
 @Component({
   selector: 'tooltip-demo',
   templateUrl: 'tooltip-demo.html',
-  standalone: true,
   imports: [
     TooltipAutoHideExample,
     TooltipCustomClassExample,
@@ -35,7 +33,6 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
     TooltipOverviewExample,
     TooltipPositionExample,
     TooltipPositionAtOriginExample,
-    TooltipHarnessExample,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

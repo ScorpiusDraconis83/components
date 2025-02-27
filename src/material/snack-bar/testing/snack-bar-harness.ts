@@ -3,14 +3,14 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ContentContainerComponentHarness, HarnessPredicate, parallel} from '@angular/cdk/testing';
 import {AriaLivePoliteness} from '@angular/cdk/a11y';
 import {SnackBarHarnessFilters} from './snack-bar-harness-filters';
 
-/** Harness for interacting with an MDC-based mat-snack-bar in tests. */
+/** Harness for interacting with a mat-snack-bar in tests. */
 export class MatSnackBarHarness extends ContentContainerComponentHarness<string> {
   // Developers can provide a custom component or template for the
   // snackbar. The canonical snack-bar parent is the "MatSnackBarContainer".

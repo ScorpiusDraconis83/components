@@ -1,4 +1,4 @@
-import {Component, Inject} from '@angular/core';
+import {Component, inject} from '@angular/core';
 import {Dialog, DIALOG_DATA, DialogModule} from '@angular/cdk/dialog';
 
 export interface DialogData {
@@ -11,11 +11,10 @@ export interface DialogData {
 @Component({
   selector: 'cdk-dialog-data-example',
   templateUrl: 'cdk-dialog-data-example.html',
-  standalone: true,
   imports: [DialogModule],
 })
 export class CdkDialogDataExample {
-  constructor(public dialog: Dialog) {}
+  dialog = inject(Dialog);
 
   openDialog() {
     this.dialog.open(CdkDialogDataExampleDialog, {
@@ -31,8 +30,7 @@ export class CdkDialogDataExample {
   selector: 'cdk-dialog-data-example-dialog',
   templateUrl: 'cdk-dialog-data-example-dialog.html',
   styleUrl: './cdk-dialog-data-example-dialog.css',
-  standalone: true,
 })
 export class CdkDialogDataExampleDialog {
-  constructor(@Inject(DIALOG_DATA) public data: DialogData) {}
+  data = inject(DIALOG_DATA);
 }

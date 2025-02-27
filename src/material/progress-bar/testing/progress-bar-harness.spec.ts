@@ -9,10 +9,10 @@ describe('MatProgressBarHarness', () => {
   let fixture: ComponentFixture<ProgressBarHarnessTest>;
   let loader: HarnessLoader;
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
+  beforeEach(() => {
+    TestBed.configureTestingModule({
       imports: [MatProgressBarModule, ProgressBarHarnessTest],
-    }).compileComponents();
+    });
 
     fixture = TestBed.createComponent(ProgressBarHarnessTest);
     fixture.detectChanges();
@@ -44,7 +44,6 @@ describe('MatProgressBarHarness', () => {
     <mat-progress-bar mode="determinate" [value]="value()"></mat-progress-bar>
     <mat-progress-bar mode="indeterminate"></mat-progress-bar>
   `,
-  standalone: true,
   imports: [MatProgressBarModule],
 })
 class ProgressBarHarnessTest {

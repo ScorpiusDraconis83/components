@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ChangeDetectionStrategy, Component} from '@angular/core';
@@ -17,7 +17,6 @@ import {RouterModule} from '@angular/router';
     <a mat-raised-button routerLink="/">Go back to the home page</a>
   `,
   host: {'class': 'mat-typography'},
-  standalone: true,
   imports: [MatButtonModule, RouterModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

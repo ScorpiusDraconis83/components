@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Platform} from '@angular/cdk/platform';
@@ -15,17 +15,16 @@ import {
   ContentChildren,
   Directive,
   ElementRef,
-  Inject,
   Input,
   QueryList,
   ViewEncapsulation,
+  inject,
 } from '@angular/core';
 
 @Directive({
   selector: 'mat-toolbar-row',
   exportAs: 'matToolbarRow',
   host: {'class': 'mat-toolbar-row'},
-  standalone: true,
 })
 export class MatToolbarRow {}
 
@@ -42,26 +41,27 @@ export class MatToolbarRow {}
   },
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
 })
 export class MatToolbar implements AfterViewInit {
-  // TODO: should be typed as `ThemePalette` but internal apps pass in arbitrary strings.
-  /** Palette color of the toolbar. */
-  @Input() color?: string | null;
+  protected _elementRef = inject(ElementRef);
+  private _platform = inject(Platform);
+  private _document = inject(DOCUMENT);
 
-  private _document: Document;
+  // TODO: should be typed as `ThemePalette` but internal apps pass in arbitrary strings.
+  /**
+   * Theme color of the toolbar. This API is supported in M2 themes only, it has
+   * no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/toolbar/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
+  @Input() color?: string | null;
 
   /** Reference to all toolbar row elements that have been projected. */
   @ContentChildren(MatToolbarRow, {descendants: true}) _toolbarRows: QueryList<MatToolbarRow>;
 
-  constructor(
-    protected _elementRef: ElementRef,
-    private _platform: Platform,
-    @Inject(DOCUMENT) document?: any,
-  ) {
-    // TODO: make the document a required param when doing breaking changes.
-    this._document = document;
-  }
+  constructor(...args: unknown[]);
+  constructor() {}
 
   ngAfterViewInit() {
     if (this._platform.isBrowser) {

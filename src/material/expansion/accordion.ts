@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -44,7 +44,6 @@ import {MatExpansionPanelHeader} from './expansion-panel-header';
     // way for the harness to detect if multiple panel support is enabled.
     '[class.mat-accordion-multi]': 'this.multi',
   },
-  standalone: true,
 })
 export class MatAccordion
   extends CdkAccordion

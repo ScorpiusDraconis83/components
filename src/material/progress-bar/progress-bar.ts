@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -12,8 +12,6 @@ import {
   ViewEncapsulation,
   ElementRef,
   NgZone,
-  Optional,
-  Inject,
   Input,
   Output,
   EventEmitter,
@@ -24,6 +22,7 @@ import {
   inject,
   numberAttribute,
   ANIMATION_MODULE_TYPE,
+  Renderer2,
 } from '@angular/core';
 import {DOCUMENT} from '@angular/common';
 import {ThemePalette} from '@angular/material/core';
@@ -35,7 +34,13 @@ export interface ProgressAnimationEnd {
 
 /** Default `mat-progress-bar` options that can be overridden. */
 export interface MatProgressBarDefaultOptions {
-  /** Default color of the progress bar. */
+  /**
+   * Default theme color of the progress bar. This API is supported in M2 themes only,
+   * it has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/progress-bar/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   color?: ThemePalette;
 
   /** Default mode of the progress bar. */
@@ -101,19 +106,23 @@ export type ProgressBarMode = 'determinate' | 'indeterminate' | 'buffer' | 'quer
   styleUrl: 'progress-bar.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
-  standalone: true,
 })
 export class MatProgressBar implements AfterViewInit, OnDestroy {
-  constructor(
-    readonly _elementRef: ElementRef<HTMLElement>,
-    private _ngZone: NgZone,
-    private _changeDetectorRef: ChangeDetectorRef,
-    @Optional() @Inject(ANIMATION_MODULE_TYPE) public _animationMode?: string,
-    @Optional()
-    @Inject(MAT_PROGRESS_BAR_DEFAULT_OPTIONS)
-    defaults?: MatProgressBarDefaultOptions,
-  ) {
-    this._isNoopAnimation = _animationMode === 'NoopAnimations';
+  readonly _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  private _ngZone = inject(NgZone);
+  private _changeDetectorRef = inject(ChangeDetectorRef);
+  private _renderer = inject(Renderer2);
+  private _cleanupTransitionEnd: (() => void) | undefined;
+  _animationMode? = inject(ANIMATION_MODULE_TYPE, {optional: true});
+
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const defaults = inject<MatProgressBarDefaultOptions>(MAT_PROGRESS_BAR_DEFAULT_OPTIONS, {
+      optional: true,
+    });
+
+    this._isNoopAnimation = this._animationMode === 'NoopAnimations';
 
     if (defaults) {
       if (defaults.color) {
@@ -128,7 +137,13 @@ export class MatProgressBar implements AfterViewInit, OnDestroy {
   _isNoopAnimation = false;
 
   // TODO: should be typed as `ThemePalette` but internal apps pass in arbitrary strings.
-  /** Theme palette color of the progress bar. */
+  /**
+   * Theme color of the progress bar. This API is supported in M2 themes only, it
+   * has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/progress-bar/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   @Input()
   get color() {
     return this._color || this._defaultColor;
@@ -191,12 +206,16 @@ export class MatProgressBar implements AfterViewInit, OnDestroy {
     // Run outside angular so change detection didn't get triggered on every transition end
     // instead only on the animation that we care about (primary value bar's transitionend)
     this._ngZone.runOutsideAngular(() => {
-      this._elementRef.nativeElement.addEventListener('transitionend', this._transitionendHandler);
+      this._cleanupTransitionEnd = this._renderer.listen(
+        this._elementRef.nativeElement,
+        'transitionend',
+        this._transitionendHandler,
+      );
     });
   }
 
   ngOnDestroy() {
-    this._elementRef.nativeElement.removeEventListener('transitionend', this._transitionendHandler);
+    this._cleanupTransitionEnd?.();
   }
 
   /** Gets the transform style that should be applied to the primary bar. */

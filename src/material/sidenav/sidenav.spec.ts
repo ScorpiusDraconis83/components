@@ -1,29 +1,20 @@
-import {Component, ViewChild, provideZoneChangeDetection} from '@angular/core';
-import {waitForAsync, TestBed, fakeAsync, tick} from '@angular/core/testing';
-import {MatSidenav, MatSidenavModule, MatSidenavContainer} from './index';
-import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {Component, ViewChild} from '@angular/core';
+import {TestBed, fakeAsync, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
-import {CommonModule} from '@angular/common';
+import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {MatSidenav, MatSidenavContainer, MatSidenavModule} from './index';
 
 describe('MatSidenav', () => {
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      providers: [provideZoneChangeDetection()],
-    });
-  });
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [
         MatSidenavModule,
         NoopAnimationsModule,
-        CommonModule,
         SidenavWithFixedPosition,
         IndirectDescendantSidenav,
         NestedSidenavContainers,
       ],
     });
-
-    TestBed.compileComponents();
   }));
 
   it('should be fixed position when in fixed mode', () => {
@@ -34,6 +25,7 @@ describe('MatSidenav', () => {
     expect(sidenavEl.classList).toContain('mat-sidenav-fixed');
 
     fixture.componentInstance.fixed = false;
+    fixture.changeDetectorRef.markForCheck();
     fixture.detectChanges();
 
     expect(sidenavEl.classList).not.toContain('mat-sidenav-fixed');
@@ -48,6 +40,7 @@ describe('MatSidenav', () => {
     expect(sidenavEl.style.bottom).toBe('30px');
 
     fixture.componentInstance.fixed = false;
+    fixture.changeDetectorRef.markForCheck();
     fixture.detectChanges();
 
     expect(sidenavEl.style.top).toBeFalsy();
@@ -108,8 +101,7 @@ describe('MatSidenav', () => {
         Some content.
       </mat-sidenav-content>
     </mat-sidenav-container>`,
-  standalone: true,
-  imports: [MatSidenavModule, CommonModule],
+  imports: [MatSidenavModule],
 })
 class SidenavWithFixedPosition {
   fixed = true;
@@ -127,8 +119,7 @@ class SidenavWithFixedPosition {
       }
       <mat-sidenav-content>Some content.</mat-sidenav-content>
     </mat-sidenav-container>`,
-  standalone: true,
-  imports: [MatSidenavModule, CommonModule],
+  imports: [MatSidenavModule],
 })
 class IndirectDescendantSidenav {
   @ViewChild('container') container: MatSidenavContainer;
@@ -146,8 +137,7 @@ class IndirectDescendantSidenav {
       </mat-sidenav-content>
     </mat-sidenav-container>
   `,
-  standalone: true,
-  imports: [MatSidenavModule, CommonModule],
+  imports: [MatSidenavModule],
 })
 class NestedSidenavContainers {
   @ViewChild('outerContainer') outerContainer: MatSidenavContainer;

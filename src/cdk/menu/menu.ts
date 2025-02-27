@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {AfterContentInit, Directive, EventEmitter, inject, OnDestroy, Output} from '@angular/core';
@@ -25,7 +25,6 @@ import {CdkMenuBase} from './menu-base';
 @Directive({
   selector: '[cdkMenu]',
   exportAs: 'cdkMenu',
-  standalone: true,
   host: {
     'role': 'menu',
     'class': 'cdk-menu',

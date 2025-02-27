@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CdkTextColumn} from '@angular/cdk/table';
@@ -39,7 +39,6 @@ import {MatColumnDef, MatHeaderCellDef, MatHeaderCell, MatCellDef, MatCell} from
   // an ExpressionChangedAfterItHasBeenCheckedError).
   // tslint:disable-next-line:validate-decorators
   changeDetection: ChangeDetectionStrategy.Default,
-  standalone: true,
   imports: [MatColumnDef, MatHeaderCellDef, MatHeaderCell, MatCellDef, MatCell],
 })
 export class MatTextColumn<T> extends CdkTextColumn<T> {}

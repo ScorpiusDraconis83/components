@@ -9,6 +9,7 @@ import {
   ViewEncapsulation,
   signal,
 } from '@angular/core';
+import {NgTemplateOutlet} from '@angular/common';
 import {fakeAsync, flush, tick} from '@angular/core/testing';
 import {
   dispatchEvent,
@@ -362,6 +363,22 @@ describe('Standalone CdkDrag', () => {
       fixture.detectChanges();
 
       expect(dragElement.style.transform).toBeFalsy();
+    }));
+
+    it('should stop dragging on touchcancel', fakeAsync(() => {
+      const fixture = createComponent(StandaloneDraggable);
+      fixture.detectChanges();
+      const dragElement = fixture.componentInstance.dragElement.nativeElement;
+      const x = 50;
+      const y = 100;
+
+      expect(dragElement.style.transform).toBeFalsy();
+      startDraggingViaTouch(fixture, dragElement);
+      continueDraggingViaTouch(fixture, x, y);
+      dispatchTouchEvent(document, 'touchcancel', x, y);
+      fixture.detectChanges();
+      expect(dragElement.style.transform).toBe('translate3d(50px, 100px, 0px)');
+      expect(fixture.componentInstance.endedSpy).toHaveBeenCalled();
     }));
   });
 
@@ -1371,6 +1388,20 @@ describe('Standalone CdkDrag', () => {
     expect(dragElement.style.transform).toBe('translate3d(150px, 300px, 0px)');
   }));
 
+  it('should account for the scale when setting the free drag position', fakeAsync(() => {
+    const fixture = createComponent(StandaloneDraggable);
+    fixture.componentInstance.scale = 0.5;
+    fixture.componentInstance.freeDragPosition = {x: 50, y: 100};
+    fixture.changeDetectorRef.markForCheck();
+    fixture.detectChanges();
+
+    const dragElement = fixture.componentInstance.dragElement.nativeElement;
+    const dragInstance = fixture.componentInstance.dragInstance;
+
+    expect(dragElement.style.transform).toBe('translate3d(100px, 200px, 0px)');
+    expect(dragInstance.getFreeDragPosition()).toEqual({x: 50, y: 100});
+  }));
+
   it('should include the dragged distance as the user is dragging', fakeAsync(() => {
     const fixture = createComponent(StandaloneDraggable);
     fixture.detectChanges();
@@ -1470,34 +1501,41 @@ describe('Standalone CdkDrag', () => {
     cleanup();
   }));
 
-  it(
-    'should update the free drag position if the user moves their pointer after the page ' +
-      'is scrolled',
-    fakeAsync(() => {
-      const fixture = createComponent(StandaloneDraggable);
-      fixture.detectChanges();
+  it('should update the free drag position if the user moves their pointer after the page is scrolled', fakeAsync(() => {
+    const fixture = createComponent(StandaloneDraggable);
+    fixture.detectChanges();
 
-      const cleanup = makeScrollable();
-      const dragElement = fixture.componentInstance.dragElement.nativeElement;
+    const cleanup = makeScrollable();
+    const dragElement = fixture.componentInstance.dragElement.nativeElement;
 
-      expect(dragElement.style.transform).toBeFalsy();
-      startDraggingViaMouse(fixture, dragElement, 0, 0);
-      dispatchMouseEvent(document, 'mousemove', 50, 100);
-      fixture.detectChanges();
+    expect(dragElement.style.transform).toBeFalsy();
+    startDraggingViaMouse(fixture, dragElement, 0, 0);
+    dispatchMouseEvent(document, 'mousemove', 50, 100);
+    fixture.detectChanges();
 
-      expect(dragElement.style.transform).toBe('translate3d(50px, 100px, 0px)');
+    expect(dragElement.style.transform).toBe('translate3d(50px, 100px, 0px)');
 
-      scrollTo(0, 500);
-      dispatchFakeEvent(document, 'scroll');
-      fixture.detectChanges();
-      dispatchMouseEvent(document, 'mousemove', 50, 200);
-      fixture.detectChanges();
+    scrollTo(0, 500);
+    dispatchFakeEvent(document, 'scroll');
+    fixture.detectChanges();
+    dispatchMouseEvent(document, 'mousemove', 50, 200);
+    fixture.detectChanges();
 
-      expect(dragElement.style.transform).toBe('translate3d(50px, 700px, 0px)');
+    expect(dragElement.style.transform).toBe('translate3d(50px, 700px, 0px)');
 
-      cleanup();
-    }),
-  );
+    cleanup();
+  }));
+
+  it('should account for scale when moving the element', fakeAsync(() => {
+    const fixture = createComponent(StandaloneDraggable);
+    fixture.componentInstance.scale = 0.5;
+    fixture.detectChanges();
+    const dragElement = fixture.componentInstance.dragElement.nativeElement;
+
+    expect(dragElement.style.transform).toBeFalsy();
+    dragElementViaMouse(fixture, dragElement, 50, 100);
+    expect(dragElement.style.transform).toBe('translate3d(100px, 200px, 0px)');
+  }));
 
   describe('with a handle', () => {
     it('should not be able to drag the entire element if it has a handle', fakeAsync(() => {
@@ -1596,6 +1634,25 @@ describe('Standalone CdkDrag', () => {
       fixture.detectChanges();
       const dragElement = fixture.componentInstance.dragElement.nativeElement;
       const handle = fixture.componentInstance.handleElement.nativeElement;
+
+      expect(dragElement.style.transform).toBeFalsy();
+      dragElementViaMouse(fixture, dragElement, 50, 100);
+
+      expect(dragElement.style.transform)
+        .withContext('Expected not to be able to drag the element by itself.')
+        .toBeFalsy();
+
+      dragElementViaMouse(fixture, handle, 50, 100);
+      expect(dragElement.style.transform)
+        .withContext('Expected to drag the element by its handle.')
+        .toBe('translate3d(50px, 100px, 0px)');
+    }));
+
+    it('should be able to drag with a handle that is defined in a separate embedded view', fakeAsync(() => {
+      const fixture = createComponent(StandaloneDraggableWithExternalTemplateHandle);
+      fixture.detectChanges();
+      const dragElement = fixture.componentInstance.dragElement.nativeElement;
+      const handle = fixture.nativeElement.querySelector('.handle');
 
       expect(dragElement.style.transform).toBeFalsy();
       dragElementViaMouse(fixture, dragElement, 50, 100);
@@ -1718,6 +1775,7 @@ describe('Standalone CdkDrag', () => {
         [cdkDragFreeDragPosition]="freeDragPosition"
         [cdkDragDisabled]="dragDisabled()"
         [cdkDragLockAxis]="dragLockAxis()"
+        [cdkDragScale]="scale"
         (cdkDragStarted)="startedSpy($event)"
         (cdkDragReleased)="releasedSpy($event)"
         (cdkDragEnded)="endedSpy($event)"
@@ -1725,7 +1783,6 @@ describe('Standalone CdkDrag', () => {
         style="width: 100px; height: 100px; background: red;"></div>
     </div>
   `,
-  standalone: true,
   imports: [CdkDrag],
 })
 class StandaloneDraggable {
@@ -1745,6 +1802,7 @@ class StandaloneDraggable {
   freeDragPosition?: {x: number; y: number};
   dragDisabled = signal(false);
   dragLockAxis = signal<DragAxis | undefined>(undefined);
+  scale = 1;
 }
 
 @Component({
@@ -1752,7 +1810,6 @@ class StandaloneDraggable {
   template: `
     <div cdkDrag #dragElement style="width: 100px; height: 100px; background: red;"></div>
   `,
-  standalone: true,
   imports: [CdkDrag],
 })
 class StandaloneDraggableWithOnPush {
@@ -1767,7 +1824,6 @@ class StandaloneDraggableWithOnPush {
       <div #handleElement cdkDragHandle style="width: 10px; height: 10px; background: green;"></div>
     </div>
   `,
-  standalone: true,
   imports: [CdkDrag, CdkDragHandle],
 })
 class StandaloneDraggableWithHandle {
@@ -1789,7 +1845,6 @@ class StandaloneDraggableWithHandle {
         style="width: 10px; height: 10px; background: green;"></div>
     </div>
   `,
-  standalone: true,
   imports: [CdkDrag, CdkDragHandle],
 })
 class StandaloneDraggableWithPreDisabledHandle {
@@ -1810,7 +1865,6 @@ class StandaloneDraggableWithPreDisabledHandle {
       }
     </div>
   `,
-  standalone: true,
   imports: [CdkDrag, CdkDragHandle],
 })
 class StandaloneDraggableWithDelayedHandle {
@@ -1826,7 +1880,6 @@ class StandaloneDraggableWithDelayedHandle {
 @Component({
   selector: 'passthrough-component',
   template: '<ng-content></ng-content>',
-  standalone: true,
 })
 class PassthroughComponent {}
 
@@ -1843,7 +1896,6 @@ class PassthroughComponent {}
       </passthrough-component>
     </div>
   `,
-  standalone: true,
   imports: [CdkDrag, CdkDragHandle, PassthroughComponent],
 })
 class StandaloneDraggableWithIndirectHandle {
@@ -1855,7 +1907,6 @@ class StandaloneDraggableWithIndirectHandle {
   selector: 'shadow-wrapper',
   template: '<ng-content></ng-content>',
   encapsulation: ViewEncapsulation.ShadowDom,
-  standalone: true,
 })
 class ShadowWrapper {}
 
@@ -1869,7 +1920,6 @@ class ShadowWrapper {}
       </div>
     </div>
   `,
-  standalone: true,
   imports: [CdkDrag, CdkDragHandle, ShadowWrapper],
 })
 class StandaloneDraggableWithShadowInsideHandle {
@@ -1895,7 +1945,6 @@ class StandaloneDraggableWithShadowInsideHandle {
       <div cdkDragHandle style="right: 0;"></div>
     </div>
   `,
-  standalone: true,
   imports: [CdkDrag, CdkDragHandle],
 })
 class StandaloneDraggableWithMultipleHandles {
@@ -1913,7 +1962,6 @@ class StandaloneDraggableWithMultipleHandles {
         style="width: 100px; height: 100px; background: red;"></div>
     </div>
   `,
-  standalone: true,
   imports: [CdkDrag],
 })
 class DraggableWithAlternateRoot {
@@ -1927,7 +1975,6 @@ class DraggableWithAlternateRoot {
   template: `
     <ng-container cdkDrag></ng-container>
   `,
-  standalone: true,
   imports: [CdkDrag],
 })
 class DraggableOnNgContainer {}
@@ -1938,7 +1985,6 @@ class DraggableOnNgContainer {}
       <ng-container cdkDragHandle></ng-container>
     </div>
   `,
-  standalone: true,
   imports: [CdkDrag, CdkDragHandle],
 })
 class DragHandleOnNgContainer {}
@@ -1954,7 +2000,6 @@ class DragHandleOnNgContainer {}
         style="width: 100px; height: 100px; background: red;"></div>
     </div>
   `,
-  standalone: true,
   imports: [CdkDrag, CdkDragHandle],
 })
 class DraggableWithAlternateRootAndSelfHandle {
@@ -1971,7 +2016,6 @@ class DraggableWithAlternateRootAndSelfHandle {
       </ng-container>
     </div>
   `,
-  standalone: true,
   imports: [CdkDrag],
 })
 class DraggableNgContainerWithAlternateRoot {
@@ -1981,9 +2025,25 @@ class DraggableNgContainerWithAlternateRoot {
 
 @Component({
   template: `<div cdkDrag></div>`,
-  standalone: true,
   imports: [CdkDrag],
 })
 class PlainStandaloneDraggable {
   @ViewChild(CdkDrag) dragInstance: CdkDrag;
+}
+
+@Component({
+  template: `
+    <div #dragElement cdkDrag
+      style="width: 100px; height: 100px; background: red; position: relative">
+      <ng-container [ngTemplateOutlet]="template"/>
+    </div>
+
+    <ng-template #template>
+      <div cdkDragHandle class="handle" style="width: 10px; height: 10px; background: green;"></div>
+    </ng-template>
+  `,
+  imports: [CdkDrag, CdkDragHandle, NgTemplateOutlet],
+})
+class StandaloneDraggableWithExternalTemplateHandle {
+  @ViewChild('dragElement') dragElement: ElementRef<HTMLElement>;
 }

@@ -1,7 +1,6 @@
 import {waitForAsync, TestBed} from '@angular/core/testing';
 import {Component, QueryList, ViewChild, ViewChildren} from '@angular/core';
 import {By} from '@angular/platform-browser';
-import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {CdkAccordion} from './accordion';
 import {CdkAccordionItem} from './accordion-item';
 import {CdkAccordionModule} from './accordion-module';
@@ -9,9 +8,8 @@ import {CdkAccordionModule} from './accordion-module';
 describe('CdkAccordion', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      imports: [BrowserAnimationsModule, CdkAccordionModule, SetOfItems, NestedItems],
+      imports: [CdkAccordionModule, SetOfItems, NestedItems],
     });
-    TestBed.compileComponents();
   }));
 
   it('should ensure only one item is expanded at a time', () => {
@@ -116,7 +114,6 @@ describe('CdkAccordion', () => {
     <cdk-accordion-item></cdk-accordion-item>
     <cdk-accordion-item></cdk-accordion-item>
   </cdk-accordion>`,
-  standalone: true,
   imports: [CdkAccordionModule],
 })
 class SetOfItems {
@@ -132,7 +129,6 @@ class SetOfItems {
       <cdk-accordion-item #innerItem="cdkAccordionItem"></cdk-accordion-item>
     </cdk-accordion-item>
   </cdk-accordion>`,
-  standalone: true,
   imports: [CdkAccordionModule],
 })
 class NestedItems {

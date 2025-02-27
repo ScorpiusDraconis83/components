@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -31,7 +31,6 @@ import {FormsModule} from '@angular/forms';
     <h3>Mat selection column and Mat row selection with Mat table</h3>
     <mat-selection-column-example></mat-selection-column-example>
   `,
-  standalone: true,
   imports: [
     CdkSelectionColumnExample,
     CdkSelectionListExample,

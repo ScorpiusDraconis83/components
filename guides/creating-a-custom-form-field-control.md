@@ -219,7 +219,7 @@ export class MyTelInput implements MatFormFieldControl<MyTel>, ControlValueAcces
 }
 ```
 
-For additional information about `ControlValueAccessor` see the [API docs](https://angular.io/api/forms/ControlValueAccessor).
+For additional information about `ControlValueAccessor` see the [API docs](https://angular.dev/api/forms/ControlValueAccessor).
 
 
 #### `focused`
@@ -357,14 +357,14 @@ ngDoCheck() {
 }
 
 private updateErrorState() {
-  const parent = this._parentFormGroup || this.parentForm;
+  const parentSubmitted = this._parentFormGroup?.submitted || this._parentForm?.submitted;
+  const touchedOrParentSubmitted = this.touched || parentSubmitted;
 
-  const oldState = this.errorState;
-  const newState = (this.ngControl?.invalid || this.parts.invalid) && (this.touched || parent.submitted);
+  const newState = (this.ngControl?.invalid || this.parts.invalid) && touchedOrParentSubmitted;
 
-  if (oldState !== newState) {
+  if (this.errorState !== newState) {
     this.errorState = newState;
-    this.stateChanges.next();
+    this.stateChanges.next(); // Notify listeners of state changes.
   }
 }
 ```

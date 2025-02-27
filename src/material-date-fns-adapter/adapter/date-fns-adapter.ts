@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Inject, Injectable, Optional} from '@angular/core';
+import {Injectable, inject} from '@angular/core';
 import {DateAdapter, MAT_DATE_LOCALE} from '@angular/material/core';
 import {
   Locale,
@@ -14,11 +14,16 @@ import {
   getYear,
   getDate,
   getDay,
+  getHours,
+  getMinutes,
+  getSeconds,
+  set,
   getDaysInMonth,
   formatISO,
   addYears,
   addMonths,
   addDays,
+  addSeconds,
   isValid,
   isDate,
   format,
@@ -52,8 +57,11 @@ const DAY_OF_WEEK_FORMATS = {
 /** Adds date-fns support to Angular Material. */
 @Injectable()
 export class DateFnsAdapter extends DateAdapter<Date, Locale> {
-  constructor(@Optional() @Inject(MAT_DATE_LOCALE) matDateLocale: {}) {
+  constructor(...args: unknown[]);
+
+  constructor() {
     super();
+    const matDateLocale = inject(MAT_DATE_LOCALE, {optional: true});
     this.setLocale(matDateLocale as Locale);
   }
 
@@ -237,5 +245,43 @@ export class DateFnsAdapter extends DateAdapter<Date, Locale> {
 
   invalid(): Date {
     return new Date(NaN);
+  }
+
+  override setTime(target: Date, hours: number, minutes: number, seconds: number): Date {
+    if (typeof ngDevMode === 'undefined' || ngDevMode) {
+      if (hours < 0 || hours > 23) {
+        throw Error(`Invalid hours "${hours}". Hours value must be between 0 and 23.`);
+      }
+
+      if (minutes < 0 || minutes > 59) {
+        throw Error(`Invalid minutes "${minutes}". Minutes value must be between 0 and 59.`);
+      }
+
+      if (seconds < 0 || seconds > 59) {
+        throw Error(`Invalid seconds "${seconds}". Seconds value must be between 0 and 59.`);
+      }
+    }
+
+    return set(this.clone(target), {hours, minutes, seconds, milliseconds: 0});
+  }
+
+  override getHours(date: Date): number {
+    return getHours(date);
+  }
+
+  override getMinutes(date: Date): number {
+    return getMinutes(date);
+  }
+
+  override getSeconds(date: Date): number {
+    return getSeconds(date);
+  }
+
+  override parseTime(value: any, parseFormat: string | string[]): Date | null {
+    return this.parse(value, parseFormat);
+  }
+
+  override addSeconds(date: Date, amount: number): Date {
+    return addSeconds(date, amount);
   }
 }

@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Inject, Injectable, OnDestroy, Provider, CSP_NONCE, Optional} from '@angular/core';
+import {Injectable, OnDestroy, Provider, CSP_NONCE, inject} from '@angular/core';
 import {DOCUMENT} from '@angular/common';
 import {coerceCssPixelValue} from '@angular/cdk/coercion';
 import {CdkTable, _CoalescedStyleScheduler, _COALESCED_STYLE_SCHEDULER} from '@angular/cdk/table';
@@ -18,12 +18,16 @@ import {ColumnResize} from './column-resize';
  * The details of how resizing works for tables for flex mat-tables are quite different.
  */
 @Injectable()
-export abstract class ResizeStrategy {
+export abstract class ResizeStrategy implements OnDestroy {
   protected abstract readonly columnResize: ColumnResize;
   protected abstract readonly styleScheduler: _CoalescedStyleScheduler;
   protected abstract readonly table: CdkTable<unknown>;
 
-  private _pendingResizeDelta: number | null = null;
+  private _tableObserved = false;
+  private _elemSizeCache = new WeakMap<HTMLElement, {width: number; height: number}>();
+  private _resizeObserver = globalThis?.ResizeObserver
+    ? new globalThis.ResizeObserver(entries => this._updateCachedSizes(entries))
+    : null;
 
   /** Updates the width of the specified column. */
   abstract applyColumnSize(
@@ -49,22 +53,57 @@ export abstract class ResizeStrategy {
 
   /** Adjusts the width of the table element by the specified delta. */
   protected updateTableWidthAndStickyColumns(delta: number): void {
-    if (this._pendingResizeDelta === null) {
-      const tableElement = this.columnResize.elementRef.nativeElement;
-      const tableWidth = getElementWidth(tableElement);
+    this.columnResize._flushPending = true;
 
-      this.styleScheduler.schedule(() => {
-        tableElement.style.width = coerceCssPixelValue(tableWidth + this._pendingResizeDelta!);
+    this.styleScheduler.scheduleEnd(() => {
+      if (!this.columnResize._flushPending) {
+        return;
+      }
+      this.columnResize._flushPending = false;
+      this.table.updateStickyColumnStyles();
+    });
+  }
 
-        this._pendingResizeDelta = null;
-      });
+  /** Gets the style.width pixels on the specified element if present, otherwise its offsetWidth. */
+  protected getElementWidth(element: HTMLElement) {
+    // Optimization: Check style.width first as we probably set it already before reading
+    // offsetWidth which triggers layout.
+    return (
+      coercePixelsFromCssValue(element.style.width) ||
+      this._elemSizeCache.get(element)?.width ||
+      element.offsetWidth
+    );
+  }
 
-      this.styleScheduler.scheduleEnd(() => {
-        this.table.updateStickyColumnStyles();
+  /** Informs the ResizeStrategy instance of a column that may be resized in the future. */
+  registerColumn(column: HTMLElement) {
+    if (!this._tableObserved) {
+      this._tableObserved = true;
+      this._resizeObserver?.observe(this.columnResize.elementRef.nativeElement, {
+        box: 'border-box',
       });
     }
+    this._resizeObserver?.observe(column, {box: 'border-box'});
+  }
 
-    this._pendingResizeDelta = (this._pendingResizeDelta ?? 0) + delta;
+  ngOnDestroy(): void {
+    this._resizeObserver?.disconnect();
+  }
+
+  private _updateCachedSizes(entries: ResizeObserverEntry[]) {
+    for (const entry of entries) {
+      const newEntry = entry.borderBoxSize?.length
+        ? {
+            width: entry.borderBoxSize[0].inlineSize,
+            height: entry.borderBoxSize[0].blockSize,
+          }
+        : {
+            width: entry.contentRect.width,
+            height: entry.contentRect.height,
+          };
+
+      this._elemSizeCache.set(entry.target as HTMLElement, newEntry);
+    }
   }
 }
 
@@ -77,14 +116,9 @@ export abstract class ResizeStrategy {
  */
 @Injectable()
 export class TableLayoutFixedResizeStrategy extends ResizeStrategy {
-  constructor(
-    protected readonly columnResize: ColumnResize,
-    @Inject(_COALESCED_STYLE_SCHEDULER)
-    protected readonly styleScheduler: _CoalescedStyleScheduler,
-    protected readonly table: CdkTable<unknown>,
-  ) {
-    super();
-  }
+  protected readonly columnResize = inject(ColumnResize);
+  protected readonly styleScheduler = inject<_CoalescedStyleScheduler>(_COALESCED_STYLE_SCHEDULER);
+  protected readonly table = inject<CdkTable<unknown>>(CdkTable);
 
   applyColumnSize(
     _: string,
@@ -92,7 +126,7 @@ export class TableLayoutFixedResizeStrategy extends ResizeStrategy {
     sizeInPx: number,
     previousSizeInPx?: number,
   ): void {
-    const delta = sizeInPx - (previousSizeInPx ?? getElementWidth(columnHeader));
+    const delta = sizeInPx - (previousSizeInPx ?? this.getElementWidth(columnHeader));
 
     if (delta === 0) {
       return;
@@ -106,14 +140,14 @@ export class TableLayoutFixedResizeStrategy extends ResizeStrategy {
   }
 
   applyMinColumnSize(_: string, columnHeader: HTMLElement, sizeInPx: number): void {
-    const currentWidth = getElementWidth(columnHeader);
+    const currentWidth = this.getElementWidth(columnHeader);
     const newWidth = Math.max(currentWidth, sizeInPx);
 
     this.applyColumnSize(_, columnHeader, newWidth, currentWidth);
   }
 
   applyMaxColumnSize(_: string, columnHeader: HTMLElement, sizeInPx: number): void {
-    const currentWidth = getElementWidth(columnHeader);
+    const currentWidth = this.getElementWidth(columnHeader);
     const newWidth = Math.min(currentWidth, sizeInPx);
 
     this.applyColumnSize(_, columnHeader, newWidth, currentWidth);
@@ -128,7 +162,12 @@ export class TableLayoutFixedResizeStrategy extends ResizeStrategy {
  */
 @Injectable()
 export class CdkFlexTableResizeStrategy extends ResizeStrategy implements OnDestroy {
-  private readonly _document: Document;
+  protected readonly columnResize = inject(ColumnResize);
+  protected readonly styleScheduler = inject<_CoalescedStyleScheduler>(_COALESCED_STYLE_SCHEDULER);
+  protected readonly table = inject<CdkTable<unknown>>(CdkTable);
+  private readonly _nonce = inject(CSP_NONCE, {optional: true});
+
+  private readonly _document = inject(DOCUMENT);
   private readonly _columnIndexes = new Map<string, number>();
   private readonly _columnProperties = new Map<string, Map<string, string>>();
 
@@ -137,18 +176,6 @@ export class CdkFlexTableResizeStrategy extends ResizeStrategy implements OnDest
 
   protected readonly defaultMinSize = 0;
   protected readonly defaultMaxSize = Number.MAX_SAFE_INTEGER;
-
-  constructor(
-    protected readonly columnResize: ColumnResize,
-    @Inject(_COALESCED_STYLE_SCHEDULER)
-    protected readonly styleScheduler: _CoalescedStyleScheduler,
-    protected readonly table: CdkTable<unknown>,
-    @Inject(DOCUMENT) document: any,
-    @Inject(CSP_NONCE) @Optional() private readonly _nonce?: string | null,
-  ) {
-    super();
-    this._document = document;
-  }
 
   applyColumnSize(
     cssFriendlyColumnName: string,
@@ -201,7 +228,8 @@ export class CdkFlexTableResizeStrategy extends ResizeStrategy implements OnDest
     return `cdk-column-${cssFriendlyColumnName}`;
   }
 
-  ngOnDestroy(): void {
+  override ngOnDestroy(): void {
+    super.ngOnDestroy();
     this._styleElement?.remove();
     this._styleElement = undefined;
   }
@@ -287,13 +315,6 @@ export class CdkFlexTableResizeStrategy extends ResizeStrategy implements OnDest
 /** Converts CSS pixel values to numbers, eg "123px" to 123. Returns NaN for non pixel values. */
 function coercePixelsFromCssValue(cssValue: string): number {
   return Number(cssValue.match(/(\d+)px/)?.[1]);
-}
-
-/** Gets the style.width pixels on the specified element if present, otherwise its offsetWidth. */
-function getElementWidth(element: HTMLElement) {
-  // Optimization: Check style.width first as we probably set it already before reading
-  // offsetWidth which triggers layout.
-  return coercePixelsFromCssValue(element.style.width) || element.offsetWidth;
 }
 
 /**

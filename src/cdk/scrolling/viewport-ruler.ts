@@ -3,11 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Platform} from '@angular/cdk/platform';
-import {Injectable, NgZone, OnDestroy, Optional, Inject} from '@angular/core';
+import {Injectable, NgZone, OnDestroy, RendererFactory2, inject} from '@angular/core';
 import {Observable, Subject} from 'rxjs';
 import {auditTime} from 'rxjs/operators';
 import {DOCUMENT} from '@angular/common';
@@ -27,35 +27,31 @@ export interface ViewportScrollPosition {
  */
 @Injectable({providedIn: 'root'})
 export class ViewportRuler implements OnDestroy {
+  private _platform = inject(Platform);
+  private _listeners: (() => void)[] | undefined;
+
   /** Cached viewport dimensions. */
   private _viewportSize: {width: number; height: number} | null;
 
   /** Stream of viewport change events. */
   private readonly _change = new Subject<Event>();
 
-  /** Event listener that will be used to handle the viewport change events. */
-  private _changeListener = (event: Event) => {
-    this._change.next(event);
-  };
-
   /** Used to reference correct document/window */
-  protected _document: Document;
+  protected _document = inject(DOCUMENT, {optional: true})!;
 
-  constructor(
-    private _platform: Platform,
-    ngZone: NgZone,
-    @Optional() @Inject(DOCUMENT) document: any,
-  ) {
-    this._document = document;
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const ngZone = inject(NgZone);
+    const renderer = inject(RendererFactory2).createRenderer(null, null);
 
     ngZone.runOutsideAngular(() => {
-      if (_platform.isBrowser) {
-        const window = this._getWindow();
-
-        // Note that bind the events ourselves, rather than going through something like RxJS's
-        // `fromEvent` so that we can ensure that they're bound outside of the NgZone.
-        window.addEventListener('resize', this._changeListener);
-        window.addEventListener('orientationchange', this._changeListener);
+      if (this._platform.isBrowser) {
+        const changeListener = (event: Event) => this._change.next(event);
+        this._listeners = [
+          renderer.listen('window', 'resize', changeListener),
+          renderer.listen('window', 'orientationchange', changeListener),
+        ];
       }
 
       // Clear the cached position so that the viewport is re-measured next time it is required.
@@ -65,12 +61,7 @@ export class ViewportRuler implements OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this._platform.isBrowser) {
-      const window = this._getWindow();
-      window.removeEventListener('resize', this._changeListener);
-      window.removeEventListener('orientationchange', this._changeListener);
-    }
-
+    this._listeners?.forEach(cleanup => cleanup());
     this._change.complete();
   }
 

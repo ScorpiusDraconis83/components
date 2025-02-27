@@ -1,4 +1,3 @@
-import {CommonModule} from '@angular/common';
 import {Component, signal} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
@@ -9,15 +8,12 @@ describe('MatToolbar', () => {
     TestBed.configureTestingModule({
       imports: [
         MatToolbarModule,
-        CommonModule,
         ToolbarSingleRow,
         ToolbarMultipleRows,
         ToolbarMixedRowModes,
         ToolbarMultipleIndirectRows,
       ],
     });
-
-    TestBed.compileComponents();
   }));
 
   describe('with single row', () => {
@@ -108,8 +104,7 @@ describe('MatToolbar', () => {
       <span>First Row</span>
     </mat-toolbar>
   `,
-  standalone: true,
-  imports: [MatToolbarModule, CommonModule],
+  imports: [MatToolbarModule],
 })
 class ToolbarSingleRow {
   toolbarColor = signal('');
@@ -122,8 +117,7 @@ class ToolbarSingleRow {
       <mat-toolbar-row>Second Row</mat-toolbar-row>
     </mat-toolbar>
   `,
-  standalone: true,
-  imports: [MatToolbarModule, CommonModule],
+  imports: [MatToolbarModule],
 })
 class ToolbarMultipleRows {}
 
@@ -136,8 +130,7 @@ class ToolbarMultipleRows {}
       }
     </mat-toolbar>
   `,
-  standalone: true,
-  imports: [MatToolbarModule, CommonModule],
+  imports: [MatToolbarModule],
 })
 class ToolbarMixedRowModes {
   showToolbarRow = signal(true);
@@ -153,7 +146,6 @@ class ToolbarMixedRowModes {
       }
     </mat-toolbar>
   `,
-  standalone: true,
-  imports: [MatToolbarModule, CommonModule],
+  imports: [MatToolbarModule],
 })
 class ToolbarMultipleIndirectRows {}

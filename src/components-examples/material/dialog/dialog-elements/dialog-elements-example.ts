@@ -1,4 +1,5 @@
-import {Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component, inject} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
 import {
   MatDialog,
   MatDialogActions,
@@ -6,7 +7,6 @@ import {
   MatDialogContent,
   MatDialogTitle,
 } from '@angular/material/dialog';
-import {MatButtonModule} from '@angular/material/button';
 
 /**
  * @title Dialog elements
@@ -14,11 +14,11 @@ import {MatButtonModule} from '@angular/material/button';
 @Component({
   selector: 'dialog-elements-example',
   templateUrl: 'dialog-elements-example.html',
-  standalone: true,
   imports: [MatButtonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DialogElementsExample {
-  constructor(public dialog: MatDialog) {}
+  readonly dialog = inject(MatDialog);
 
   openDialog() {
     this.dialog.open(DialogElementsExampleDialog);
@@ -28,7 +28,7 @@ export class DialogElementsExample {
 @Component({
   selector: 'dialog-elements-example-dialog',
   templateUrl: 'dialog-elements-example-dialog.html',
-  standalone: true,
   imports: [MatDialogTitle, MatDialogContent, MatDialogActions, MatDialogClose, MatButtonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DialogElementsExampleDialog {}

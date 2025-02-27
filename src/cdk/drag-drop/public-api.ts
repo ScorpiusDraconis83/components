@@ -3,11 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 export {DragDrop} from './drag-drop';
-export {DragRef, DragRefConfig, Point, PreviewContainer} from './drag-ref';
+export {DragRef, DragRefConfig, Point, PreviewContainer, DragConstrainPosition} from './drag-ref';
 export {DropListRef} from './drop-list-ref';
 export {CDK_DRAG_PARENT} from './drag-parent';
 

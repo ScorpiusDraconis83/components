@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, inject} from '@angular/core';
 import {
   MatBottomSheet,
   MatBottomSheetModule,
@@ -13,11 +13,10 @@ import {MatButtonModule} from '@angular/material/button';
 @Component({
   selector: 'bottom-sheet-overview-example',
   templateUrl: 'bottom-sheet-overview-example.html',
-  standalone: true,
   imports: [MatButtonModule, MatBottomSheetModule],
 })
 export class BottomSheetOverviewExample {
-  constructor(private _bottomSheet: MatBottomSheet) {}
+  private _bottomSheet = inject(MatBottomSheet);
 
   openBottomSheet(): void {
     this._bottomSheet.open(BottomSheetOverviewExampleSheet);
@@ -27,11 +26,11 @@ export class BottomSheetOverviewExample {
 @Component({
   selector: 'bottom-sheet-overview-example-sheet',
   templateUrl: 'bottom-sheet-overview-example-sheet.html',
-  standalone: true,
   imports: [MatListModule],
 })
 export class BottomSheetOverviewExampleSheet {
-  constructor(private _bottomSheetRef: MatBottomSheetRef<BottomSheetOverviewExampleSheet>) {}
+  private _bottomSheetRef =
+    inject<MatBottomSheetRef<BottomSheetOverviewExampleSheet>>(MatBottomSheetRef);
 
   openLink(event: MouseEvent): void {
     this._bottomSheetRef.dismiss();

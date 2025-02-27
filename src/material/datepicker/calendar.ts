@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CdkPortalOutlet, ComponentPortal, ComponentType, Portal} from '@angular/cdk/portal';
@@ -14,17 +14,15 @@ import {
   ChangeDetectorRef,
   Component,
   EventEmitter,
-  forwardRef,
-  Inject,
   Input,
   OnChanges,
   OnDestroy,
-  Optional,
   Output,
   SimpleChange,
   SimpleChanges,
   ViewChild,
   ViewEncapsulation,
+  inject,
 } from '@angular/core';
 import {DateAdapter, MAT_DATE_FORMATS, MatDateFormats} from '@angular/material/core';
 import {Subject, Subscription} from 'rxjs';
@@ -41,9 +39,8 @@ import {
 import {MatYearView} from './year-view';
 import {MAT_SINGLE_DATE_SELECTION_MODEL_PROVIDER, DateRange} from './date-selection-model';
 import {MatIconButton, MatButton} from '@angular/material/button';
-import {CdkMonitorFocus} from '@angular/cdk/a11y';
-
-let calendarHeaderId = 1;
+import {_IdGenerator, CdkMonitorFocus} from '@angular/cdk/a11y';
+import {_CdkPrivateStyleLoader, _VisuallyHiddenLoader} from '@angular/cdk/private';
 
 /**
  * Possible views for the calendar.
@@ -58,17 +55,19 @@ export type MatCalendarView = 'month' | 'year' | 'multi-year';
   exportAs: 'matCalendarHeader',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [MatButton, MatIconButton],
 })
 export class MatCalendarHeader<D> {
-  constructor(
-    private _intl: MatDatepickerIntl,
-    @Inject(forwardRef(() => MatCalendar)) public calendar: MatCalendar<D>,
-    @Optional() private _dateAdapter: DateAdapter<D>,
-    @Optional() @Inject(MAT_DATE_FORMATS) private _dateFormats: MatDateFormats,
-    changeDetectorRef: ChangeDetectorRef,
-  ) {
+  private _intl = inject(MatDatepickerIntl);
+  calendar = inject<MatCalendar<D>>(MatCalendar);
+  private _dateAdapter = inject<DateAdapter<D>>(DateAdapter, {optional: true})!;
+  private _dateFormats = inject<MatDateFormats>(MAT_DATE_FORMATS, {optional: true})!;
+
+  constructor(...args: unknown[]);
+
+  constructor() {
+    inject(_CdkPrivateStyleLoader).load(_VisuallyHiddenLoader);
+    const changeDetectorRef = inject(ChangeDetectorRef);
     this.calendar.stateChanges.subscribe(() => changeDetectorRef.markForCheck());
   }
 
@@ -221,9 +220,7 @@ export class MatCalendarHeader<D> {
     return [minYearLabel, maxYearLabel];
   }
 
-  private _id = `mat-calendar-header-${calendarHeaderId++}`;
-
-  _periodButtonLabelId = `${this._id}-period-label`;
+  _periodButtonLabelId = inject(_IdGenerator).getId('mat-calendar-period-label-');
 }
 
 /** A calendar that is used as part of the datepicker. */
@@ -238,10 +235,13 @@ export class MatCalendarHeader<D> {
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [MAT_SINGLE_DATE_SELECTION_MODEL_PROVIDER],
-  standalone: true,
   imports: [CdkPortalOutlet, CdkMonitorFocus, MatMonthView, MatYearView, MatMultiYearView],
 })
 export class MatCalendar<D> implements AfterContentInit, AfterViewChecked, OnDestroy, OnChanges {
+  private _dateAdapter = inject<DateAdapter<D>>(DateAdapter, {optional: true})!;
+  private _dateFormats = inject<MatDateFormats>(MAT_DATE_FORMATS, {optional: true});
+  private _changeDetectorRef = inject(ChangeDetectorRef);
+
   /** An input indicating the type of the header component, if set. */
   @Input() headerComponent: ComponentType<any>;
 
@@ -397,12 +397,9 @@ export class MatCalendar<D> implements AfterContentInit, AfterViewChecked, OnDes
    */
   readonly stateChanges = new Subject<void>();
 
-  constructor(
-    _intl: MatDatepickerIntl,
-    @Optional() private _dateAdapter: DateAdapter<D>,
-    @Optional() @Inject(MAT_DATE_FORMATS) private _dateFormats: MatDateFormats,
-    private _changeDetectorRef: ChangeDetectorRef,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
     if (typeof ngDevMode === 'undefined' || ngDevMode) {
       if (!this._dateAdapter) {
         throw createMissingDateImplError('DateAdapter');
@@ -413,8 +410,8 @@ export class MatCalendar<D> implements AfterContentInit, AfterViewChecked, OnDes
       }
     }
 
-    this._intlChanges = _intl.changes.subscribe(() => {
-      _changeDetectorRef.markForCheck();
+    this._intlChanges = inject(MatDatepickerIntl).changes.subscribe(() => {
+      this._changeDetectorRef.markForCheck();
       this.stateChanges.next();
     });
   }
@@ -454,12 +451,16 @@ export class MatCalendar<D> implements AfterContentInit, AfterViewChecked, OnDes
         ? changes['maxDate']
         : undefined;
 
-    const change = minDateChange || maxDateChange || changes['dateFilter'];
+    const changeRequiringRerender = minDateChange || maxDateChange || changes['dateFilter'];
 
-    if (change && !change.firstChange) {
+    if (changeRequiringRerender && !changeRequiringRerender.firstChange) {
       const view = this._getCurrentViewComponent();
 
       if (view) {
+        // Schedule focus to be moved to the active date since re-rendering
+        // can blur the active cell. See #29265.
+        this._moveFocusOnNextTick = true;
+
         // We need to `detectChanges` manually here, because the `minDate`, `maxDate` etc. are
         // passed down to the view via data bindings which won't be up-to-date when we call `_init`.
         this._changeDetectorRef.detectChanges();

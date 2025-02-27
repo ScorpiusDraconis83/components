@@ -1,7 +1,15 @@
 import {ComponentPortal, PortalModule} from '@angular/cdk/portal';
 import {CdkScrollable, ScrollingModule, ViewportRuler} from '@angular/cdk/scrolling';
 import {dispatchFakeEvent} from '../../testing/private';
-import {ApplicationRef, Component, ElementRef} from '@angular/core';
+import {
+  ApplicationRef,
+  Component,
+  ElementRef,
+  Injector,
+  Renderer2,
+  RendererFactory2,
+  runInInjectionContext,
+} from '@angular/core';
 import {fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {Subscription} from 'rxjs';
 import {map} from 'rxjs/operators';
@@ -2488,9 +2496,23 @@ describe('FlexibleConnectedPositionStrategy', () => {
           },
         ]);
 
-      strategy.withScrollableContainers([
-        new CdkScrollable(new ElementRef<HTMLElement>(scrollable), null!, null!),
-      ]);
+      const injector = Injector.create({
+        parent: TestBed.inject(Injector),
+        providers: [
+          {
+            provide: ElementRef,
+            useValue: new ElementRef<HTMLElement>(scrollable),
+          },
+          {
+            provide: Renderer2,
+            useValue: TestBed.inject(RendererFactory2).createRenderer(null, null),
+          },
+        ],
+      });
+
+      runInInjectionContext(injector, () => {
+        strategy.withScrollableContainers([new CdkScrollable()]);
+      });
 
       positionChangeHandler = jasmine.createSpy('positionChange handler');
       onPositionChangeSubscription = strategy.positionChanges
@@ -2943,7 +2965,6 @@ function createOverflowContainerElement() {
       class="transform-origin"
       style="width: ${DEFAULT_WIDTH}px; height: ${DEFAULT_HEIGHT}px;"></div>
   `,
-  standalone: true,
   imports: [ScrollingModule, OverlayModule, PortalModule],
 })
 class TestOverlay {}

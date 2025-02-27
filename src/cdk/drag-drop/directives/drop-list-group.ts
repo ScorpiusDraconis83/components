@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Directive, OnDestroy, Input, InjectionToken, booleanAttribute} from '@angular/core';
@@ -26,7 +26,6 @@ export const CDK_DROP_LIST_GROUP = new InjectionToken<CdkDropListGroup<unknown>>
 @Directive({
   selector: '[cdkDropListGroup]',
   exportAs: 'cdkDropListGroup',
-  standalone: true,
   providers: [{provide: CDK_DROP_LIST_GROUP, useExisting: CdkDropListGroup}],
 })
 export class CdkDropListGroup<T> implements OnDestroy {

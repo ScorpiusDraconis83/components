@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {LiveAnnouncer} from '@angular/cdk/a11y';
@@ -12,14 +12,12 @@ import {ComponentType, Overlay, OverlayConfig, OverlayRef} from '@angular/cdk/ov
 import {
   ComponentRef,
   EmbeddedViewRef,
-  Inject,
   Injectable,
   InjectionToken,
   Injector,
   OnDestroy,
-  Optional,
-  SkipSelf,
   TemplateRef,
+  inject,
 } from '@angular/core';
 import {SimpleSnackBar, TextOnlySnackBar} from './simple-snack-bar';
 import {MatSnackBarContainer} from './snack-bar-container';
@@ -47,6 +45,13 @@ export const MAT_SNACK_BAR_DEFAULT_OPTIONS = new InjectionToken<MatSnackBarConfi
  */
 @Injectable({providedIn: 'root'})
 export class MatSnackBar implements OnDestroy {
+  private _overlay = inject(Overlay);
+  private _live = inject(LiveAnnouncer);
+  private _injector = inject(Injector);
+  private _breakpointObserver = inject(BreakpointObserver);
+  private _parentSnackBar = inject(MatSnackBar, {optional: true, skipSelf: true});
+  private _defaultConfig = inject<MatSnackBarConfig>(MAT_SNACK_BAR_DEFAULT_OPTIONS);
+
   /**
    * Reference to the current snack bar in the view *at this level* (in the Angular injector tree).
    * If there is a parent snack-bar service, all operations should delegate to that parent
@@ -77,14 +82,8 @@ export class MatSnackBar implements OnDestroy {
     }
   }
 
-  constructor(
-    private _overlay: Overlay,
-    private _live: LiveAnnouncer,
-    private _injector: Injector,
-    private _breakpointObserver: BreakpointObserver,
-    @Optional() @SkipSelf() private _parentSnackBar: MatSnackBar,
-    @Inject(MAT_SNACK_BAR_DEFAULT_OPTIONS) private _defaultConfig: MatSnackBarConfig,
-  ) {}
+  constructor(...args: unknown[]);
+  constructor() {}
 
   /**
    * Creates and dispatches a snack bar with a custom component for the content, removing any
@@ -243,6 +242,11 @@ export class MatSnackBar implements OnDestroy {
       }
     });
 
+    // If a dismiss timeout is provided, set up dismiss based on after the snackbar is opened.
+    if (config.duration && config.duration > 0) {
+      snackBarRef.afterOpened().subscribe(() => snackBarRef._dismissAfter(config.duration!));
+    }
+
     if (this._openedSnackBarRef) {
       // If a snack bar is already in view, dismiss it and enter the
       // new snack bar after exit animation is complete.
@@ -253,11 +257,6 @@ export class MatSnackBar implements OnDestroy {
     } else {
       // If no snack bar is in view, enter the new snack bar.
       snackBarRef.containerInstance.enter();
-    }
-
-    // If a dismiss timeout is provided, set up dismiss based on after the snackbar is opened.
-    if (config.duration && config.duration > 0) {
-      snackBarRef.afterOpened().subscribe(() => snackBarRef._dismissAfter(config.duration!));
     }
   }
 

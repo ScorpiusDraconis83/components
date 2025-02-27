@@ -31,8 +31,6 @@ describe('CloseScrollStrategy', () => {
         },
       ],
     });
-
-    TestBed.compileComponents();
   }));
 
   beforeEach(inject([Overlay], (overlay: Overlay) => {
@@ -137,7 +135,6 @@ describe('CloseScrollStrategy', () => {
 /** Simple component that we can attach to the overlay. */
 @Component({
   template: '<p>Mozarella</p>',
-  standalone: true,
   imports: [OverlayModule, PortalModule],
 })
 class MozarellaMsg {}

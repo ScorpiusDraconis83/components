@@ -1,6 +1,6 @@
 import {DOCUMENT} from '@angular/common';
 import {waitForAsync, inject, TestBed} from '@angular/core/testing';
-import {Component, NgModule, ViewChild, ViewContainerRef} from '@angular/core';
+import {Component, NgModule, ViewChild, ViewContainerRef, inject as inject_1} from '@angular/core';
 import {PortalModule, CdkPortal} from '@angular/cdk/portal';
 import {Overlay, OverlayContainer, OverlayModule, FullscreenOverlayContainer} from './index';
 import {TemplatePortalDirective} from '../portal/portal-directives';
@@ -26,6 +26,7 @@ describe('FullscreenOverlayContainer', () => {
             // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy
             fakeDocument = {
               body: document.body,
+              head: document.head,
               fullscreenElement: document.createElement('div'),
               fullscreenEnabled: true,
               addEventListener: (eventName: string, listener: EventListener) => {
@@ -56,7 +57,7 @@ describe('FullscreenOverlayContainer', () => {
           },
         },
       ],
-    }).compileComponents();
+    });
   }));
 
   beforeEach(inject([Overlay], (o: Overlay) => {
@@ -112,13 +113,12 @@ describe('FullscreenOverlayContainer', () => {
 @Component({
   template: `<ng-template cdk-portal>Cake</ng-template>`,
   providers: [Overlay],
-  standalone: true,
   imports: [TemplatePortalDirective],
 })
 class TestComponentWithTemplatePortals {
-  @ViewChild(CdkPortal) templatePortal: CdkPortal;
+  viewContainerRef = inject_1(ViewContainerRef);
 
-  constructor(public viewContainerRef: ViewContainerRef) {}
+  @ViewChild(CdkPortal) templatePortal: CdkPortal;
 }
 
 @NgModule({

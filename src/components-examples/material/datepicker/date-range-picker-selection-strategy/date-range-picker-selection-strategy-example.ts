@@ -1,16 +1,16 @@
-import {Component, Injectable} from '@angular/core';
+import {ChangeDetectionStrategy, Component, Injectable, inject} from '@angular/core';
 import {DateAdapter, provideNativeDateAdapter} from '@angular/material/core';
 import {
-  MatDateRangeSelectionStrategy,
   DateRange,
   MAT_DATE_RANGE_SELECTION_STRATEGY,
+  MatDateRangeSelectionStrategy,
   MatDatepickerModule,
 } from '@angular/material/datepicker';
 import {MatFormFieldModule} from '@angular/material/form-field';
 
 @Injectable()
 export class FiveDayRangeSelectionStrategy<D> implements MatDateRangeSelectionStrategy<D> {
-  constructor(private _dateAdapter: DateAdapter<D>) {}
+  private _dateAdapter = inject<DateAdapter<D>>(DateAdapter<D>);
 
   selectionFinished(date: D | null): DateRange<D> {
     return this._createFiveDayRange(date);
@@ -31,7 +31,7 @@ export class FiveDayRangeSelectionStrategy<D> implements MatDateRangeSelectionSt
   }
 }
 
-/** @title Date range picker with custom a selection strategy */
+/** @title Date range picker with a custom selection strategy */
 @Component({
   selector: 'date-range-picker-selection-strategy-example',
   templateUrl: 'date-range-picker-selection-strategy-example.html',
@@ -42,7 +42,7 @@ export class FiveDayRangeSelectionStrategy<D> implements MatDateRangeSelectionSt
     },
     provideNativeDateAdapter(),
   ],
-  standalone: true,
   imports: [MatFormFieldModule, MatDatepickerModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DateRangePickerSelectionStrategyExample {}

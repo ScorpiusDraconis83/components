@@ -3,30 +3,30 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
+import {_IdGenerator, FocusableOption} from '@angular/cdk/a11y';
 import {
+  ANIMATION_MODULE_TYPE,
   AfterViewInit,
-  Attribute,
-  booleanAttribute,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
-  forwardRef,
-  Inject,
   Input,
   NgZone,
-  numberAttribute,
   OnChanges,
-  Optional,
   Output,
   SimpleChanges,
   ViewChild,
   ViewEncapsulation,
-  ANIMATION_MODULE_TYPE,
+  booleanAttribute,
+  forwardRef,
+  numberAttribute,
+  inject,
+  HostAttributeToken,
 } from '@angular/core';
 import {
   AbstractControl,
@@ -36,13 +36,13 @@ import {
   ValidationErrors,
   Validator,
 } from '@angular/forms';
-import {_MatInternalFormField, MatRipple} from '@angular/material/core';
-import {FocusableOption} from '@angular/cdk/a11y';
+import {MatRipple, _MatInternalFormField, _StructuralStylesLoader} from '@angular/material/core';
 import {
   MAT_CHECKBOX_DEFAULT_OPTIONS,
   MAT_CHECKBOX_DEFAULT_OPTIONS_FACTORY,
   MatCheckboxDefaultOptions,
 } from './checkbox-config';
+import {_CdkPrivateStyleLoader} from '@angular/cdk/private';
 
 /**
  * Represents the different states that require custom transitions between them.
@@ -77,9 +77,6 @@ export class MatCheckboxChange {
   checked: boolean;
 }
 
-// Increasing integer for generating unique ids for checkbox components.
-let nextUniqueId = 0;
-
 // Default checkbox configuration.
 const defaults = MAT_CHECKBOX_DEFAULT_OPTIONS_FACTORY();
 
@@ -98,6 +95,7 @@ const defaults = MAT_CHECKBOX_DEFAULT_OPTIONS_FACTORY();
     // Add classes that users can use to more easily target disabled or checked checkboxes.
     '[class.mat-mdc-checkbox-disabled]': 'disabled',
     '[class.mat-mdc-checkbox-checked]': 'checked',
+    '[class.mat-mdc-checkbox-disabled-interactive]': 'disabledInteractive',
     '[class]': 'color ? "mat-" + color : "mat-accent"',
   },
   providers: [
@@ -111,12 +109,19 @@ const defaults = MAT_CHECKBOX_DEFAULT_OPTIONS_FACTORY();
   exportAs: 'matCheckbox',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [MatRipple, _MatInternalFormField],
 })
 export class MatCheckbox
   implements AfterViewInit, OnChanges, ControlValueAccessor, Validator, FocusableOption
 {
+  _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  private _changeDetectorRef = inject(ChangeDetectorRef);
+  private _ngZone = inject(NgZone);
+  _animationMode? = inject(ANIMATION_MODULE_TYPE, {optional: true});
+  private _options = inject<MatCheckboxDefaultOptions>(MAT_CHECKBOX_DEFAULT_OPTIONS, {
+    optional: true,
+  });
+
   /** Focuses the checkbox. */
   focus() {
     this._inputElement.nativeElement.focus();
@@ -158,6 +163,19 @@ export class MatCheckbox
 
   /** The 'aria-describedby' attribute is read after the element's label and field type. */
   @Input('aria-describedby') ariaDescribedby: string;
+
+  /**
+   * Users can specify the `aria-expanded` attribute which will be forwarded to the input element
+   */
+  @Input({alias: 'aria-expanded', transform: booleanAttribute}) ariaExpanded: boolean;
+
+  /**
+   * Users can specify the `aria-controls` attribute which will be forwarded to the input element
+   */
+  @Input('aria-controls') ariaControls: string;
+
+  /** Users can specify the `aria-owns` attribute which will be forwarded to the input element */
+  @Input('aria-owns') ariaOwns: string;
 
   private _uniqueId: string;
 
@@ -202,15 +220,18 @@ export class MatCheckbox
 
   // TODO(crisbeto): this should be a ThemePalette, but some internal apps were abusing
   // the lack of type checking previously and assigning random strings.
-  /** Palette color of the checkbox. */
+  /**
+   * Theme color of the checkbox. This API is supported in M2 themes only, it
+   * has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/checkbox/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   @Input() color: string | undefined;
 
-  /**
-   * Reference to the MatRipple instance of the checkbox.
-   * @deprecated Considered an implementation detail. To be removed.
-   * @breaking-change 17.0.0
-   */
-  @ViewChild(MatRipple) ripple: MatRipple;
+  /** Whether the checkbox should remain interactive when it is disabled. */
+  @Input({transform: booleanAttribute})
+  disabledInteractive: boolean;
 
   /**
    * Called when the checkbox is blurred. Needed to properly implement ControlValueAccessor.
@@ -223,18 +244,16 @@ export class MatCheckbox
   private _controlValueAccessorChangeFn: (value: any) => void = () => {};
   private _validatorChangeFn = () => {};
 
-  constructor(
-    public _elementRef: ElementRef<HTMLElement>,
-    private _changeDetectorRef: ChangeDetectorRef,
-    private _ngZone: NgZone,
-    @Attribute('tabindex') tabIndex: string,
-    @Optional() @Inject(ANIMATION_MODULE_TYPE) public _animationMode?: string,
-    @Optional() @Inject(MAT_CHECKBOX_DEFAULT_OPTIONS) private _options?: MatCheckboxDefaultOptions,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    inject(_CdkPrivateStyleLoader).load(_StructuralStylesLoader);
+    const tabIndex = inject(new HostAttributeToken('tabindex'), {optional: true});
     this._options = this._options || defaults;
     this.color = this._options.color || defaults.color;
-    this.tabIndex = parseInt(tabIndex) || 0;
-    this.id = this._uniqueId = `mat-mdc-checkbox-${++nextUniqueId}`;
+    this.tabIndex = tabIndex == null ? 0 : parseInt(tabIndex) || 0;
+    this.id = this._uniqueId = inject(_IdGenerator).getId('mat-mdc-checkbox-');
+    this.disabledInteractive = this._options?.disabledInteractive ?? false;
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -416,7 +435,10 @@ export class MatCheckbox
       // It is important to only emit it, if the native input triggered one, because
       // we don't want to trigger a change event, when the `checked` variable changes for example.
       this._emitChangeEvent();
-    } else if (!this.disabled && clickAction === 'noop') {
+    } else if (
+      (this.disabled && this.disabledInteractive) ||
+      (!this.disabled && clickAction === 'noop')
+    ) {
       // Reset native input when clicked with noop. The native checkbox becomes checked after
       // click, reset it to be align with `checked` value of `mat-checkbox`.
       this._inputElement.nativeElement.checked = this.checked;

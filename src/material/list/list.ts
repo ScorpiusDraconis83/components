@@ -3,26 +3,20 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Platform} from '@angular/cdk/platform';
 import {
   ChangeDetectionStrategy,
   Component,
   Input,
   ContentChildren,
   ElementRef,
-  Inject,
-  NgZone,
-  Optional,
   QueryList,
   ViewChild,
   ViewEncapsulation,
   InjectionToken,
-  ANIMATION_MODULE_TYPE,
 } from '@angular/core';
-import {MAT_RIPPLE_GLOBAL_OPTIONS, RippleGlobalOptions} from '@angular/material/core';
 import {MatListBase, MatListItemBase} from './list-base';
 import {MatListItemLine, MatListItemMeta, MatListItemTitle} from './list-item-sections';
 import {coerceBooleanProperty} from '@angular/cdk/coercion';
@@ -46,7 +40,6 @@ export const MAT_LIST = new InjectionToken<MatList>('MatList');
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [{provide: MatListBase, useExisting: MatList}],
-  standalone: true,
 })
 export class MatList extends MatListBase {}
 
@@ -59,13 +52,15 @@ export class MatList extends MatListBase {}
     '[class.mdc-list-item--with-leading-avatar]': '_avatars.length !== 0',
     '[class.mdc-list-item--with-leading-icon]': '_icons.length !== 0',
     '[class.mdc-list-item--with-trailing-meta]': '_meta.length !== 0',
+    // Utility class that makes it easier to target the case where there's both a leading
+    // and a trailing icon. Avoids having to write out all the combinations.
+    '[class.mat-mdc-list-item-both-leading-and-trailing]': '_hasBothLeadingAndTrailing()',
     '[class._mat-animation-noopable]': '_noopAnimations',
     '[attr.aria-current]': '_getAriaCurrent()',
   },
   templateUrl: 'list-item.html',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [CdkObserveContent],
 })
 export class MatListItem extends MatListItemBase {
@@ -77,7 +72,7 @@ export class MatListItem extends MatListItemBase {
 
   /** Indicates whether an item in a `<mat-nav-list>` is the currently active page. */
   @Input()
-  get activated() {
+  get activated(): boolean {
     return this._activated;
   }
   set activated(activated) {
@@ -85,22 +80,15 @@ export class MatListItem extends MatListItemBase {
   }
   _activated = false;
 
-  constructor(
-    element: ElementRef,
-    ngZone: NgZone,
-    @Optional() listBase: MatListBase | null,
-    platform: Platform,
-    @Optional() @Inject(MAT_RIPPLE_GLOBAL_OPTIONS) globalRippleOptions?: RippleGlobalOptions,
-    @Optional() @Inject(ANIMATION_MODULE_TYPE) animationMode?: string,
-  ) {
-    super(element, ngZone, listBase, platform, globalRippleOptions, animationMode);
-  }
-
   /**
    * Determine the value of `aria-current`. Return 'page' if this item is an activated anchor tag.
    * Otherwise, return `null`. This method is safe to use with server-side rendering.
    */
   _getAriaCurrent(): string | null {
     return this._hostElement.nodeName === 'A' && this._activated ? 'page' : null;
+  }
+
+  protected _hasBothLeadingAndTrailing(): boolean {
+    return this._meta.length !== 0 && (this._avatars.length !== 0 || this._icons.length !== 0);
   }
 }

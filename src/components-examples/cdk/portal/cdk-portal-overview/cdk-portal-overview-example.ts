@@ -5,6 +5,7 @@ import {
   ViewChild,
   ViewContainerRef,
   ElementRef,
+  inject,
 } from '@angular/core';
 import {
   ComponentPortal,
@@ -21,10 +22,11 @@ import {
   selector: 'cdk-portal-overview-example',
   templateUrl: 'cdk-portal-overview-example.html',
   styleUrl: 'cdk-portal-overview-example.css',
-  standalone: true,
   imports: [PortalModule],
 })
 export class CdkPortalOverviewExample implements AfterViewInit {
+  private _viewContainerRef = inject(ViewContainerRef);
+
   @ViewChild('templatePortalContent') templatePortalContent: TemplateRef<unknown>;
   @ViewChild('domPortalContent') domPortalContent: ElementRef<HTMLElement>;
 
@@ -32,8 +34,6 @@ export class CdkPortalOverviewExample implements AfterViewInit {
   componentPortal: ComponentPortal<ComponentPortalExample>;
   templatePortal: TemplatePortal<any>;
   domPortal: DomPortal<any>;
-
-  constructor(private _viewContainerRef: ViewContainerRef) {}
 
   ngAfterViewInit() {
     this.componentPortal = new ComponentPortal(ComponentPortalExample);
@@ -45,6 +45,5 @@ export class CdkPortalOverviewExample implements AfterViewInit {
 @Component({
   selector: 'component-portal-example',
   template: 'Hello, this is a component portal',
-  standalone: true,
 })
 export class ComponentPortalExample {}

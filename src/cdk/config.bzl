@@ -5,6 +5,7 @@ CDK_ENTRYPOINTS = [
     "bidi",
     "clipboard",
     "coercion",
+    "coercion/private",
     "collections",
     "dialog",
     "drag-drop",
@@ -25,6 +26,7 @@ CDK_ENTRYPOINTS = [
     "testing",
     "testing/testbed",
     "testing/selenium-webdriver",
+    "private",
 ]
 
 # List of all entry-point targets of the Angular Material package.

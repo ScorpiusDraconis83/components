@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {BaseTreeControl} from './base-tree-control';
@@ -13,7 +13,13 @@ export interface FlatTreeControlOptions<T, K> {
   trackBy?: (dataNode: T) => K;
 }
 
-/** Flat tree control. Able to expand/collapse a subtree recursively for flattened tree. */
+/**
+ * Flat tree control. Able to expand/collapse a subtree recursively for flattened tree.
+ *
+ * @deprecated Use one of levelAccessor or childrenAccessor instead. To be removed in a future
+ * version.
+ * @breaking-change 21.0.0
+ */
 export class FlatTreeControl<T, K = T> extends BaseTreeControl<T, K> {
   /** Construct with flat tree data node functions getLevel and isExpandable. */
   constructor(

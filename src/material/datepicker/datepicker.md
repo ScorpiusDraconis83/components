@@ -131,14 +131,6 @@ As with other types of `<input>`, the datepicker works with `@angular/forms` dir
 
 <!-- example(datepicker-value) -->
 
-### Changing the datepicker colors
-
-The datepicker popup will automatically inherit the color palette (`primary`, `accent`, or `warn`)
-from the `mat-form-field` it is attached to. If you would like to specify a different palette for
-the popup you can do so by setting the `color` property on `mat-datepicker`.
-
-<!-- example(datepicker-color) -->
-
 ### Date validation
 
 There are three properties that add date validation to the datepicker input. The first two are the
@@ -165,9 +157,10 @@ In this example the user cannot select any date that falls on a Saturday or Sund
 dates which fall on other days of the week are selectable.
 
 Each validation property has a different error that can be checked:
- * A value that violates the `min` property will have a `matDatepickerMin` error.
- * A value that violates the `max` property will have a `matDatepickerMax` error.
- * A value that violates the `matDatepickerFilter` property will have a `matDatepickerFilter` error.
+
+- A value that violates the `min` property will have a `matDatepickerMin` error.
+- A value that violates the `max` property will have a `matDatepickerMax` error.
+- A value that violates the `matDatepickerFilter` property will have a `matDatepickerFilter` error.
 
 ### Input and change events
 
@@ -223,19 +216,15 @@ If your users need to compare the date range that they're currently selecting wi
 you can provide the comparison range start and end dates to the `mat-date-range-input` using the
 `comparisonStart` and `comparisonEnd` bindings. The comparison range will be rendered statically
 within the calendar, but it will change colors to indicate which dates overlap with the user's
-selected range.
+selected range. The comparison and overlap colors can be customized using the
+`datepicker-date-range-colors` mixin.
 
 <!-- example(date-range-picker-comparison) -->
-
-Note that comparison and overlap colors aren't derived from the current theme, due
-to limitations in the Material Design theming system. They can be customized using the
-`datepicker-date-range-colors` mixin.
 
 ```scss
 @use '@angular/material' as mat;
 
-@include mat.datepicker-date-range-colors(
-  hotpink, teal, yellow, purple);
+@include mat.datepicker-date-range-colors(hotpink, teal, yellow, purple);
 ```
 
 ### Customizing the date selection logic
@@ -276,10 +265,11 @@ month. If you want to make the calendar larger or smaller, adjust the width rath
 ### Internationalization
 
 Internationalization of the datepicker is configured via four aspects:
- 1. The date locale.
- 2. The date implementation that the datepicker accepts.
- 3. The display and parse formats used by the datepicker.
- 4. The message strings used in the datepicker's UI.
+
+1.  The date locale.
+2.  The date implementation that the datepicker accepts.
+3.  The display and parse formats used by the datepicker.
+4.  The message strings used in the datepicker's UI.
 
 #### Setting the locale code
 
@@ -402,12 +392,12 @@ The easiest way to ensure this is to import one of the provided date adapters:
   </tbody>
 </table>
 
-*Please note: `provideNativeDateAdapter` is based off the functionality available in JavaScript's
+_Please note: `provideNativeDateAdapter` is based off the functionality available in JavaScript's
 native [`Date` object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Date).
 Thus it is not suitable for many locales. One of the biggest shortcomings of the native `Date`
 object is the inability to set the parse format. We strongly recommend using an adapter based on
 a more robust formatting and parsing library. You can use `provideMomentDateAdapter`
-or a custom `DateAdapter` that works with the library of your choice.*
+or a custom `DateAdapter` that works with the library of your choice._
 
 These APIs include providers for `DateAdapter` and `MAT_DATE_FORMATS`.
 
@@ -544,6 +534,7 @@ bootstrapApplication(MyApp, {
 ```
 
 #### Highlighting specific dates
+
 If you want to apply one or more CSS classes to some dates in the calendar (e.g. to highlight a
 holiday), you can do so with the `dateClass` input. It accepts a function which will be called
 with each of the dates in the calendar and will apply any classes that are returned. The return
@@ -575,20 +566,23 @@ datepicker pop-up. However, ChromeOS intercepts this key combination at the OS l
 browser only receives a `PageDown` key event. Because of this behavior, you should always include an
 additional means of opening the pop-up, such as `MatDatepickerToggle`.
 
+`MatDatepickerToggle` must be included along with `MatDatepicker` for optimal mobile a11y 
+compatibility. Mobile screen reader users currently do not have a way to trigger the datepicker
+dialog without the icon button present.
+
 #### Keyboard interaction
 
 The datepicker supports the following keyboard shortcuts:
 
-| Keyboard Shortcut                      | Action                     |
-|----------------------------------------|----------------------------|
-| <kbd>Alt</kbd> + <kbd>Down Arrow</kbd> | Open the calendar pop-up   |
-| <kbd>Escape</kbd>                      | Close the calendar pop-up  |
-
+| Keyboard Shortcut                      | Action                    |
+| -------------------------------------- | ------------------------- |
+| <kbd>Alt</kbd> + <kbd>Down Arrow</kbd> | Open the calendar pop-up  |
+| <kbd>Escape</kbd>                      | Close the calendar pop-up |
 
 In month view:
 
 | Shortcut                              | Action                                   |
-|---------------------------------------|------------------------------------------|
+| ------------------------------------- | ---------------------------------------- |
 | <kbd>Left Arrow</kbd>                 | Go to previous day                       |
 | <kbd>Right Arrow</kbd>                | Go to next day                           |
 | <kbd>Up Arrow</kbd>                   | Go to same day in the previous week      |
@@ -601,11 +595,10 @@ In month view:
 | <kbd>Alt</kbd> + <kbd>Page Down</kbd> | Go to the same day in the next year      |
 | <kbd>Enter</kbd>                      | Select current date                      |
 
-
 In year view:
 
 | Shortcut                              | Action                                    |
-|---------------------------------------|-------------------------------------------|
+| ------------------------------------- | ----------------------------------------- |
 | <kbd>Left Arrow</kbd>                 | Go to previous month                      |
 | <kbd>Right Arrow</kbd>                | Go to next month                          |
 | <kbd>Up Arrow</kbd>                   | Go up a row (back 4 months)               |
@@ -621,7 +614,7 @@ In year view:
 In multi-year view:
 
 | Shortcut                              | Action                                    |
-|---------------------------------------|-------------------------------------------|
+| ------------------------------------- | ----------------------------------------- |
 | <kbd>Left Arrow</kbd>                 | Go to previous year                       |
 | <kbd>Right Arrow</kbd>                | Go to next year                           |
 | <kbd>Up Arrow</kbd>                   | Go up a row (back 4 years)                |

@@ -1,36 +1,29 @@
 import {LiveAnnouncer} from '@angular/cdk/a11y';
 import {OverlayContainer} from '@angular/cdk/overlay';
+import {Platform} from '@angular/cdk/platform';
 import {
   ChangeDetectionStrategy,
   Component,
   Directive,
-  Inject,
   TemplateRef,
   ViewChild,
   ViewContainerRef,
-  provideZoneChangeDetection,
   signal,
+  inject,
 } from '@angular/core';
-import {ComponentFixture, fakeAsync, flush, inject, TestBed, tick} from '@angular/core/testing';
+import {ComponentFixture, TestBed, fakeAsync, flush, tick} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {
   MAT_SNACK_BAR_DATA,
-  SimpleSnackBar,
   MatSnackBar,
   MatSnackBarConfig,
-  MatSnackBarContainer,
   MatSnackBarModule,
   MatSnackBarRef,
+  SimpleSnackBar,
 } from './index';
-import {Platform} from '@angular/cdk/platform';
 import {MAT_SNACK_BAR_DEFAULT_OPTIONS} from './snack-bar';
 
 describe('MatSnackBar', () => {
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      providers: [provideZoneChangeDetection()],
-    });
-  });
   let snackBar: MatSnackBar;
   let liveAnnouncer: LiveAnnouncer;
   let overlayContainerElement: HTMLElement;
@@ -53,24 +46,15 @@ describe('MatSnackBar', () => {
         BurritosNotification,
         DirectiveWithViewContainer,
       ],
-    }).compileComponents();
-  }));
+    });
 
-  beforeEach(inject(
-    [MatSnackBar, LiveAnnouncer, OverlayContainer],
-    (sb: MatSnackBar, la: LiveAnnouncer, oc: OverlayContainer) => {
-      snackBar = sb;
-      liveAnnouncer = la;
-      overlayContainerElement = oc.getContainerElement();
-    },
-  ));
-
-  beforeEach(() => {
+    snackBar = TestBed.inject(MatSnackBar);
+    liveAnnouncer = TestBed.inject(LiveAnnouncer);
+    overlayContainerElement = TestBed.inject(OverlayContainer).getContainerElement();
     viewContainerFixture = TestBed.createComponent(ComponentWithChildViewContainer);
-
     viewContainerFixture.detectChanges();
     testViewContainerRef = viewContainerFixture.componentInstance.childViewContainer;
-  });
+  }));
 
   it('should open with content first in the inert region', () => {
     snackBar.open('Snack time!', 'Chew');
@@ -375,67 +359,6 @@ describe('MatSnackBar', () => {
       .toBe(0);
   }));
 
-  it('should set the animation state to visible on entry', () => {
-    const config: MatSnackBarConfig = {viewContainerRef: testViewContainerRef};
-    const snackBarRef = snackBar.open(simpleMessage, undefined, config);
-
-    viewContainerFixture.detectChanges();
-    const container = snackBarRef.containerInstance as MatSnackBarContainer;
-    expect(container._animationState)
-      .withContext(`Expected the animation state would be 'visible'.`)
-      .toBe('visible');
-    snackBarRef.dismiss();
-
-    viewContainerFixture.detectChanges();
-    expect(container._animationState)
-      .withContext(`Expected the animation state would be 'hidden'.`)
-      .toBe('hidden');
-  });
-
-  it('should set the animation state to complete on exit', () => {
-    const config: MatSnackBarConfig = {viewContainerRef: testViewContainerRef};
-    const snackBarRef = snackBar.open(simpleMessage, undefined, config);
-    snackBarRef.dismiss();
-
-    viewContainerFixture.detectChanges();
-    const container = snackBarRef.containerInstance as MatSnackBarContainer;
-    expect(container._animationState)
-      .withContext(`Expected the animation state would be 'hidden'.`)
-      .toBe('hidden');
-  });
-
-  it(`should set the old snack bar animation state to complete and the new snack bar animation
-      state to visible on entry of new snack bar`, fakeAsync(() => {
-    const config: MatSnackBarConfig = {viewContainerRef: testViewContainerRef};
-    const snackBarRef = snackBar.open(simpleMessage, undefined, config);
-    const dismissCompleteSpy = jasmine.createSpy('dismiss complete spy');
-
-    viewContainerFixture.detectChanges();
-
-    const containerElement = document.querySelector('mat-snack-bar-container')!;
-    expect(containerElement.classList).toContain('ng-animating');
-    const container1 = snackBarRef.containerInstance as MatSnackBarContainer;
-    expect(container1._animationState)
-      .withContext(`Expected the animation state would be 'visible'.`)
-      .toBe('visible');
-
-    const config2 = {viewContainerRef: testViewContainerRef};
-    const snackBarRef2 = snackBar.open(simpleMessage, undefined, config2);
-
-    viewContainerFixture.detectChanges();
-    snackBarRef.afterDismissed().subscribe({complete: dismissCompleteSpy});
-    flush();
-
-    expect(dismissCompleteSpy).toHaveBeenCalled();
-    const container2 = snackBarRef2.containerInstance as MatSnackBarContainer;
-    expect(container1._animationState)
-      .withContext(`Expected the animation state would be 'hidden'.`)
-      .toBe('hidden');
-    expect(container2._animationState)
-      .withContext(`Expected the animation state would be 'visible'.`)
-      .toBe('visible');
-  }));
-
   it('should open a new snackbar after dismissing a previous snackbar', fakeAsync(() => {
     let config: MatSnackBarConfig = {viewContainerRef: testViewContainerRef};
     let snackBarRef = snackBar.open(simpleMessage, 'Dismiss', config);
@@ -517,6 +440,7 @@ describe('MatSnackBar', () => {
     snackBarRef.onAction().subscribe({complete: actionCompleteSpy});
 
     snackBarRef.dismissWithAction();
+    viewContainerFixture.detectChanges();
     flush();
 
     expect(dismissCompleteSpy).toHaveBeenCalled();
@@ -530,6 +454,7 @@ describe('MatSnackBar', () => {
 
     snackBarRef.afterDismissed().subscribe(dismissSpy);
     snackBarRef.dismissWithAction();
+    viewContainerFixture.detectChanges();
     flush();
 
     expect(dismissSpy).toHaveBeenCalledWith(jasmine.objectContaining({dismissedByAction: true}));
@@ -565,33 +490,6 @@ describe('MatSnackBar', () => {
     expect(afterDismissSpy).toHaveBeenCalled();
   }));
 
-  it('should clear the dismiss timeout when dismissed before timeout expiration', fakeAsync(() => {
-    let config = new MatSnackBarConfig();
-    config.duration = 1000;
-    snackBar.open('content', 'test', config);
-
-    setTimeout(() => snackBar.dismiss(), 500);
-
-    tick(600);
-    flush();
-
-    expect(viewContainerFixture.isStable()).toBe(true);
-  }));
-
-  it('should clear the dismiss timeout when dismissed with action', fakeAsync(() => {
-    let config = new MatSnackBarConfig();
-    config.duration = 1000;
-    const snackBarRef = snackBar.open('content', 'test', config);
-
-    setTimeout(() => snackBarRef.dismissWithAction(), 500);
-
-    tick(600);
-    viewContainerFixture.detectChanges();
-    tick();
-
-    expect(viewContainerFixture.isStable()).toBe(true);
-  }));
-
   it('should add extra classes to the container', () => {
     snackBar.open(simpleMessage, simpleActionLabel, {panelClass: ['one', 'two']});
     viewContainerFixture.detectChanges();
@@ -622,13 +520,10 @@ describe('MatSnackBar', () => {
         deps: [],
         useFactory: () => ({panelClass: 'custom-class'}),
       })
-      .configureTestingModule({imports: [MatSnackBarModule, NoopAnimationsModule]})
-      .compileComponents();
+      .configureTestingModule({imports: [MatSnackBarModule, NoopAnimationsModule]});
 
-    inject([MatSnackBar, OverlayContainer], (sb: MatSnackBar, oc: OverlayContainer) => {
-      snackBar = sb;
-      overlayContainerElement = oc.getContainerElement();
-    })();
+    snackBar = TestBed.inject(MatSnackBar);
+    overlayContainerElement = TestBed.inject(OverlayContainer).getContainerElement();
 
     snackBar.open(simpleMessage);
     flush();
@@ -653,9 +548,9 @@ describe('MatSnackBar', () => {
   it('should cap the timeout to the maximum accepted delay in setTimeout', fakeAsync(() => {
     const config = new MatSnackBarConfig();
     config.duration = Infinity;
+    spyOn(window, 'setTimeout').and.callThrough();
     snackBar.open('content', 'test', config);
     viewContainerFixture.detectChanges();
-    spyOn(window, 'setTimeout').and.callThrough();
     tick(100);
 
     expect(window.setTimeout).toHaveBeenCalledWith(jasmine.any(Function), Math.pow(2, 31) - 1);
@@ -669,7 +564,7 @@ describe('MatSnackBar', () => {
       viewContainerFixture.detectChanges();
     }
 
-    flush();
+    flush(50);
     expect(overlayContainerElement.querySelectorAll('mat-snack-bar-container').length).toBe(1);
   }));
 
@@ -724,6 +619,7 @@ describe('MatSnackBar', () => {
       snackBarRef.onAction().subscribe({complete: actionCompleteSpy});
 
       snackBarRef.dismissWithAction();
+      viewContainerFixture.detectChanges();
       flush();
 
       expect(dismissCompleteSpy).toHaveBeenCalled();
@@ -741,6 +637,7 @@ describe('MatSnackBar', () => {
 
     it('should be able to open a snack bar using a TemplateRef', () => {
       templateFixture.componentInstance.localValue = 'Pizza';
+      templateFixture.changeDetectorRef.markForCheck();
       snackBar.openFromTemplate(templateFixture.componentInstance.templateRef);
       templateFixture.detectChanges();
 
@@ -750,6 +647,7 @@ describe('MatSnackBar', () => {
       expect(containerElement.textContent).toContain('Pizza');
 
       templateFixture.componentInstance.localValue = 'Pasta';
+      templateFixture.changeDetectorRef.markForCheck();
       templateFixture.detectChanges();
 
       expect(containerElement.textContent).toContain('Pasta');
@@ -782,13 +680,10 @@ describe('MatSnackBar with parent MatSnackBar', () => {
         ComponentThatProvidesMatSnackBar,
         DirectiveWithViewContainer,
       ],
-    }).compileComponents();
-  }));
+    });
 
-  beforeEach(inject([MatSnackBar, OverlayContainer], (sb: MatSnackBar, oc: OverlayContainer) => {
-    parentSnackBar = sb;
-    overlayContainerElement = oc.getContainerElement();
-
+    parentSnackBar = TestBed.inject(MatSnackBar);
+    overlayContainerElement = TestBed.inject(OverlayContainer).getContainerElement();
     fixture = TestBed.createComponent(ComponentThatProvidesMatSnackBar);
     childSnackBar = fixture.componentInstance.snackBar;
     fixture.detectChanges();
@@ -860,18 +755,13 @@ describe('MatSnackBar Positioning', () => {
         ComponentWithChildViewContainer,
         DirectiveWithViewContainer,
       ],
-    }).compileComponents();
-  }));
+    });
 
-  beforeEach(inject([MatSnackBar, OverlayContainer], (sb: MatSnackBar, oc: OverlayContainer) => {
-    snackBar = sb;
-    overlayContainerEl = oc.getContainerElement();
-  }));
-
-  beforeEach(() => {
+    snackBar = TestBed.inject(MatSnackBar);
+    overlayContainerEl = TestBed.inject(OverlayContainer).getContainerElement();
     viewContainerFixture = TestBed.createComponent(ComponentWithChildViewContainer);
     viewContainerFixture.detectChanges();
-  });
+  }));
 
   it('should default to bottom center', fakeAsync(() => {
     snackBar.open(simpleMessage, simpleActionLabel);
@@ -1105,16 +995,14 @@ describe('MatSnackBar Positioning', () => {
 
 @Directive({
   selector: 'dir-with-view-container',
-  standalone: true,
 })
 class DirectiveWithViewContainer {
-  constructor(public viewContainerRef: ViewContainerRef) {}
+  viewContainerRef = inject(ViewContainerRef);
 }
 
 @Component({
   selector: 'arbitrary-component',
   template: `@if (childComponentExists()) {<dir-with-view-container></dir-with-view-container>}`,
-  standalone: true,
   imports: [DirectiveWithViewContainer],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -1135,7 +1023,6 @@ class ComponentWithChildViewContainer {
       Fries {{localValue}} {{data?.value}}
     </ng-template>
   `,
-  standalone: true,
 })
 class ComponentWithTemplateRef {
   @ViewChild(TemplateRef) templateRef: TemplateRef<any>;
@@ -1145,20 +1032,16 @@ class ComponentWithTemplateRef {
 /** Simple component for testing ComponentPortal. */
 @Component({
   template: '<p>Burritos are on the way.</p>',
-  standalone: true,
 })
 class BurritosNotification {
-  constructor(
-    public snackBarRef: MatSnackBarRef<BurritosNotification>,
-    @Inject(MAT_SNACK_BAR_DATA) public data: any,
-  ) {}
+  snackBarRef = inject<MatSnackBarRef<BurritosNotification>>(MatSnackBarRef);
+  data = inject(MAT_SNACK_BAR_DATA);
 }
 
 @Component({
   template: '',
   providers: [MatSnackBar],
-  standalone: true,
 })
 class ComponentThatProvidesMatSnackBar {
-  constructor(public snackBar: MatSnackBar) {}
+  snackBar = inject(MatSnackBar);
 }

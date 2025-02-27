@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ComponentHarnessConstructor, HarnessPredicate, parallel} from '@angular/cdk/testing';
@@ -16,7 +16,7 @@ import {
 } from './list-harness-filters';
 import {getListItemPredicate, MatListItemHarnessBase} from './list-item-harness-base';
 
-/** Harness for interacting with a MDC_based selection-list in tests. */
+/** Harness for interacting with a selection-list in tests. */
 export class MatSelectionListHarness extends MatListHarnessBase<
   typeof MatListOptionHarness,
   MatListOptionHarness,
@@ -75,7 +75,7 @@ export class MatSelectionListHarness extends MatListHarnessBase<
   }
 }
 
-/** Harness for interacting with a MDC-based list option. */
+/** Harness for interacting with a list option. */
 export class MatListOptionHarness extends MatListItemHarnessBase {
   /** The selector for the host element of a `MatListOption` instance. */
   static hostSelector = '.mat-mdc-list-option';

@@ -58,6 +58,19 @@
   </mat-card-content>
 </mat-card>
 
+<mat-card class="demo-card demo-number-input-tooltip">
+  <mat-toolbar color="primary">Number Input + Tooltip</mat-toolbar>
+  <mat-card-content>
+    <form>
+      <mat-form-field>
+        <mat-label>Pump Flow</mat-label>
+        <input matNativeControl value="10" type="number"><!--  -->
+        <span matSuffix matTooltip="Milliliter per Minute">ml/min</span>
+      </mat-form-field>
+    </form>
+  </mat-card-content>
+</mat-card>
+
 <mat-card class="demo-card demo-basic">
   <mat-toolbar color="primary">Error messages</mat-toolbar>
   <mat-card-content>
@@ -699,6 +712,53 @@
 </mat-card>
 
 <mat-card class="demo-card demo-basic">
+  <mat-toolbar color="primary">Disabled interactive inputs</mat-toolbar>
+  <mat-card-content>
+    @for (appearance of appearances; track $index) {
+      <div>
+        <mat-form-field [appearance]="appearance">
+          <mat-label>Label</mat-label>
+          <input
+            matNativeControl
+            disabled
+            disabledInteractive
+            value="Value"
+            matTooltip="I can trigger a tooltip!">
+        </mat-form-field>
+
+        <mat-form-field [appearance]="appearance">
+          <mat-label>Label</mat-label>
+          <input
+            matNativeControl
+            disabled
+            disabledInteractive
+            matTooltip="I can trigger a tooltip!">
+        </mat-form-field>
+
+        <mat-form-field [appearance]="appearance">
+          <mat-label>Label</mat-label>
+          <input
+            matNativeControl
+            disabled
+            disabledInteractive
+            placeholder="Placeholder"
+            matTooltip="I can trigger a tooltip!">
+        </mat-form-field>
+
+        <mat-form-field [appearance]="appearance">
+          <input
+            matNativeControl
+            disabled
+            disabledInteractive
+            matTooltip="I can trigger a tooltip!"
+            placeholder="Placeholder">
+        </mat-form-field>
+      </div>
+    }
+  </mat-card-content>
+</mat-card>
+
+<mat-card class="demo-card demo-basic">
   <mat-toolbar color="primary">Textarea form-fields</mat-toolbar>
   <mat-card-content>
     <mat-form-field appearance="fill" class="demo-horizontal-spacing">
@@ -866,6 +926,41 @@
     </p>
   </mat-card-content>
 </mat-card>
+
+<mat-card class="demo-card demo-basic">
+  <mat-toolbar color="primary">Without label</mat-toolbar>
+  <mat-card-content>
+    <h4>Label removed</h4>
+    <p>
+    <mat-form-field appearance="outline">
+      @if (hasLabel$ | async){
+        <mat-label>My input</mat-label>
+      }
+      <input matInput type="text" />
+    </mat-form-field>
+    </p>
+    <p>
+    <mat-form-field>
+      @if (hasLabel$ | async){
+        <mat-label>My input</mat-label>
+      }
+      <input matInput type="text" />
+    </mat-form-field>
+    </p>
+    <h4>No defined label</h4>
+    <p>
+    <mat-form-field appearance="outline">
+      <input matInput type="text"/>
+    </mat-form-field>
+    </p>
+    <p>
+      <mat-form-field>
+        <input matInput type="text"/>
+      </mat-form-field>
+    </p>
+  </mat-card-content>
+</mat-card>
+
 
 <mat-card class="demo-card demo-basic">
   <mat-card-content>

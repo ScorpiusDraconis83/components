@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-export {MatInput} from './input';
+export {MatInput, MatInputConfig, MAT_INPUT_CONFIG} from './input';
 export {MatInputModule} from './module';
 export * from './input-value-accessor';
 export * from './input-errors';

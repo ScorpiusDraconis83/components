@@ -3,11 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {Directive, Inject, OnDestroy, OnInit, Optional, Self} from '@angular/core';
-import {ControlValueAccessor, NG_VALUE_ACCESSOR} from '@angular/forms';
+import {Directive, OnDestroy, OnInit, inject} from '@angular/core';
+import {NG_VALUE_ACCESSOR} from '@angular/forms';
 import {Observable, of as observableOf, Subject} from 'rxjs';
 import {switchMap, takeUntil} from 'rxjs/operators';
 
@@ -26,9 +26,11 @@ import {CdkSelection} from './selection';
 @Directive({
   selector: '[cdkSelectAll]',
   exportAs: 'cdkSelectAll',
-  standalone: true,
 })
 export class CdkSelectAll<T> implements OnDestroy, OnInit {
+  private readonly _selection = inject<CdkSelection<T>>(CdkSelection, {optional: true})!;
+  private readonly _controlValueAccessor = inject(NG_VALUE_ACCESSOR, {optional: true, self: true});
+
   /**
    * The checked state of the toggle.
    * Resolves to `true` if all the values are selected, `false` if no value is selected.
@@ -63,13 +65,9 @@ export class CdkSelectAll<T> implements OnDestroy, OnInit {
 
   private readonly _destroyed = new Subject<void>();
 
-  constructor(
-    @Optional() @Inject(CdkSelection) private readonly _selection: CdkSelection<T>,
-    @Optional()
-    @Self()
-    @Inject(NG_VALUE_ACCESSOR)
-    private readonly _controlValueAccessor: ControlValueAccessor[],
-  ) {
+  constructor() {
+    const _selection = this._selection;
+
     this.checked = _selection.change.pipe(
       switchMap(() => observableOf(_selection.isAllSelected())),
     );
@@ -92,7 +90,7 @@ export class CdkSelectAll<T> implements OnDestroy, OnInit {
         }
       });
       this.checked.pipe(takeUntil(this._destroyed)).subscribe(state => {
-        this._controlValueAccessor[0].writeValue(state);
+        this._controlValueAccessor![0].writeValue(state);
       });
     }
   }

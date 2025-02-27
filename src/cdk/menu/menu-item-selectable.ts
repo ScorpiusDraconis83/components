@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Directive, Input, booleanAttribute} from '@angular/core';
@@ -15,7 +15,6 @@ import {CdkMenuItem} from './menu-item';
     '[attr.aria-checked]': '!!checked',
     '[attr.aria-disabled]': 'disabled || null',
   },
-  standalone: true,
 })
 export abstract class CdkMenuItemSelectable extends CdkMenuItem {
   /** Whether the element is checked */

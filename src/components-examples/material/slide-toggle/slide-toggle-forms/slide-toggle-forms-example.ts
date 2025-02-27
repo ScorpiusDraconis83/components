@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {Component, inject} from '@angular/core';
 import {FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatButtonModule} from '@angular/material/button';
 import {
@@ -13,7 +13,6 @@ import {
   selector: 'slide-toggle-forms-example',
   templateUrl: './slide-toggle-forms-example.html',
   styleUrl: './slide-toggle-forms-example.css',
-  standalone: true,
   imports: [
     MatSlideToggleModule,
     FormsModule,
@@ -23,13 +22,13 @@ import {
   ],
 })
 export class SlideToggleFormsExample {
+  private _formBuilder = inject(FormBuilder);
+
   isChecked = true;
   formGroup = this._formBuilder.group({
     enableWifi: '',
     acceptTerms: ['', Validators.requiredTrue],
   });
-
-  constructor(private _formBuilder: FormBuilder) {}
 
   alertFormValues(formGroup: FormGroup) {
     alert(JSON.stringify(formGroup.value, null, 2));

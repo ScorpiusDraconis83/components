@@ -1,9 +1,13 @@
 import {Directionality} from '@angular/cdk/bidi';
 import {COMMA, ENTER, TAB} from '@angular/cdk/keycodes';
 import {PlatformModule} from '@angular/cdk/platform';
-import {dispatchKeyboardEvent} from '@angular/cdk/testing/private';
-import {Component, DebugElement, ViewChild, provideZoneChangeDetection} from '@angular/core';
-import {waitForAsync, ComponentFixture, fakeAsync, TestBed, flush} from '@angular/core/testing';
+import {
+  createKeyboardEvent,
+  dispatchKeyboardEvent,
+  dispatchEvent,
+} from '@angular/cdk/testing/private';
+import {Component, DebugElement, ViewChild} from '@angular/core';
+import {ComponentFixture, TestBed, fakeAsync, flush, waitForAsync} from '@angular/core/testing';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -17,19 +21,13 @@ import {
   MatChipsModule,
 } from './index';
 
-describe('MDC-based MatChipInput', () => {
+describe('MatChipInput', () => {
   let fixture: ComponentFixture<any>;
   let testChipInput: TestChipInput;
   let inputDebugElement: DebugElement;
   let inputNativeElement: HTMLElement;
   let chipInputDirective: MatChipInput;
   let dir = 'ltr';
-
-  beforeEach(() => {
-    TestBed.configureTestingModule({
-      providers: [provideZoneChangeDetection()],
-    });
-  });
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
@@ -47,8 +45,6 @@ describe('MDC-based MatChipInput', () => {
       ],
       declarations: [TestChipInput],
     });
-
-    TestBed.compileComponents();
   }));
 
   beforeEach(waitForAsync(() => {
@@ -77,6 +73,7 @@ describe('MDC-based MatChipInput', () => {
       expect(inputNativeElement.hasAttribute('placeholder')).toBe(false);
 
       testChipInput.placeholder = 'bound placeholder';
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(inputNativeElement.getAttribute('placeholder')).toBe('bound placeholder');
@@ -87,6 +84,7 @@ describe('MDC-based MatChipInput', () => {
       expect(chipInputDirective.disabled).toBe(false);
 
       fixture.componentInstance.chipGridInstance.disabled = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(inputNativeElement.getAttribute('disabled')).toBe('true');
@@ -97,6 +95,7 @@ describe('MDC-based MatChipInput', () => {
       expect(inputNativeElement.hasAttribute('aria-required')).toBe(false);
 
       fixture.componentInstance.required = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(inputNativeElement.getAttribute('aria-required')).toBe('true');
@@ -106,6 +105,7 @@ describe('MDC-based MatChipInput', () => {
       expect(inputNativeElement.hasAttribute('required')).toBe(false);
 
       fixture.componentInstance.required = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(inputNativeElement.getAttribute('required')).toBe('true');
@@ -144,6 +144,7 @@ describe('MDC-based MatChipInput', () => {
       spyOn(testChipInput, 'add');
 
       testChipInput.addOnBlur = true;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       chipInputDirective._blur();
@@ -154,6 +155,7 @@ describe('MDC-based MatChipInput', () => {
       spyOn(testChipInput, 'add');
 
       testChipInput.addOnBlur = false;
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       chipInputDirective._blur();
@@ -195,18 +197,16 @@ describe('MDC-based MatChipInput', () => {
     it('emits (chipEnd) when the separator keys are configured globally', () => {
       fixture.destroy();
 
-      TestBed.resetTestingModule()
-        .configureTestingModule({
-          imports: [MatChipsModule, MatFormFieldModule, PlatformModule, NoopAnimationsModule],
-          declarations: [TestChipInput],
-          providers: [
-            {
-              provide: MAT_CHIPS_DEFAULT_OPTIONS,
-              useValue: {separatorKeyCodes: [COMMA]} as MatChipsDefaultOptions,
-            },
-          ],
-        })
-        .compileComponents();
+      TestBed.resetTestingModule().configureTestingModule({
+        imports: [MatChipsModule, MatFormFieldModule, PlatformModule, NoopAnimationsModule],
+        declarations: [TestChipInput],
+        providers: [
+          {
+            provide: MAT_CHIPS_DEFAULT_OPTIONS,
+            useValue: {separatorKeyCodes: [COMMA]} as MatChipsDefaultOptions,
+          },
+        ],
+      });
 
       fixture = TestBed.createComponent(TestChipInput);
       testChipInput = fixture.debugElement.componentInstance;
@@ -252,6 +252,20 @@ describe('MDC-based MatChipInput', () => {
 
       expect(inputNativeElement.getAttribute('aria-describedby')).toBeNull();
     }));
+
+    it('should not emit chipEnd if the key is repeated', () => {
+      spyOn(testChipInput, 'add');
+
+      chipInputDirective.separatorKeyCodes = [COMMA];
+      fixture.detectChanges();
+
+      const event = createKeyboardEvent('keydown', COMMA);
+      Object.defineProperty(event, 'repeat', {get: () => true});
+      dispatchEvent(inputNativeElement, event);
+      fixture.detectChanges();
+
+      expect(testChipInput.add).not.toHaveBeenCalled();
+    });
   });
 });
 
@@ -267,6 +281,7 @@ describe('MDC-based MatChipInput', () => {
       </mat-chip-grid>
     </mat-form-field>
   `,
+  standalone: false,
 })
 class TestChipInput {
   @ViewChild(MatChipGrid) chipGridInstance: MatChipGrid;

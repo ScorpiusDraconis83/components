@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -14,11 +14,10 @@ import {
   OnDestroy,
   SimpleChanges,
   booleanAttribute,
+  inject,
 } from '@angular/core';
+import {_IdGenerator} from '@angular/cdk/a11y';
 import {Subject} from 'rxjs';
-
-/** Used to generate unique ID for each accordion. */
-let nextId = 0;
 
 /**
  * Injection token that can be used to reference instances of `CdkAccordion`. It serves
@@ -34,7 +33,6 @@ export const CDK_ACCORDION = new InjectionToken<CdkAccordion>('CdkAccordion');
   selector: 'cdk-accordion, [cdkAccordion]',
   exportAs: 'cdkAccordion',
   providers: [{provide: CDK_ACCORDION, useExisting: CdkAccordion}],
-  standalone: true,
 })
 export class CdkAccordion implements OnDestroy, OnChanges {
   /** Emits when the state of the accordion changes */
@@ -44,7 +42,7 @@ export class CdkAccordion implements OnDestroy, OnChanges {
   readonly _openCloseAllActions: Subject<boolean> = new Subject<boolean>();
 
   /** A readonly id value to use for unique selection coordination. */
-  readonly id: string = `cdk-accordion-${nextId++}`;
+  readonly id: string = inject(_IdGenerator).getId('cdk-accordion-');
 
   /** Whether the accordion should allow multiple expanded accordion items simultaneously. */
   @Input({transform: booleanAttribute}) multi: boolean = false;

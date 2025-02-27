@@ -45,9 +45,9 @@ function runBaseListFunctionalityTests<
 
     beforeEach(async () => {
       const testComponent = testComponentFn();
-      await TestBed.configureTestingModule({
+      TestBed.configureTestingModule({
         imports: [MatListModule, testComponent],
-      }).compileComponents();
+      });
 
       fixture = TestBed.createComponent(testComponent);
       fixture.detectChanges();
@@ -319,9 +319,9 @@ describe('MatActionListHarness', () => {
     let fixture: ComponentFixture<ActionListHarnessTest>;
 
     beforeEach(async () => {
-      await TestBed.configureTestingModule({
+      TestBed.configureTestingModule({
         imports: [MatListModule, ActionListHarnessTest],
-      }).compileComponents();
+      });
 
       fixture = TestBed.createComponent(ActionListHarnessTest);
       fixture.detectChanges();
@@ -352,9 +352,9 @@ describe('MatNavListHarness', () => {
     let fixture: ComponentFixture<NavListHarnessTest>;
 
     beforeEach(async () => {
-      await TestBed.configureTestingModule({
+      TestBed.configureTestingModule({
         imports: [MatListModule, NavListHarnessTest],
-      }).compileComponents();
+      });
 
       fixture = TestBed.createComponent(NavListHarnessTest);
       fixture.detectChanges();
@@ -421,9 +421,9 @@ describe('MatSelectionListHarness', () => {
     let fixture: ComponentFixture<SelectionListHarnessTest>;
 
     beforeEach(async () => {
-      await TestBed.configureTestingModule({
+      TestBed.configureTestingModule({
         imports: [MatListModule, SelectionListHarnessTest],
-      }).compileComponents();
+      });
 
       fixture = TestBed.createComponent(SelectionListHarnessTest);
       fixture.detectChanges();
@@ -541,7 +541,6 @@ describe('MatSelectionListHarness', () => {
 
       <mat-list class="test-empty"></mat-list>
   `,
-  standalone: true,
   imports: [MatListModule],
 })
 class ListHarnessTest {
@@ -582,7 +581,6 @@ class ListHarnessTest {
 
       <mat-action-list class="test-empty"></mat-action-list>
   `,
-  standalone: true,
   imports: [MatListModule],
 })
 class ActionListHarnessTest {
@@ -625,7 +623,6 @@ class ActionListHarnessTest {
 
       <mat-nav-list class="test-empty"></mat-nav-list>
   `,
-  standalone: true,
   imports: [MatListModule],
 })
 class NavListHarnessTest {
@@ -669,7 +666,6 @@ class NavListHarnessTest {
 
     <mat-selection-list class="test-empty" disabled></mat-selection-list>
   `,
-  standalone: true,
   imports: [MatListModule],
 })
 class SelectionListHarnessTest {

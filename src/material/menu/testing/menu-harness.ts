@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -12,12 +12,11 @@ import {
   HarnessLoader,
   HarnessPredicate,
   TestElement,
-  TestKey,
 } from '@angular/cdk/testing';
 import {coerceBooleanProperty} from '@angular/cdk/coercion';
 import {MenuHarnessFilters, MenuItemHarnessFilters} from './menu-harness-filters';
 
-/** Harness for interacting with an MDC-based mat-menu in tests. */
+/** Harness for interacting with a mat-menu in tests. */
 export class MatMenuHarness extends ContentContainerComponentHarness<string> {
   private _documentRootLocator = this.documentRootLocatorFactory();
 
@@ -82,7 +81,7 @@ export class MatMenuHarness extends ContentContainerComponentHarness<string> {
   async close(): Promise<void> {
     const panel = await this._getMenuPanel();
     if (panel) {
-      return panel.sendKeys(TestKey.ESCAPE);
+      return panel.click();
     }
   }
 

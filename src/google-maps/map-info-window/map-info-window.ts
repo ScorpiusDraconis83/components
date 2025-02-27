@@ -3,11 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 // Workaround for: https://github.com/bazelbuild/rules_nodejs/issues/1265
-/// <reference types="google.maps" />
+/// <reference types="google.maps" preserve="true" />
 
 import {
   Directive,
@@ -35,10 +35,12 @@ import {MapAnchorPoint} from '../map-anchor-point';
 @Directive({
   selector: 'map-info-window',
   exportAs: 'mapInfoWindow',
-  standalone: true,
   host: {'style': 'display: none'},
 })
 export class MapInfoWindow implements OnInit, OnDestroy {
+  private readonly _googleMap = inject(GoogleMap);
+  private _elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
+  private _ngZone = inject(NgZone);
   private _eventManager = new MapEventManager(inject(NgZone));
   private readonly _options = new BehaviorSubject<google.maps.InfoWindowOptions>({});
   private readonly _position = new BehaviorSubject<
@@ -105,11 +107,8 @@ export class MapInfoWindow implements OnInit, OnDestroy {
   @Output() readonly infoWindowInitialized: EventEmitter<google.maps.InfoWindow> =
     new EventEmitter<google.maps.InfoWindow>();
 
-  constructor(
-    private readonly _googleMap: GoogleMap,
-    private _elementRef: ElementRef<HTMLElement>,
-    private _ngZone: NgZone,
-  ) {}
+  constructor(...args: unknown[]);
+  constructor() {}
 
   ngOnInit() {
     if (this._googleMap._isBrowser) {
@@ -232,7 +231,9 @@ export class MapInfoWindow implements OnInit, OnDestroy {
     // undefined. If that's the case, we have to allow it to open in order to handle the
     // case where the window doesn't have an anchor, but is placed at a particular position.
     if (this.infoWindow.get('anchor') !== anchorObject || !anchorObject) {
-      this._elementRef.nativeElement.style.display = '';
+      // If no explicit content is provided, it is taken from the DOM node.
+      // If it is, we need to hide it so it doesn't take up space on the page.
+      this._elementRef.nativeElement.style.display = content ? 'none' : '';
       if (content) {
         this.infoWindow.setContent(content);
       }

@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ComponentHarness} from '../../component-harness';
@@ -68,7 +68,7 @@ export class MainComponentHarness extends ComponentHarness {
     SubComponentHarness.with({title: 'List of test tools', itemCount: 4}),
   );
   readonly lastList = this.locatorFor(SubComponentHarness.with({selector: ':last-child'}));
-  readonly specaialKey = this.locatorFor('.special-key');
+  readonly specialKey = this.locatorFor('.special-key');
 
   readonly requiredAncestorRestrictedSubcomponent = this.locatorFor(
     SubComponentHarness.with({ancestor: '.other'}),

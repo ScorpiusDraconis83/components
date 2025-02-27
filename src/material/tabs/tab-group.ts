@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -15,10 +15,8 @@ import {
   ContentChildren,
   ElementRef,
   EventEmitter,
-  Inject,
   Input,
   OnDestroy,
-  Optional,
   Output,
   QueryList,
   ViewChild,
@@ -27,6 +25,9 @@ import {
   inject,
   numberAttribute,
   ANIMATION_MODULE_TYPE,
+  ViewChildren,
+  AfterViewInit,
+  NgZone,
 } from '@angular/core';
 import {MAT_TAB_GROUP, MatTab} from './tab';
 import {MatTabHeader} from './tab-header';
@@ -34,14 +35,11 @@ import {ThemePalette, MatRipple} from '@angular/material/core';
 import {merge, Subscription} from 'rxjs';
 import {MAT_TABS_CONFIG, MatTabsConfig} from './tab-config';
 import {startWith} from 'rxjs/operators';
-import {CdkMonitorFocus, FocusOrigin} from '@angular/cdk/a11y';
+import {_IdGenerator, CdkMonitorFocus, FocusOrigin} from '@angular/cdk/a11y';
 import {MatTabBody} from './tab-body';
 import {CdkPortalOutlet} from '@angular/cdk/portal';
 import {MatTabLabelWrapper} from './tab-label-wrapper';
 import {Platform} from '@angular/cdk/platform';
-
-/** Used to generate unique ID's for each tab component */
-let nextId = 0;
 
 /** @docs-private */
 export interface MatTabGroupBaseHeader {
@@ -81,9 +79,9 @@ const ENABLE_BACKGROUND_INPUT = true;
     '[class.mat-mdc-tab-group-dynamic-height]': 'dynamicHeight',
     '[class.mat-mdc-tab-group-inverted-header]': 'headerPosition === "below"',
     '[class.mat-mdc-tab-group-stretch-tabs]': 'stretchTabs',
+    '[attr.mat-align-tabs]': 'alignTabs',
     '[style.--mat-tab-animation-duration]': 'animationDuration',
   },
-  standalone: true,
   imports: [
     MatTabHeader,
     MatTabLabelWrapper,
@@ -93,12 +91,24 @@ const ENABLE_BACKGROUND_INPUT = true;
     MatTabBody,
   ],
 })
-export class MatTabGroup implements AfterContentInit, AfterContentChecked, OnDestroy {
+export class MatTabGroup
+  implements AfterViewInit, AfterContentInit, AfterContentChecked, OnDestroy
+{
+  readonly _elementRef = inject(ElementRef);
+  private _changeDetectorRef = inject(ChangeDetectorRef);
+  private _ngZone = inject(NgZone);
+  private _tabsSubscription = Subscription.EMPTY;
+  private _tabLabelSubscription = Subscription.EMPTY;
+  private _tabBodySubscription = Subscription.EMPTY;
+
+  _animationMode = inject(ANIMATION_MODULE_TYPE, {optional: true});
+
   /**
    * All tabs inside the tab group. This includes tabs that belong to groups that are nested
    * inside the current one. We filter out only the tabs that belong to this group in `_tabs`.
    */
   @ContentChildren(MatTab, {descendants: true}) _allTabs: QueryList<MatTab>;
+  @ViewChildren(MatTabBody) _tabBodies: QueryList<MatTabBody> | undefined;
   @ViewChild('tabBodyWrapper') _tabBodyWrapper: ElementRef;
   @ViewChild('tabHeader') _tabHeader: MatTabHeader;
 
@@ -114,13 +124,13 @@ export class MatTabGroup implements AfterContentInit, AfterContentChecked, OnDes
   /** Snapshot of the height of the tab body wrapper before another tab is activated. */
   private _tabBodyWrapperHeight: number = 0;
 
-  /** Subscription to tabs being added/removed. */
-  private _tabsSubscription = Subscription.EMPTY;
-
-  /** Subscription to changes in the tab labels. */
-  private _tabLabelSubscription = Subscription.EMPTY;
-
-  /** Theme color of the tab group. */
+  /**
+   * Theme color of the tab group. This API is supported in M2 themes only, it
+   * has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/tabs/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   @Input()
   color: ThemePalette;
 
@@ -138,6 +148,10 @@ export class MatTabGroup implements AfterContentInit, AfterContentChecked, OnDes
   /** Whether tabs should be stretched to fill the header. */
   @Input({alias: 'mat-stretch-tabs', transform: booleanAttribute})
   stretchTabs: boolean = true;
+
+  /** Alignment for tabs label. */
+  @Input({alias: 'mat-align-tabs'})
+  alignTabs: string | null = null;
 
   /** Whether the tab group should grow to the size of the active tab. */
   @Input({transform: booleanAttribute})
@@ -204,7 +218,12 @@ export class MatTabGroup implements AfterContentInit, AfterContentChecked, OnDes
   preserveContent: boolean = false;
 
   /**
-   * Background color of the tab group.
+   * Theme color of the background of the tab group. This API is supported in M2 themes only, it
+   * has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/tabs/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   *
    * @deprecated The background color should be customized through Sass theming APIs.
    * @breaking-change 20.0.0 Remove this input
    */
@@ -231,6 +250,12 @@ export class MatTabGroup implements AfterContentInit, AfterContentChecked, OnDes
 
   private _backgroundColor: ThemePalette;
 
+  /** Aria label of the inner `tablist` of the group. */
+  @Input('aria-label') ariaLabel: string;
+
+  /** Sets the `aria-labelledby` of the inner `tablist` of the group. */
+  @Input('aria-labelledby') ariaLabelledby: string;
+
   /** Output to enable support for two-way binding on `[(selectedIndex)]` */
   @Output() readonly selectedIndexChange: EventEmitter<number> = new EventEmitter<number>();
 
@@ -245,18 +270,17 @@ export class MatTabGroup implements AfterContentInit, AfterContentChecked, OnDes
   @Output() readonly selectedTabChange: EventEmitter<MatTabChangeEvent> =
     new EventEmitter<MatTabChangeEvent>(true);
 
-  private _groupId: number;
+  private _groupId: string;
 
   /** Whether the tab group is rendered on the server. */
   protected _isServer: boolean = !inject(Platform).isBrowser;
 
-  constructor(
-    readonly _elementRef: ElementRef,
-    private _changeDetectorRef: ChangeDetectorRef,
-    @Inject(MAT_TABS_CONFIG) @Optional() defaultConfig?: MatTabsConfig,
-    @Optional() @Inject(ANIMATION_MODULE_TYPE) public _animationMode?: string,
-  ) {
-    this._groupId = nextId++;
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const defaultConfig = inject<MatTabsConfig>(MAT_TABS_CONFIG, {optional: true});
+
+    this._groupId = inject(_IdGenerator).getId('mat-tab-group-');
     this.animationDuration =
       defaultConfig && defaultConfig.animationDuration ? defaultConfig.animationDuration : '500ms';
     this.disablePagination =
@@ -275,6 +299,8 @@ export class MatTabGroup implements AfterContentInit, AfterContentChecked, OnDes
         : false;
     this.stretchTabs =
       defaultConfig && defaultConfig.stretchTabs != null ? defaultConfig.stretchTabs : true;
+    this.alignTabs =
+      defaultConfig && defaultConfig.alignTabs != null ? defaultConfig.alignTabs : null;
   }
 
   /**
@@ -375,6 +401,10 @@ export class MatTabGroup implements AfterContentInit, AfterContentChecked, OnDes
     });
   }
 
+  ngAfterViewInit() {
+    this._tabBodySubscription = this._tabBodies!.changes.subscribe(() => this._bodyCentered(true));
+  }
+
   /** Listens to changes in all of the tabs. */
   private _subscribeToAllTabChanges() {
     // Since we use a query with `descendants: true` to pick up the tabs, we may end up catching
@@ -394,6 +424,7 @@ export class MatTabGroup implements AfterContentInit, AfterContentChecked, OnDes
     this._tabs.destroy();
     this._tabsSubscription.unsubscribe();
     this._tabLabelSubscription.unsubscribe();
+    this._tabBodySubscription.unsubscribe();
   }
 
   /** Re-aligns the ink bar to the selected tab element. */
@@ -468,12 +499,12 @@ export class MatTabGroup implements AfterContentInit, AfterContentChecked, OnDes
 
   /** Returns a unique id for each tab label element */
   _getTabLabelId(i: number): string {
-    return `mat-tab-label-${this._groupId}-${i}`;
+    return `${this._groupId}-label-${i}`;
   }
 
   /** Returns a unique id for each tab content element */
   _getTabContentId(i: number): string {
-    return `mat-tab-content-${this._groupId}-${i}`;
+    return `${this._groupId}-content-${i}`;
   }
 
   /**
@@ -482,6 +513,7 @@ export class MatTabGroup implements AfterContentInit, AfterContentChecked, OnDes
    */
   _setTabBodyWrapperHeight(tabHeight: number): void {
     if (!this.dynamicHeight || !this._tabBodyWrapperHeight) {
+      this._tabBodyWrapperHeight = tabHeight;
       return;
     }
 
@@ -501,7 +533,7 @@ export class MatTabGroup implements AfterContentInit, AfterContentChecked, OnDes
     const wrapper = this._tabBodyWrapper.nativeElement;
     this._tabBodyWrapperHeight = wrapper.clientHeight;
     wrapper.style.height = '';
-    this.animationDone.emit();
+    this._ngZone.run(() => this.animationDone.emit());
   }
 
   /** Handle click events, setting new selected index if appropriate. */
@@ -527,6 +559,23 @@ export class MatTabGroup implements AfterContentInit, AfterContentChecked, OnDes
     // such cases anyway, because it will be done when the tab becomes selected.
     if (focusOrigin && focusOrigin !== 'mouse' && focusOrigin !== 'touch') {
       this._tabHeader.focusIndex = index;
+    }
+  }
+
+  /**
+   * Callback invoked when the centered state of a tab body changes.
+   * @param isCenter Whether the tab will be in the center.
+   */
+  protected _bodyCentered(isCenter: boolean) {
+    // Marks all the existing tabs as inactive and the center tab as active. Note that this can
+    // be achieved much easier by using a class binding on each body. The problem with
+    // doing so is that we can't control the timing of when the class is removed from the
+    // previously-active element and added to the newly-active one. If there's a tick between
+    // removing the class and adding the new one, the content will jump in a very jarring way.
+    // We go through the trouble of setting the classes ourselves to guarantee that they're
+    // swapped out at the same time.
+    if (isCenter) {
+      this._tabBodies?.forEach((body, i) => body._setActiveClass(i === this._selectedIndex));
     }
   }
 }

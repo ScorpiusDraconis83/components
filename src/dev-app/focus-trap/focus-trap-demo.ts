@@ -3,12 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {A11yModule, CdkTrapFocus} from '@angular/cdk/a11y';
 import {_supportsShadowDom} from '@angular/cdk/platform';
-import {CommonModule} from '@angular/common';
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -37,7 +36,6 @@ import {MatToolbarModule} from '@angular/material/toolbar';
   template: '<ng-content></ng-content>',
   host: {'class': 'demo-focus-trap-shadow-root'},
   encapsulation: ViewEncapsulation.ShadowDom,
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FocusTrapShadowDomDemo {}
@@ -46,18 +44,12 @@ export class FocusTrapShadowDomDemo {}
   selector: 'focus-trap-demo',
   templateUrl: 'focus-trap-demo.html',
   styleUrl: 'focus-trap-demo.css',
-  standalone: true,
-  imports: [
-    A11yModule,
-    CommonModule,
-    MatButtonModule,
-    MatCardModule,
-    MatToolbarModule,
-    FocusTrapShadowDomDemo,
-  ],
+  imports: [A11yModule, MatButtonModule, MatCardModule, MatToolbarModule, FocusTrapShadowDomDemo],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FocusTrapDemo implements AfterViewInit {
+  dialog = inject(MatDialog);
+
   @ViewChild('newElements')
   private _newElements: ElementRef<HTMLElement>;
 
@@ -67,8 +59,6 @@ export class FocusTrapDemo implements AfterViewInit {
   _supportsShadowDom = _supportsShadowDom();
 
   readonly cdr = inject(ChangeDetectorRef);
-
-  constructor(public dialog: MatDialog) {}
 
   ngAfterViewInit() {
     // We want all the traps to be disabled by default, but doing so while using the value in
@@ -103,13 +93,13 @@ let dialogCount = 0;
   selector: 'focus-trap-dialog-demo',
   styleUrl: 'focus-trap-dialog-demo.css',
   templateUrl: 'focus-trap-dialog-demo.html',
-  standalone: true,
   imports: [MatDialogTitle, MatDialogContent, MatDialogClose, MatDialogActions],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FocusTrapDialogDemo {
+  dialog = inject(MatDialog);
+
   id = dialogCount++;
-  constructor(public dialog: MatDialog) {}
 
   openAnotherDialog() {
     this.dialog.open(FocusTrapDialogDemo);

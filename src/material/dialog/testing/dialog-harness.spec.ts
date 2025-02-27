@@ -1,4 +1,4 @@
-import {Component, TemplateRef, ViewChild} from '@angular/core';
+import {Component, TemplateRef, ViewChild, inject} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
 import {HarnessLoader} from '@angular/cdk/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
@@ -16,10 +16,10 @@ describe('MatDialogHarness', () => {
   let fixture: ComponentFixture<DialogHarnessTest>;
   let loader: HarnessLoader;
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
+  beforeEach(() => {
+    TestBed.configureTestingModule({
       imports: [NoopAnimationsModule],
-    }).compileComponents();
+    });
 
     fixture = TestBed.createComponent(DialogHarnessTest);
     fixture.detectChanges();
@@ -72,7 +72,7 @@ describe('MatDialogHarness', () => {
     fixture.componentInstance.open();
     fixture.componentInstance.open({ariaLabelledBy: 'dialog-label'});
     const dialogs = await loader.getAllHarnesses(MatDialogHarness);
-    expect(await dialogs[0].getAriaLabelledby()).toMatch(/-dialog-title-\d+/);
+    expect(await dialogs[0].getAriaLabelledby()).toMatch(/-dialog-title-\w+\d+/);
     expect(await dialogs[1].getAriaLabelledby()).toBe('dialog-label');
   });
 
@@ -122,13 +122,12 @@ describe('MatDialogHarness', () => {
     </div>
   </ng-template>
   `,
-  standalone: true,
   imports: [MatDialogTitle, MatDialogContent, MatDialogActions],
 })
 class DialogHarnessTest {
-  @ViewChild(TemplateRef) dialogTmpl: TemplateRef<any>;
+  readonly dialog = inject(MatDialog);
 
-  constructor(readonly dialog: MatDialog) {}
+  @ViewChild(TemplateRef) dialogTmpl: TemplateRef<any>;
 
   open(config?: MatDialogConfig) {
     return this.dialog.open(this.dialogTmpl, config);

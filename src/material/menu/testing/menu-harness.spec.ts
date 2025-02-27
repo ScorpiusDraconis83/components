@@ -11,10 +11,10 @@ describe('MatMenuHarness', () => {
     let fixture: ComponentFixture<MenuHarnessTest>;
     let loader: HarnessLoader;
 
-    beforeEach(async () => {
-      await TestBed.configureTestingModule({
+    beforeEach(() => {
+      TestBed.configureTestingModule({
         imports: [MatMenuModule, NoopAnimationsModule, MenuHarnessTest],
-      }).compileComponents();
+      });
 
       fixture = TestBed.createComponent(MenuHarnessTest);
       fixture.detectChanges();
@@ -91,10 +91,10 @@ describe('MatMenuHarness', () => {
     let fixture: ComponentFixture<NestedMenuHarnessTest>;
     let loader: HarnessLoader;
 
-    beforeEach(async () => {
-      await TestBed.configureTestingModule({
+    beforeEach(() => {
+      TestBed.configureTestingModule({
         imports: [MatMenuModule, NoopAnimationsModule, NestedMenuHarnessTest],
-      }).compileComponents();
+      });
 
       fixture = TestBed.createComponent(NestedMenuHarnessTest);
       fixture.detectChanges();
@@ -163,7 +163,6 @@ describe('MatMenuHarness', () => {
         <menu mat-menu-item>Account</menu>
       </mat-menu>
   `,
-  standalone: true,
   imports: [MatMenuModule],
 })
 class MenuHarnessTest {}
@@ -190,7 +189,6 @@ class MenuHarnessTest {}
         <button mat-menu-item (click)="lastClickedLeaf = 3">Leaf Item 3</button>
       </mat-menu>
   `,
-  standalone: true,
   imports: [MatMenuModule],
 })
 class NestedMenuHarnessTest {

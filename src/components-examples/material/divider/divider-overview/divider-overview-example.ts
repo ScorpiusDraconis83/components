@@ -1,4 +1,4 @@
-import {Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {MatDividerModule} from '@angular/material/divider';
 import {MatListModule} from '@angular/material/list';
 
@@ -8,7 +8,7 @@ import {MatListModule} from '@angular/material/list';
 @Component({
   selector: 'divider-overview-example',
   templateUrl: 'divider-overview-example.html',
-  standalone: true,
   imports: [MatListModule, MatDividerModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DividerOverviewExample {}

@@ -106,7 +106,7 @@
             "argument": 0,
             "properties": {
               "changeDetection": "\\.OnPush$",
-              "standalone": "^true$"
+              "!standalone": ".*"
             }
           }
         ],
@@ -122,7 +122,7 @@
           {
             "argument": 0,
             "properties": {
-              "standalone": "^true$"
+              "!standalone": ".*"
             }
           }
         ],
@@ -164,7 +164,7 @@
       true,
       [
         // Files that we don't publish to npm so the relative imports don't matter.
-        "**/+(dev-app|components-examples|schematics|tools)/**",
+        "**/+(dev-app|components-examples|ui-patterns|schematics|tools)/**",
         "**/google-maps/testing/**",
         "**/cdk/testing/+(tests|private)/**",
         "**/*.spec.ts"
@@ -181,16 +181,18 @@
     ],
     "no-unescaped-html-tag": true,
     // Ensures that all rxjs imports come only from `rxjs` and `rxjs/operators`.
-    "import-blacklist": [true, ["^rxjs(?!$|/operators$).*", "^@material/"]],
+    "import-blacklist": [true, ["^rxjs(?!$|/operators$).*"]],
     "no-zone-dependencies": [
       true,
       [
         // Allow in tests that specficially test integration with Zone.js.
         "**/*.zone.spec.ts",
-        // TODO(mmalerba): following files to be cleaned up and removed from this list:
-        "**/src/cdk/a11y/focus-trap/focus-trap.ts",
+        // TODO: Test harnesses infrastructure still relies on Zone.js.
+        "**/src/cdk/testing/testbed/task-state-zone-interceptor.ts",
+        "**/src/cdk/testing/testbed/testbed-harness-environment.ts",
         "**/src/cdk/testing/tests/testbed.spec.ts",
-        "**/src/material/**/*.spec.ts"
+        // TODO: Tooltip harness still relies on Zone.js.
+        "**/src/material/tooltip/testing/tooltip-harness.spec.ts"
       ]
     ]
   },
@@ -205,7 +207,7 @@
       "src/cdk/schematics/ng-update/test-cases/**/*_expected_output.ts",
       "src/material/schematics/ng-update/test-cases/**/*_input.ts",
       "src/material/schematics/ng-update/test-cases/**/*_expected_output.ts",
-      "src/material/schematics/ng-generate/m3-theme/index.ts",
+      "src/material/schematics/ng-generate/theme-color/index.ts",
       // These CLI-generated projects are not necessarily compliant with the lint
       // rules and they should remain as unmodified as possible.
       "integration/ng-add/**/*",

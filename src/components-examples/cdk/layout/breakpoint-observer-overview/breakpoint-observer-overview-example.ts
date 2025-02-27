@@ -1,5 +1,5 @@
+import {Component, OnDestroy, inject} from '@angular/core';
 import {BreakpointObserver, Breakpoints} from '@angular/cdk/layout';
-import {Component, OnDestroy} from '@angular/core';
 import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
@@ -8,7 +8,6 @@ import {takeUntil} from 'rxjs/operators';
   selector: 'breakpoint-observer-overview-example',
   templateUrl: 'breakpoint-observer-overview-example.html',
   styleUrl: 'breakpoint-observer-overview-example.css',
-  standalone: true,
 })
 export class BreakpointObserverOverviewExample implements OnDestroy {
   destroyed = new Subject<void>();
@@ -23,8 +22,8 @@ export class BreakpointObserverOverviewExample implements OnDestroy {
     [Breakpoints.XLarge, 'XLarge'],
   ]);
 
-  constructor(breakpointObserver: BreakpointObserver) {
-    breakpointObserver
+  constructor() {
+    inject(BreakpointObserver)
       .observe([
         Breakpoints.XSmall,
         Breakpoints.Small,

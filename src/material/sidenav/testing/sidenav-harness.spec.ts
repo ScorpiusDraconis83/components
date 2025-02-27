@@ -16,10 +16,10 @@ describe('MatSidenavHarness', () => {
     let fixture: ComponentFixture<DrawerHarnessTest>;
     let loader: HarnessLoader;
 
-    beforeEach(async () => {
-      await TestBed.configureTestingModule({
+    beforeEach(() => {
+      TestBed.configureTestingModule({
         imports: [MatSidenavModule, NoopAnimationsModule, DrawerHarnessTest],
-      }).compileComponents();
+      });
 
       fixture = TestBed.createComponent(DrawerHarnessTest);
       fixture.detectChanges();
@@ -108,10 +108,10 @@ describe('MatSidenavHarness', () => {
     let fixture: ComponentFixture<SidenavHarnessTest>;
     let loader: HarnessLoader;
 
-    beforeEach(async () => {
-      await TestBed.configureTestingModule({
+    beforeEach(() => {
+      TestBed.configureTestingModule({
         imports: [MatSidenavModule, NoopAnimationsModule, SidenavHarnessTest],
-      }).compileComponents();
+      });
 
       fixture = TestBed.createComponent(SidenavHarnessTest);
       fixture.detectChanges();
@@ -176,7 +176,6 @@ describe('MatSidenavHarness', () => {
       <mat-drawer-content>Content</mat-drawer-content>
     </mat-drawer-container>
   `,
-  standalone: true,
   imports: [MatSidenavModule],
 })
 class DrawerHarnessTest {
@@ -196,7 +195,6 @@ class DrawerHarnessTest {
       <mat-sidenav-content>Content</mat-sidenav-content>
     </mat-sidenav-container>
   `,
-  standalone: true,
   imports: [MatSidenavModule],
 })
 class SidenavHarnessTest {}

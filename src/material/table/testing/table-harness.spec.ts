@@ -9,10 +9,10 @@ describe('MatTableHarness', () => {
   let fixture: ComponentFixture<TableHarnessTest>;
   let loader: HarnessLoader;
 
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
+  beforeEach(() => {
+    TestBed.configureTestingModule({
       imports: [MatTableModule, TableHarnessTest],
-    }).compileComponents();
+    });
 
     fixture = TestBed.createComponent(TableHarnessTest);
     fixture.detectChanges();
@@ -214,7 +214,6 @@ describe('MatTableHarness', () => {
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
     </table>
   `,
-  standalone: true,
   imports: [MatTableModule],
 })
 class TableHarnessTest {

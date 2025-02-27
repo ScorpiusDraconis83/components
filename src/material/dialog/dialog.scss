@@ -1,8 +1,6 @@
 @use '@angular/cdk';
-@use '@material/typography/typography' as mdc-typography;
 @use '../core/tokens/m2/mdc/dialog' as tokens-mdc-dialog;
 @use '../core/tokens/m2/mat/dialog' as tokens-mat-dialog;
-@use '../core/mdc-helpers/mdc-helpers';
 @use '../core/tokens/token-utils';
 @use '../core/style/variables';
 
@@ -13,26 +11,25 @@ $mat-dialog-content-max-height: 65vh !default;
 // don't expose this value as variable.
 $mat-dialog-button-horizontal-margin: 8px !default;
 
+// Dialog container max height. This has been given a default value so the
+// flex-children can be calculated and not overflow on smaller screens.
+// Fixes b/323588333
+$mat-dialog-container-max-height: 95vh !default;
+
 // Whether to emit fallback values for the structural styles. Previously MDC was emitting
 // paddings in the static styles which meant that users would get them even if they didn't
 // include the `dialog-base`. Eventually we should clean up the usages of this flag.
 $_emit-fallbacks: true;
 
 @mixin _use-mat-tokens {
-  @include mdc-helpers.disable-mdc-fallback-declarations {
-    @include token-utils.use-tokens(tokens-mat-dialog.$prefix,
-      tokens-mat-dialog.get-token-slots()) {
-      @content;
-    }
+  @include token-utils.use-tokens(tokens-mat-dialog.$prefix, tokens-mat-dialog.get-token-slots()) {
+    @content;
   }
 }
 
 @mixin _use-mdc-tokens {
-  @include mdc-helpers.disable-mdc-fallback-declarations {
-    @include token-utils.use-tokens(tokens-mdc-dialog.$prefix,
-      tokens-mdc-dialog.get-token-slots()) {
-      @content;
-    }
+  @include token-utils.use-tokens(tokens-mdc-dialog.$prefix, tokens-mdc-dialog.get-token-slots()) {
+    @content;
   }
 }
 
@@ -114,6 +111,16 @@ $_emit-fallbacks: true;
   min-width: inherit;
   max-width: inherit;
 
+  @include _use-mat-tokens {
+    @include token-utils.create-token-slot(box-shadow, container-elevation-shadow,
+      $_emit-fallbacks);
+  }
+
+  @include _use-mdc-tokens {
+    @include token-utils.create-token-slot(border-radius, container-shape, $_emit-fallbacks);
+    @include token-utils.create-token-slot(background-color, container-color, $_emit-fallbacks);
+  }
+
   [dir='rtl'] & {
     text-align: right;
   }
@@ -140,38 +147,40 @@ $_emit-fallbacks: true;
     content: '';
     pointer-events: none;
   }
-
-  @include _use-mat-tokens {
-    @include token-utils.create-token-slot(box-shadow, container-elevation-shadow,
-      $_emit-fallbacks);
-  }
-
-  @include _use-mdc-tokens {
-    @include token-utils.create-token-slot(border-radius, container-shape, $_emit-fallbacks);
-    @include token-utils.create-token-slot(background-color, container-color, $_emit-fallbacks);
-  }
 }
 
 .mat-mdc-dialog-title {
-  @include mdc-typography.text-baseline($top: 40px, $display: block, $lineHeight: null);
+  display: block;
   position: relative;
   flex-shrink: 0;
   box-sizing: border-box;
   margin: 0 0 1px;
 
-  [dir='rtl'] & {
-    text-align: right;
-  }
-
   @include _use-mat-tokens {
     @include token-utils.create-token-slot(padding, headline-padding, $_emit-fallbacks);
+  }
+
+  // This was used by MDC to set the text baseline. We should figure out a way to
+  // remove it, because it can introduce unnecessary whitespace at the beginning
+  // of the element.
+  &::before {
+    display: inline-block;
+    width: 0;
+    height: 40px;
+    content: '';
+    vertical-align: 0;
+  }
+
+  [dir='rtl'] & {
+    text-align: right;
   }
 
   // Nested to maintain the old specificity.
   .mat-mdc-dialog-container & {
     @include _use-mdc-tokens {
       @include token-utils.create-token-slot(color, subhead-color, $_emit-fallbacks);
-      @include token-utils.create-token-slot(font-family, subhead-font, $_emit-fallbacks);
+      @include token-utils.create-token-slot(font-family, subhead-font,
+        if($_emit-fallbacks, inherit, null));
       @include token-utils.create-token-slot(line-height, subhead-line-height, $_emit-fallbacks);
       @include token-utils.create-token-slot(font-size, subhead-size, $_emit-fallbacks);
       @include token-utils.create-token-slot(font-weight, subhead-weight, $_emit-fallbacks);
@@ -200,7 +209,8 @@ $_emit-fallbacks: true;
   .mat-mdc-dialog-container & {
     @include _use-mdc-tokens {
       @include token-utils.create-token-slot(color, supporting-text-color, $_emit-fallbacks);
-      @include token-utils.create-token-slot(font-family, supporting-text-font, $_emit-fallbacks);
+      @include token-utils.create-token-slot(font-family, supporting-text-font,
+        if($_emit-fallbacks, inherit, null));
       @include token-utils.create-token-slot(line-height, supporting-text-line-height,
         $_emit-fallbacks);
       @include token-utils.create-token-slot(font-size, supporting-text-size, $_emit-fallbacks);
@@ -242,15 +252,15 @@ $_emit-fallbacks: true;
   padding: 8px;
   border-top: 1px solid transparent;
 
-  @include cdk.high-contrast(active, off) {
-    border-top-color: CanvasText;
-  }
-
   // For backwards compatibility, actions align at start by default. MDC usually
   // aligns actions at the end of the container.
   @include _use-mat-tokens {
     @include token-utils.create-token-slot(padding, actions-padding, $_emit-fallbacks);
     @include token-utils.create-token-slot(justify-content, actions-alignment, $_emit-fallbacks);
+  }
+
+  @include cdk.high-contrast {
+    border-top-color: CanvasText;
   }
 
   // .mat-mdc-dialog-actions-align-{start|center|end} are set by directive input "align"

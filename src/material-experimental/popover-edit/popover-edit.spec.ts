@@ -1,6 +1,5 @@
 import {DataSource} from '@angular/cdk/collections';
 import {DOWN_ARROW, LEFT_ARROW, RIGHT_ARROW, TAB, UP_ARROW} from '@angular/cdk/keycodes';
-import {CommonModule} from '@angular/common';
 import {Component, Directive, ElementRef, ViewChild} from '@angular/core';
 import {ComponentFixture, TestBed, fakeAsync, flush, tick} from '@angular/core/testing';
 import {FormsModule, NgForm} from '@angular/forms';
@@ -53,6 +52,7 @@ const POPOVER_EDIT_DIRECTIVE_NAME = `
     [matPopoverEdit]="nameEdit"
     [matPopoverEditColspan]="colspan"
     [matPopoverEditDisabled]="nameEditDisabled"
+    [matPopoverEditAriaLabel]="nameEditAriaLabel"
     `;
 
 const POPOVER_EDIT_DIRECTIVE_WEIGHT = `[matPopoverEdit]="weightEdit" matPopoverEditTabOut`;
@@ -69,6 +69,7 @@ abstract class BaseTestComponent {
   preservedValues = new FormValueContainer<PeriodicElement, {'name': string}>();
 
   nameEditDisabled = false;
+  nameEditAriaLabel: string | undefined = undefined;
   ignoreSubmitUnlessValid = true;
   clickOutBehavior: PopoverEditClickOutBehavior = 'close';
   colspan: CdkPopoverEditColspan = {};
@@ -228,6 +229,7 @@ class ElementDataSource extends DataSource<PeriodicElement> {
       margin: 16px;
     }
   `,
+  standalone: false,
 })
 class MatFlexTableInCell extends BaseTestComponent {
   displayedColumns = ['before', 'name', 'weight'];
@@ -279,6 +281,7 @@ class MatFlexTableInCell extends BaseTestComponent {
       margin: 16px;
     }
   `,
+  standalone: false,
 })
 class MatTableInCell extends BaseTestComponent {
   displayedColumns = ['before', 'name', 'weight'];
@@ -298,9 +301,9 @@ describe('Material Popover Edit', () => {
 
       beforeEach(fakeAsync(() => {
         TestBed.configureTestingModule({
-          imports: [MatTableModule, MatPopoverEditModule, CommonModule, FormsModule],
+          imports: [MatTableModule, MatPopoverEditModule, FormsModule],
           declarations: [componentClass],
-        }).compileComponents();
+        });
         fixture = TestBed.createComponent(componentClass);
         component = fixture.componentInstance;
         fixture.detectChanges();
@@ -428,6 +431,22 @@ describe('Material Popover Edit', () => {
           component.openLens();
 
           expect(component.lensIsOpen()).toBe(false);
+          clearLeftoverTimers();
+        }));
+
+        it('sets aria label and role dialog on the popup', fakeAsync(() => {
+          component.nameEditAriaLabel = 'Label of name!!';
+          fixture.changeDetectorRef.markForCheck();
+          fixture.detectChanges();
+
+          // Uses Enter to open the lens.
+          component.openLens();
+          fixture.detectChanges();
+
+          expect(component.lensIsOpen()).toBe(true);
+          const dialogElem = component.getEditPane()!;
+          expect(dialogElem.getAttribute('aria-label')).toBe('Label of name!!');
+          expect(dialogElem.getAttribute('role')).toBe('dialog');
           clearLeftoverTimers();
         }));
       });

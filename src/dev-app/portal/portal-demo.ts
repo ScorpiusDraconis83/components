@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CdkPortal, ComponentPortal, DomPortal, Portal, PortalModule} from '@angular/cdk/portal';
@@ -19,7 +19,6 @@ import {
 @Component({
   selector: 'science-joke',
   template: `<p> 100 kilopascals go into a bar. </p>`,
-  standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ScienceJoke {}
@@ -28,8 +27,7 @@ export class ScienceJoke {}
   selector: 'portal-demo',
   templateUrl: 'portal-demo.html',
   styleUrl: 'portal-demo.css',
-  standalone: true,
-  imports: [PortalModule, ScienceJoke],
+  imports: [PortalModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PortalDemo {

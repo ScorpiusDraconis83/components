@@ -27,7 +27,7 @@ describe('CdkScrollable', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [ScrollingModule, ScrollableViewport],
-    }).compileComponents();
+    });
   }));
 
   beforeEach(() => {
@@ -246,7 +246,6 @@ describe('CdkScrollable', () => {
       height: 100px;
     }
   `,
-  standalone: true,
   imports: [ScrollingModule],
 })
 class ScrollableViewport {

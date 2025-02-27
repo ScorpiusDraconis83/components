@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {ComponentHarness, HarnessPredicate, parallel} from '@angular/cdk/testing';
@@ -55,8 +55,8 @@ export class MatButtonToggleHarness extends ComponentHarness {
 
   /** Gets a boolean promise indicating if the button toggle is disabled. */
   async isDisabled(): Promise<boolean> {
-    const disabled = (await this._button()).getAttribute('disabled');
-    return coerceBooleanProperty(await disabled);
+    const host = await this.host();
+    return host.hasClass('mat-button-toggle-disabled');
   }
 
   /** Gets a promise for the button toggle's name. */

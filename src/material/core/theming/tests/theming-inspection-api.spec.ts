@@ -3,7 +3,6 @@ import {runfiles} from '@bazel/runfiles';
 import * as path from 'path';
 
 import {createLocalAngularPackageImporter} from '../../../../../tools/sass/local-sass-importer';
-import {pathToFileURL} from 'url';
 
 // Note: For Windows compatibility, we need to resolve the directory paths through runfiles
 // which are guaranteed to reside in the source tree.
@@ -11,17 +10,6 @@ const testDir = path.join(runfiles.resolvePackageRelative('../_all-theme.scss'),
 const packagesDir = path.join(runfiles.resolveWorkspaceRelative('src/cdk/_index.scss'), '../..');
 
 const localPackageSassImporter = createLocalAngularPackageImporter(packagesDir);
-
-const mdcSassImporter = {
-  findFileUrl: (url: string) => {
-    if (url.toString().startsWith('@material')) {
-      return pathToFileURL(
-        path.join(runfiles.resolveWorkspaceRelative('./node_modules'), url),
-      ) as URL;
-    }
-    return null;
-  },
-};
 
 /** Transpiles given Sass content into CSS. */
 function transpile(content: string) {
@@ -34,7 +22,7 @@ function transpile(content: string) {
       `,
     {
       loadPaths: [testDir],
-      importers: [localPackageSassImporter, mdcSassImporter],
+      importers: [localPackageSassImporter],
     },
   ).css.toString();
 }
@@ -327,7 +315,7 @@ describe('theming inspection api', () => {
             color: mat.get-theme-color($theme);
           }
         `),
-      ).toThrowError(/Expected between 2 and 4 arguments\. Got: 1/);
+      ).toThrowError(/Expected either 2 or 3 arguments when working with an M3 theme\. Got: 1/);
     });
 
     it('should get typography properties from theme', () => {
@@ -347,7 +335,7 @@ describe('theming inspection api', () => {
       expect(css).toMatch('font-size: 2rem;');
       expect(css).toMatch('font-weight: 400;');
       expect(css).toMatch('line-height: 2.5rem;');
-      expect(css).toMatch('letter-spacing: 0rem;');
+      expect(css).toMatch('letter-spacing: 0;');
     });
 
     it('should error on invalid typescale', () => {
@@ -472,14 +460,7 @@ describe('theming inspection api', () => {
         div {
           @include mat.all-component-themes($theme);
         }`);
-      expect(css).toBe(
-        [
-          // The marker is always included.
-          `.mat-theme-loaded-marker {`,
-          `  display: none;`,
-          `}`,
-        ].join('\n'),
-      );
+      expect(css.trim()).toBe('');
     });
   });
 });

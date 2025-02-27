@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {NgModule, Directive, ElementRef, QueryList} from '@angular/core';
@@ -18,7 +18,6 @@ import {MatCommonModule} from '../common-behaviors/common-module';
 @Directive({
   selector: '[mat-line], [matLine]',
   host: {'class': 'mat-line'},
-  standalone: true,
 })
 export class MatLine {}
 

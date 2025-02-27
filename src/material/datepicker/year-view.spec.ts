@@ -10,11 +10,11 @@ import {
   UP_ARROW,
 } from '@angular/cdk/keycodes';
 import {dispatchFakeEvent, dispatchKeyboardEvent} from '@angular/cdk/testing/private';
-import {Component, ViewChild, provideZoneChangeDetection} from '@angular/core';
-import {waitForAsync, ComponentFixture, TestBed} from '@angular/core/testing';
+import {Component, ViewChild} from '@angular/core';
+import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {MatNativeDateModule} from '@angular/material/core';
-import {AUG, DEC, FEB, JAN, JUL, JUN, MAR, MAY, NOV, OCT, SEP} from '../testing';
 import {By} from '@angular/platform-browser';
+import {AUG, DEC, FEB, JAN, JUL, JUN, MAR, MAY, NOV, OCT, SEP} from '../testing';
 import {MatCalendarBody} from './calendar-body';
 import {MatYearView} from './year-view';
 
@@ -32,13 +32,8 @@ describe('MatYearView', () => {
         YearViewWithDateFilter,
         YearViewWithDateClass,
       ],
-      providers: [
-        provideZoneChangeDetection(),
-        {provide: Directionality, useFactory: () => (dir = {value: 'ltr'})},
-      ],
+      providers: [{provide: Directionality, useFactory: () => (dir = {value: 'ltr'})}],
     });
-
-    TestBed.compileComponents();
   }));
 
   describe('standard year view', () => {
@@ -72,6 +67,7 @@ describe('MatYearView', () => {
 
     it('does not show selected month if in different year', () => {
       testComponent.selected = new Date(2016, MAR, 10);
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       let selectedEl = yearViewNativeElement.querySelector('.mat-calendar-body-selected');
@@ -105,6 +101,7 @@ describe('MatYearView', () => {
 
     it('should allow selection of month with less days than current active date', () => {
       testComponent.date = new Date(2017, JUL, 31);
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       testComponent.yearView._monthSelected({value: JUN, event: null!});
@@ -131,6 +128,7 @@ describe('MatYearView', () => {
           expect(calendarBodyEl).not.toBeNull();
           dir.value = 'ltr';
           fixture.componentInstance.date = new Date(2017, JAN, 5);
+          fixture.changeDetectorRef.markForCheck();
           dispatchFakeEvent(calendarBodyEl, 'focus');
           fixture.detectChanges();
         });
@@ -194,6 +192,7 @@ describe('MatYearView', () => {
           expect(calendarInstance.date).toEqual(new Date(2016, SEP, 5));
 
           calendarInstance.date = new Date(2017, JUL, 1);
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           dispatchKeyboardEvent(calendarBodyEl, 'keydown', UP_ARROW);
@@ -202,6 +201,7 @@ describe('MatYearView', () => {
           expect(calendarInstance.date).toEqual(new Date(2017, MAR, 1));
 
           calendarInstance.date = new Date(2017, DEC, 10);
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           dispatchKeyboardEvent(calendarBodyEl, 'keydown', UP_ARROW);
@@ -217,6 +217,7 @@ describe('MatYearView', () => {
           expect(calendarInstance.date).toEqual(new Date(2017, MAY, 5));
 
           calendarInstance.date = new Date(2017, JUN, 1);
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           dispatchKeyboardEvent(calendarBodyEl, 'keydown', DOWN_ARROW);
@@ -225,6 +226,7 @@ describe('MatYearView', () => {
           expect(calendarInstance.date).toEqual(new Date(2017, OCT, 1));
 
           calendarInstance.date = new Date(2017, SEP, 30);
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           dispatchKeyboardEvent(calendarBodyEl, 'keydown', DOWN_ARROW);
@@ -235,6 +237,7 @@ describe('MatYearView', () => {
 
         it('should go to first month of the year on home press', () => {
           calendarInstance.date = new Date(2017, SEP, 30);
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           dispatchKeyboardEvent(calendarBodyEl, 'keydown', HOME);
@@ -250,6 +253,7 @@ describe('MatYearView', () => {
 
         it('should go to last month of the year on end press', () => {
           calendarInstance.date = new Date(2017, OCT, 31);
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           dispatchKeyboardEvent(calendarBodyEl, 'keydown', END);
@@ -265,6 +269,7 @@ describe('MatYearView', () => {
 
         it('should go back one year on page up press', () => {
           calendarInstance.date = new Date(2016, FEB, 29);
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           dispatchKeyboardEvent(calendarBodyEl, 'keydown', PAGE_UP);
@@ -280,6 +285,7 @@ describe('MatYearView', () => {
 
         it('should go forward one year on page down press', () => {
           calendarInstance.date = new Date(2016, FEB, 29);
+          fixture.changeDetectorRef.markForCheck();
           fixture.detectChanges();
 
           dispatchKeyboardEvent(calendarBodyEl, 'keydown', PAGE_DOWN);
@@ -339,6 +345,7 @@ describe('MatYearView', () => {
         activeDate.getMonth(),
         activeDate.getDate(),
       );
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(spy).not.toHaveBeenCalled();
@@ -353,6 +360,7 @@ describe('MatYearView', () => {
         activeDate.getMonth(),
         activeDate.getDate(),
       );
+      fixture.changeDetectorRef.markForCheck();
       fixture.detectChanges();
 
       expect(spy).not.toHaveBeenCalled();
@@ -389,7 +397,6 @@ describe('MatYearView', () => {
   template: `
     <mat-year-view [(activeDate)]="date" [(selected)]="selected"
                    (monthSelected)="selectedMonth=$event"></mat-year-view>`,
-  standalone: true,
   imports: [MatYearView],
 })
 class StandardYearView {
@@ -407,7 +414,6 @@ class StandardYearView {
       [dateFilter]="dateFilter"
       [minDate]="minDate"
       [maxDate]="maxDate"></mat-year-view>`,
-  standalone: true,
   imports: [MatYearView],
 })
 class YearViewWithDateFilter {
@@ -427,7 +433,6 @@ class YearViewWithDateFilter {
 
 @Component({
   template: `<mat-year-view [activeDate]="activeDate" [dateClass]="dateClass"></mat-year-view>`,
-  standalone: true,
   imports: [MatYearView],
 })
 class YearViewWithDateClass {

@@ -3,11 +3,14 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 import {Directionality} from '@angular/cdk/bidi';
+import {BooleanInput, coerceBooleanProperty} from '@angular/cdk/coercion';
 import {Platform} from '@angular/cdk/platform';
+import {NgTemplateOutlet} from '@angular/common';
 import {
+  ANIMATION_MODULE_TYPE,
   AfterContentChecked,
   AfterContentInit,
   AfterViewInit,
@@ -17,24 +20,24 @@ import {
   ContentChild,
   ContentChildren,
   ElementRef,
-  Inject,
   InjectionToken,
   Injector,
-  inject,
   Input,
   NgZone,
   OnDestroy,
-  Optional,
   QueryList,
   ViewChild,
   ViewEncapsulation,
-  ANIMATION_MODULE_TYPE,
   afterRender,
+  computed,
+  contentChild,
+  inject,
 } from '@angular/core';
-import {AbstractControlDirective} from '@angular/forms';
+import {AbstractControlDirective, ValidatorFn} from '@angular/forms';
 import {ThemePalette} from '@angular/material/core';
-import {merge, Subject} from 'rxjs';
-import {takeUntil} from 'rxjs/operators';
+import {_IdGenerator} from '@angular/cdk/a11y';
+import {Subject, Subscription, merge} from 'rxjs';
+import {map, pairwise, takeUntil, filter, startWith} from 'rxjs/operators';
 import {MAT_ERROR, MatError} from './directives/error';
 import {
   FLOATING_LABEL_PARENT,
@@ -47,14 +50,11 @@ import {MatFormFieldLineRipple} from './directives/line-ripple';
 import {MatFormFieldNotchedOutline} from './directives/notched-outline';
 import {MAT_PREFIX, MatPrefix} from './directives/prefix';
 import {MAT_SUFFIX, MatSuffix} from './directives/suffix';
-import {BooleanInput, coerceBooleanProperty} from '@angular/cdk/coercion';
-import {matFormFieldAnimations} from './form-field-animations';
 import {MatFormFieldControl as _MatFormFieldControl} from './form-field-control';
 import {
   getMatFormFieldDuplicatedHintError,
   getMatFormFieldMissingControlError,
 } from './form-field-errors';
-import {DOCUMENT, NgTemplateOutlet} from '@angular/common';
 
 /** Type for the available floatLabel values. */
 export type FloatLabelType = 'always' | 'auto';
@@ -72,7 +72,13 @@ export type SubscriptSizing = 'fixed' | 'dynamic';
 export interface MatFormFieldDefaultOptions {
   /** Default form field appearance style. */
   appearance?: MatFormFieldAppearance;
-  /** Default color of the form field. */
+  /**
+   * Default theme color of the form field. This API is supported in M2 themes only, it has no
+   * effect in M3 themes. For color customization in M3, see https://material.angular.io/components/form-field/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   color?: ThemePalette;
   /** Whether the required marker should be hidden by default. */
   hideRequiredMarker?: boolean;
@@ -99,8 +105,6 @@ export const MAT_FORM_FIELD = new InjectionToken<MatFormField>('MatFormField');
 export const MAT_FORM_FIELD_DEFAULT_OPTIONS = new InjectionToken<MatFormFieldDefaultOptions>(
   'MAT_FORM_FIELD_DEFAULT_OPTIONS',
 );
-
-let nextUniqueId = 0;
 
 /** Default appearance used by the form field. */
 const DEFAULT_APPEARANCE: MatFormFieldAppearance = 'fill';
@@ -137,7 +141,6 @@ interface MatFormFieldControl<T> extends _MatFormFieldControl<T> {}
   exportAs: 'matFormField',
   templateUrl: './form-field.html',
   styleUrl: './form-field.css',
-  animations: [matFormFieldAnimations.transitionMessages],
   host: {
     'class': 'mat-mdc-form-field',
     '[class.mat-mdc-form-field-label-always-float]': '_shouldAlwaysFloat()',
@@ -149,7 +152,6 @@ interface MatFormFieldControl<T> extends _MatFormFieldControl<T> {}
     '[class.mat-form-field-invalid]': '_control.errorState',
     '[class.mat-form-field-disabled]': '_control.disabled',
     '[class.mat-form-field-autofilled]': '_control.autofilled',
-    '[class.mat-form-field-no-animations]': '_animationMode === "NoopAnimations"',
     '[class.mat-form-field-appearance-fill]': 'appearance == "fill"',
     '[class.mat-form-field-appearance-outline]': 'appearance == "outline"',
     '[class.mat-form-field-hide-placeholder]': '_hasFloatingLabel() && !_shouldLabelFloat()',
@@ -171,7 +173,6 @@ interface MatFormFieldControl<T> extends _MatFormFieldControl<T> {}
     {provide: MAT_FORM_FIELD, useExisting: MatFormField},
     {provide: FLOATING_LABEL_PARENT, useExisting: MatFormField},
   ],
-  standalone: true,
   imports: [
     MatFormFieldFloatingLabel,
     MatFormFieldNotchedOutline,
@@ -183,20 +184,33 @@ interface MatFormFieldControl<T> extends _MatFormFieldControl<T> {}
 export class MatFormField
   implements FloatingLabelParent, AfterContentInit, AfterContentChecked, AfterViewInit, OnDestroy
 {
+  _elementRef = inject(ElementRef);
+  private _changeDetectorRef = inject(ChangeDetectorRef);
+  private _dir = inject(Directionality);
+  private _platform = inject(Platform);
+  private _idGenerator = inject(_IdGenerator);
+  private _ngZone = inject(NgZone);
+  private _injector = inject(Injector);
+  private _defaults = inject<MatFormFieldDefaultOptions>(MAT_FORM_FIELD_DEFAULT_OPTIONS, {
+    optional: true,
+  });
+
   @ViewChild('textField') _textField: ElementRef<HTMLElement>;
   @ViewChild('iconPrefixContainer') _iconPrefixContainer: ElementRef<HTMLElement>;
   @ViewChild('textPrefixContainer') _textPrefixContainer: ElementRef<HTMLElement>;
+  @ViewChild('iconSuffixContainer') _iconSuffixContainer: ElementRef<HTMLElement>;
+  @ViewChild('textSuffixContainer') _textSuffixContainer: ElementRef<HTMLElement>;
   @ViewChild(MatFormFieldFloatingLabel) _floatingLabel: MatFormFieldFloatingLabel | undefined;
   @ViewChild(MatFormFieldNotchedOutline) _notchedOutline: MatFormFieldNotchedOutline | undefined;
   @ViewChild(MatFormFieldLineRipple) _lineRipple: MatFormFieldLineRipple | undefined;
 
-  @ContentChild(MatLabel) _labelChildNonStatic: MatLabel | undefined;
-  @ContentChild(MatLabel, {static: true}) _labelChildStatic: MatLabel | undefined;
   @ContentChild(_MatFormFieldControl) _formFieldControl: MatFormFieldControl<any>;
   @ContentChildren(MAT_PREFIX, {descendants: true}) _prefixChildren: QueryList<MatPrefix>;
   @ContentChildren(MAT_SUFFIX, {descendants: true}) _suffixChildren: QueryList<MatSuffix>;
   @ContentChildren(MAT_ERROR, {descendants: true}) _errorChildren: QueryList<MatError>;
   @ContentChildren(MatHint, {descendants: true}) _hintChildren: QueryList<MatHint>;
+
+  private readonly _labelChild = contentChild(MatLabel);
 
   /** Whether the required marker should be hidden. */
   @Input()
@@ -208,7 +222,13 @@ export class MatFormField
   }
   private _hideRequiredMarker = false;
 
-  /** The color palette for the form field. */
+  /**
+   * Theme color of the form field. This API is supported in M2 themes only, it
+   * has no effect in M3 themes. For color customization in M3, see https://material.angular.io/components/form-field/styling.
+   *
+   * For information on applying color variants in M3, see
+   * https://material.angular.io/guide/material-2-theming#optional-add-backwards-compatibility-styles-for-color-variants
+   */
   @Input() color: ThemePalette = 'primary';
 
   /** Whether the label should always float or float as the user types. */
@@ -284,13 +304,10 @@ export class MatFormField
   _hasTextSuffix = false;
 
   // Unique id for the internal form field label.
-  readonly _labelId = `mat-mdc-form-field-label-${nextUniqueId++}`;
+  readonly _labelId = this._idGenerator.getId('mat-mdc-form-field-label-');
 
   // Unique id for the hint label.
-  readonly _hintLabelId = `mat-mdc-hint-${nextUniqueId++}`;
-
-  /** State of the mat-hint and mat-error animations. */
-  _subscriptAnimationState = '';
+  readonly _hintLabelId = this._idGenerator.getId('mat-mdc-hint-');
 
   /** Gets the current form field control */
   get _control(): MatFormFieldControl<any> {
@@ -304,46 +321,45 @@ export class MatFormField
   private _isFocused: boolean | null = null;
   private _explicitFormFieldControl: MatFormFieldControl<any>;
   private _needsOutlineLabelOffsetUpdate = false;
+  private _previousControl: MatFormFieldControl<unknown> | null = null;
+  private _previousControlValidatorFn: ValidatorFn | null = null;
+  private _stateChanges: Subscription | undefined;
+  private _valueChanges: Subscription | undefined;
+  private _describedByChanges: Subscription | undefined;
+  protected readonly _animationsDisabled: boolean;
 
-  private _injector = inject(Injector);
+  constructor(...args: unknown[]);
 
-  constructor(
-    public _elementRef: ElementRef,
-    private _changeDetectorRef: ChangeDetectorRef,
-    /**
-     * @deprecated not needed, to be removed.
-     * @breaking-change 19.0.0 remove this param
-     */
-    _unusedNgZone: NgZone,
-    private _dir: Directionality,
-    private _platform: Platform,
-    @Optional()
-    @Inject(MAT_FORM_FIELD_DEFAULT_OPTIONS)
-    private _defaults?: MatFormFieldDefaultOptions,
-    @Optional() @Inject(ANIMATION_MODULE_TYPE) public _animationMode?: string,
-    /**
-     * @deprecated not needed, to be removed.
-     * @breaking-change 17.0.0 remove this param
-     */
-    @Inject(DOCUMENT) _unusedDocument?: any,
-  ) {
-    if (_defaults) {
-      if (_defaults.appearance) {
-        this.appearance = _defaults.appearance;
+  constructor() {
+    const defaults = this._defaults;
+
+    if (defaults) {
+      if (defaults.appearance) {
+        this.appearance = defaults.appearance;
       }
-      this._hideRequiredMarker = Boolean(_defaults?.hideRequiredMarker);
-      if (_defaults.color) {
-        this.color = _defaults.color;
+      this._hideRequiredMarker = Boolean(defaults?.hideRequiredMarker);
+      if (defaults.color) {
+        this.color = defaults.color;
       }
     }
+
+    this._animationsDisabled = inject(ANIMATION_MODULE_TYPE, {optional: true}) === 'NoopAnimations';
   }
 
   ngAfterViewInit() {
     // Initial focus state sync. This happens rarely, but we want to account for
     // it in case the form field control has "focused" set to true on init.
     this._updateFocusState();
-    // Enable animations now. This ensures we don't animate on initial render.
-    this._subscriptAnimationState = 'enter';
+
+    if (!this._animationsDisabled) {
+      this._ngZone.runOutsideAngular(() => {
+        // Enable animations after a certain amount of time so that they don't run on init.
+        setTimeout(() => {
+          this._elementRef.nativeElement.classList.add('mat-form-field-animations-enabled');
+        }, 300);
+      });
+    }
+
     // Because the above changes a value used in the template after it was checked, we need
     // to trigger CD or the change might not be reflected if there is no other CD scheduled.
     this._changeDetectorRef.detectChanges();
@@ -351,7 +367,6 @@ export class MatFormField
 
   ngAfterContentInit() {
     this._assertFormFieldControl();
-    this._initializeControl();
     this._initializeSubscript();
     this._initializePrefixAndSuffix();
     this._initializeOutlineLabelOffsetSubscriptions();
@@ -359,9 +374,37 @@ export class MatFormField
 
   ngAfterContentChecked() {
     this._assertFormFieldControl();
+
+    // if form field was being used with an input in first place and then replaced by other
+    // component such as select.
+    if (this._control !== this._previousControl) {
+      this._initializeControl(this._previousControl);
+
+      // keep a reference for last validator we had.
+      if (this._control.ngControl && this._control.ngControl.control) {
+        this._previousControlValidatorFn = this._control.ngControl.control.validator;
+      }
+
+      this._previousControl = this._control;
+    }
+
+    // make sure the the control has been initialized.
+    if (this._control.ngControl && this._control.ngControl.control) {
+      // get the validators for current control.
+      const validatorFn = this._control.ngControl.control.validator;
+
+      // if our current validatorFn isn't equal to it might be we are CD behind, marking the
+      // component will allow us to catch up.
+      if (validatorFn !== this._previousControlValidatorFn) {
+        this._changeDetectorRef.markForCheck();
+      }
+    }
   }
 
   ngOnDestroy() {
+    this._stateChanges?.unsubscribe();
+    this._valueChanges?.unsubscribe();
+    this._describedByChanges?.unsubscribe();
     this._destroyed.next();
     this._destroyed.complete();
   }
@@ -369,9 +412,7 @@ export class MatFormField
   /**
    * Gets the id of the label element. If no label is present, returns `null`.
    */
-  getLabelId(): string | null {
-    return this._hasFloatingLabel() ? this._labelId : null;
-  }
+  getLabelId = computed(() => (this._hasFloatingLabel() ? this._labelId : null));
 
   /**
    * Gets an ElementRef for the element that a overlay attached to the form field
@@ -397,25 +438,43 @@ export class MatFormField
   }
 
   /** Initializes the registered form field control. */
-  private _initializeControl() {
+  private _initializeControl(previousControl: MatFormFieldControl<unknown> | null) {
     const control = this._control;
+    const classPrefix = 'mat-mdc-form-field-type-';
+
+    if (previousControl) {
+      this._elementRef.nativeElement.classList.remove(classPrefix + previousControl.controlType);
+    }
 
     if (control.controlType) {
-      this._elementRef.nativeElement.classList.add(
-        `mat-mdc-form-field-type-${control.controlType}`,
-      );
+      this._elementRef.nativeElement.classList.add(classPrefix + control.controlType);
     }
 
     // Subscribe to changes in the child control state in order to update the form field UI.
-    control.stateChanges.subscribe(() => {
+    this._stateChanges?.unsubscribe();
+    this._stateChanges = control.stateChanges.subscribe(() => {
       this._updateFocusState();
-      this._syncDescribedByIds();
       this._changeDetectorRef.markForCheck();
     });
 
+    // Updating the `aria-describedby` touches the DOM. Only do it if it actually needs to change.
+    this._describedByChanges?.unsubscribe();
+    this._describedByChanges = control.stateChanges
+      .pipe(
+        startWith([undefined, undefined] as const),
+        map(() => [control.errorState, control.userAriaDescribedBy] as const),
+        pairwise(),
+        filter(([[prevErrorState, prevDescribedBy], [currentErrorState, currentDescribedBy]]) => {
+          return prevErrorState !== currentErrorState || prevDescribedBy !== currentDescribedBy;
+        }),
+      )
+      .subscribe(() => this._syncDescribedByIds());
+
+    this._valueChanges?.unsubscribe();
+
     // Run change detection if the value changes.
     if (control.ngControl && control.ngControl.valueChanges) {
-      control.ngControl.valueChanges
+      this._valueChanges = control.ngControl.valueChanges
         .pipe(takeUntil(this._destroyed))
         .subscribe(() => this._changeDetectorRef.markForCheck());
     }
@@ -541,11 +600,12 @@ export class MatFormField
     return !this._platform.isBrowser && this._prefixChildren.length && !this._shouldLabelFloat();
   }
 
-  _hasFloatingLabel() {
-    return !!this._labelChildNonStatic || !!this._labelChildStatic;
-  }
+  _hasFloatingLabel = computed(() => !!this._labelChild());
 
-  _shouldLabelFloat() {
+  _shouldLabelFloat(): boolean {
+    if (!this._hasFloatingLabel()) {
+      return false;
+    }
     return this._control.shouldLabelFloat || this._shouldAlwaysFloat();
   }
 
@@ -680,8 +740,12 @@ export class MatFormField
     }
     const iconPrefixContainer = this._iconPrefixContainer?.nativeElement;
     const textPrefixContainer = this._textPrefixContainer?.nativeElement;
+    const iconSuffixContainer = this._iconSuffixContainer?.nativeElement;
+    const textSuffixContainer = this._textSuffixContainer?.nativeElement;
     const iconPrefixContainerWidth = iconPrefixContainer?.getBoundingClientRect().width ?? 0;
     const textPrefixContainerWidth = textPrefixContainer?.getBoundingClientRect().width ?? 0;
+    const iconSuffixContainerWidth = iconSuffixContainer?.getBoundingClientRect().width ?? 0;
+    const textSuffixContainerWidth = textSuffixContainer?.getBoundingClientRect().width ?? 0;
     // If the directionality is RTL, the x-axis transform needs to be inverted. This
     // is because `transformX` does not change based on the page directionality.
     const negate = this._dir.value === 'rtl' ? '-1' : '1';
@@ -696,6 +760,17 @@ export class MatFormField
         --mat-mdc-form-field-label-transform,
         ${FLOATING_LABEL_DEFAULT_DOCKED_TRANSFORM} translateX(${labelHorizontalOffset})
     )`;
+
+    // Prevent the label from overlapping the suffix when in resting position.
+    const prefixAndSuffixWidth =
+      iconPrefixContainerWidth +
+      textPrefixContainerWidth +
+      iconSuffixContainerWidth +
+      textSuffixContainerWidth;
+    this._elementRef.nativeElement.style.setProperty(
+      '--mat-form-field-notch-max-width',
+      `calc(100% - ${prefixAndSuffixWidth}px)`,
+    );
   }
 
   /** Checks whether the form field is attached to the DOM. */

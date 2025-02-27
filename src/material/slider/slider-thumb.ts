@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -12,10 +12,10 @@ import {
   ChangeDetectorRef,
   Component,
   ElementRef,
-  Inject,
   Input,
   NgZone,
   OnDestroy,
+  Renderer2,
   ViewChild,
   ViewEncapsulation,
   inject,
@@ -48,10 +48,15 @@ import {Platform} from '@angular/cdk/platform';
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   providers: [{provide: MAT_SLIDER_VISUAL_THUMB, useExisting: MatSliderVisualThumb}],
-  standalone: true,
   imports: [MatRipple],
 })
 export class MatSliderVisualThumb implements _MatSliderVisualThumb, AfterViewInit, OnDestroy {
+  readonly _cdr = inject(ChangeDetectorRef);
+  private readonly _ngZone = inject(NgZone);
+  private _slider = inject<_MatSlider>(MAT_SLIDER);
+  private _renderer = inject(Renderer2);
+  private _listenerCleanups: (() => void)[] | undefined;
+
   /** Whether the slider displays a numeric value label upon pressing the thumb. */
   @Input() discrete: boolean;
 
@@ -96,48 +101,44 @@ export class MatSliderVisualThumb implements _MatSliderVisualThumb, AfterViewIni
   _isValueIndicatorVisible: boolean = false;
 
   /** The host native HTML input element. */
-  _hostElement: HTMLElement;
+  _hostElement = inject<ElementRef<HTMLElement>>(ElementRef).nativeElement;
 
   private _platform = inject(Platform);
 
-  constructor(
-    readonly _cdr: ChangeDetectorRef,
-    private readonly _ngZone: NgZone,
-    _elementRef: ElementRef<HTMLElement>,
-    @Inject(MAT_SLIDER) private _slider: _MatSlider,
-  ) {
-    this._hostElement = _elementRef.nativeElement;
-  }
+  constructor(...args: unknown[]);
+  constructor() {}
 
   ngAfterViewInit() {
+    const sliderInput = this._slider._getInput(this.thumbPosition);
+
+    // No-op if the slider isn't configured properly. `MatSlider` will
+    // throw an error instructing the user how to set up the slider.
+    if (!sliderInput) {
+      return;
+    }
+
     this._ripple.radius = 24;
-    this._sliderInput = this._slider._getInput(this.thumbPosition)!;
+    this._sliderInput = sliderInput;
     this._sliderInputEl = this._sliderInput._hostElement;
-    const input = this._sliderInputEl;
 
     // These listeners don't update any data bindings so we bind them outside
     // of the NgZone to prevent Angular from needlessly running change detection.
     this._ngZone.runOutsideAngular(() => {
-      input.addEventListener('pointermove', this._onPointerMove);
-      input.addEventListener('pointerdown', this._onDragStart);
-      input.addEventListener('pointerup', this._onDragEnd);
-      input.addEventListener('pointerleave', this._onMouseLeave);
-      input.addEventListener('focus', this._onFocus);
-      input.addEventListener('blur', this._onBlur);
+      const input = this._sliderInputEl!;
+      const renderer = this._renderer;
+      this._listenerCleanups = [
+        renderer.listen(input, 'pointermove', this._onPointerMove),
+        renderer.listen(input, 'pointerdown', this._onDragStart),
+        renderer.listen(input, 'pointerup', this._onDragEnd),
+        renderer.listen(input, 'pointerleave', this._onMouseLeave),
+        renderer.listen(input, 'focus', this._onFocus),
+        renderer.listen(input, 'blur', this._onBlur),
+      ];
     });
   }
 
   ngOnDestroy() {
-    const input = this._sliderInputEl;
-
-    if (input) {
-      input.removeEventListener('pointermove', this._onPointerMove);
-      input.removeEventListener('pointerdown', this._onDragStart);
-      input.removeEventListener('pointerup', this._onDragEnd);
-      input.removeEventListener('pointerleave', this._onMouseLeave);
-      input.removeEventListener('focus', this._onFocus);
-      input.removeEventListener('blur', this._onBlur);
-    }
+    this._listenerCleanups?.forEach(cleanup => cleanup());
   }
 
   private _onPointerMove = (event: PointerEvent): void => {

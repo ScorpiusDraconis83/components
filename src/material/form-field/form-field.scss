@@ -1,58 +1,18 @@
-@use '@material/textfield/text-field' as mdc-textfield;
-@use '@material/textfield/filled-text-field-theme' as mdc-filled-text-field-theme;
-@use '@material/textfield/outlined-text-field-theme' as mdc-outlined-text-field-theme;
-@use '@material/floating-label/floating-label' as mdc-floating-label;
-@use '@material/floating-label/floating-label-theme' as mdc-floating-label-theme;
-@use '@material/notched-outline/notched-outline' as mdc-notched-outline;
-@use '@material/notched-outline/notched-outline-theme' as mdc-notched-outline-theme;
-@use '@material/line-ripple/line-ripple' as mdc-line-ripple;
-@use '@material/line-ripple/line-ripple-theme' as mdc-line-ripple-theme;
-@use '@material/theme/custom-properties' as mdc-custom-properties;
-@use '@material/typography' as mdc-typography;
 @use '../core/tokens/token-utils';
-@use '../core/mdc-helpers/mdc-helpers';
 @use '../core/style/vendor-prefixes';
 @use '../core/tokens/m2/mat/form-field' as tokens-mat-form-field;
-@use '../core/tokens/m2/mdc/filled-text-field' as tokens-mdc-filled-text-field;
-@use '../core/tokens/m2/mdc/outlined-text-field' as tokens-mdc-outlined-text-field;
 @use './form-field-subscript';
 @use './form-field-focus-overlay';
 @use './form-field-high-contrast';
 @use './form-field-native-select';
 @use './user-agent-overrides';
+@use './mdc-text-field-structure';
 @use './mdc-text-field-textarea-overrides';
 @use './mdc-text-field-structure-overrides';
 @use './mdc-text-field-density-overrides';
 
-// Includes the structural styles of the components that the form field is composed of.
-@mixin _static-styles($query) {
-  @include mdc-textfield.static-styles($query);
-  @include mdc-floating-label.static-styles($query);
-  @include mdc-notched-outline.static-styles($query);
-  @include mdc-line-ripple.static-styles($query);
-
-  // Note that while these components have token slots, they're included through the MDC text field.
-  @include mdc-floating-label-theme.theme-styles($query);
-  @include mdc-notched-outline-theme.theme-styles($query);
-  @include mdc-line-ripple-theme.theme-styles($query);
-}
-
 // Base styles for MDC text-field, notched-outline, floating label and line-ripple.
-@include _static-styles(mdc-helpers.$mdc-base-styles-without-animation-query);
-
-@include mdc-custom-properties.configure(
-  $emit-fallback-values: false, $emit-fallback-vars: false) {
-
-  .mdc-text-field--filled {
-    @include mdc-filled-text-field-theme.theme-styles(
-      tokens-mdc-filled-text-field.get-token-slots());
-  }
-
-  .mdc-text-field--outlined {
-    @include mdc-outlined-text-field-theme.theme-styles(
-      tokens-mdc-outlined-text-field.get-token-slots());
-  }
-}
+@include mdc-text-field-structure.private-text-field-structure();
 
 // MDC text-field overwrites.
 @include mdc-text-field-textarea-overrides.private-text-field-textarea-overrides();
@@ -85,13 +45,9 @@ $_icon-prefix-infix-padding: 4px;
   // To avoid problems with text-align.
   text-align: left;
 
-  [dir='rtl'] & {
-    text-align: right;
-  }
-
   @include token-utils.use-tokens(tokens-mat-form-field.$prefix,
     tokens-mat-form-field.get-token-slots()) {
-    @include mdc-typography.smooth-font();
+    @include vendor-prefixes.smooth-font();
     @include token-utils.create-token-slot(font-family, container-text-font);
     @include token-utils.create-token-slot(line-height, container-text-line-height);
     @include token-utils.create-token-slot(font-size, container-text-size);
@@ -99,7 +55,7 @@ $_icon-prefix-infix-padding: 4px;
     @include token-utils.create-token-slot(font-weight, container-text-weight);
 
     .mdc-text-field--outlined {
-      $token-value: var(#{token-utils.get-token-variable(outlined-label-text-populated-size)});
+      $token-value: token-utils.get-token-variable(outlined-label-text-populated-size);
 
       // For the non-upgraded notch label (i.e. when rendered on the server), also
       // use the correct typography.
@@ -111,6 +67,10 @@ $_icon-prefix-infix-padding: 4px;
         font-size: $token-value;
       }
     }
+  }
+
+  [dir='rtl'] & {
+    text-align: right;
   }
 }
 
@@ -227,6 +187,12 @@ $_icon-prefix-infix-padding: 4px;
   // Needed so that the floating label does not overlap with prefixes or suffixes.
   position: relative;
   box-sizing: border-box;
+
+  // We do not want to set fixed width on textarea with cols attribute as it makes different
+  // columns look same width.
+  &:has(textarea[cols]) {
+    width: auto;
+  }
 }
 
 // In the form-field theme, we add a 1px left margin to the notch to fix a rendering bug in Chrome.
@@ -246,8 +212,8 @@ $_icon-prefix-infix-padding: 4px;
 
 // In order to make it possible for developers to disable animations for form-fields,
 // we only activate the animation styles if animations are not explicitly disabled.
-.mat-mdc-form-field:not(.mat-form-field-no-animations) {
-  @include _static-styles(animation);
+.mat-mdc-form-field.mat-form-field-animations-enabled {
+  @include mdc-text-field-structure.private-text-field-animations;
 }
 
 // Allow the label to grow 1px bigger than the notch.

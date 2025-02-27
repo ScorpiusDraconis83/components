@@ -1,5 +1,6 @@
 load(
     "//tools:defaults.bzl",
+    "extract_tokens",
     "markdown_to_html",
     "ng_module",
     "sass_binary",
@@ -33,7 +34,6 @@ sass_library(
     ],
     deps = [
         ":form_field_partials",
-        "//:mdc_sass_lib",
         "//src/material/core:core_scss_lib",
     ],
 )
@@ -43,7 +43,6 @@ sass_binary(
     src = "form-field.scss",
     deps = [
         ":form_field_partials",
-        "//:mdc_sass_lib",
         "//src/material:sass_lib",
         "//src/material/core:core_scss_lib",
     ],
@@ -57,12 +56,12 @@ sass_library(
         "_form-field-native-select.scss",
         "_form-field-subscript.scss",
         "_mdc-text-field-density-overrides.scss",
+        "_mdc-text-field-structure.scss",
         "_mdc-text-field-structure-overrides.scss",
         "_mdc-text-field-textarea-overrides.scss",
         "_user-agent-overrides.scss",
     ],
     deps = [
-        "//:mdc_sass_lib",
         "//src/cdk:sass_lib",
         "//src/material/core:core_scss_lib",
     ],
@@ -71,6 +70,11 @@ sass_library(
 markdown_to_html(
     name = "overview",
     srcs = [":form-field.md"],
+)
+
+extract_tokens(
+    name = "tokens",
+    srcs = [":form_field_scss_lib"],
 )
 
 filegroup(

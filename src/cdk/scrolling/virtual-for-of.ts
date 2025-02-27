@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
@@ -20,7 +20,6 @@ import {
   Directive,
   DoCheck,
   EmbeddedViewRef,
-  Inject,
   Input,
   IterableChangeRecord,
   IterableChanges,
@@ -29,10 +28,10 @@ import {
   NgIterable,
   NgZone,
   OnDestroy,
-  SkipSelf,
   TemplateRef,
   TrackByFunction,
   ViewContainerRef,
+  inject,
 } from '@angular/core';
 import {NumberInput, coerceNumberProperty} from '@angular/cdk/coercion';
 import {Observable, Subject, of as observableOf, isObservable} from 'rxjs';
@@ -82,11 +81,17 @@ function getOffset(orientation: 'horizontal' | 'vertical', direction: 'start' | 
 @Directive({
   selector: '[cdkVirtualFor][cdkVirtualForOf]',
   providers: [{provide: _VIEW_REPEATER_STRATEGY, useClass: _RecycleViewRepeaterStrategy}],
-  standalone: true,
 })
 export class CdkVirtualForOf<T>
   implements CdkVirtualScrollRepeater<T>, CollectionViewer, DoCheck, OnDestroy
 {
+  private _viewContainerRef = inject(ViewContainerRef);
+  private _template = inject<TemplateRef<CdkVirtualForOfContext<T>>>(TemplateRef);
+  private _differs = inject(IterableDiffers);
+  private _viewRepeater =
+    inject<_RecycleViewRepeaterStrategy<T, T, CdkVirtualForOfContext<T>>>(_VIEW_REPEATER_STRATEGY);
+  private _viewport = inject(CdkVirtualScrollViewport, {skipSelf: true});
+
   /** Emits when the rendered view of the data changes. */
   readonly viewChange = new Subject<ListRange>();
 
@@ -180,20 +185,11 @@ export class CdkVirtualForOf<T>
 
   private readonly _destroyed = new Subject<void>();
 
-  constructor(
-    /** The view container to add items to. */
-    private _viewContainerRef: ViewContainerRef,
-    /** The template to use when stamping out new items. */
-    private _template: TemplateRef<CdkVirtualForOfContext<T>>,
-    /** The set of available differs. */
-    private _differs: IterableDiffers,
-    /** The strategy used to render items in the virtual scroll viewport. */
-    @Inject(_VIEW_REPEATER_STRATEGY)
-    private _viewRepeater: _RecycleViewRepeaterStrategy<T, T, CdkVirtualForOfContext<T>>,
-    /** The virtual scrolling viewport that these items are being rendered in. */
-    @SkipSelf() private _viewport: CdkVirtualScrollViewport,
-    ngZone: NgZone,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const ngZone = inject(NgZone);
+
     this.dataStream.subscribe(data => {
       this._data = data;
       this._onRenderedDataChange();
@@ -394,5 +390,12 @@ export class CdkVirtualForOf<T>
       },
       index,
     };
+  }
+
+  static ngTemplateContextGuard<T>(
+    directive: CdkVirtualForOf<T>,
+    context: unknown,
+  ): context is CdkVirtualForOfContext<T> {
+    return true;
   }
 }

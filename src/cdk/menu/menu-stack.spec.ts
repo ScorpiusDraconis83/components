@@ -23,7 +23,7 @@ describe('MenuStack', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [CdkMenuModule, MultiMenuWithSubmenu],
-    }).compileComponents();
+    });
   }));
 
   beforeEach(() => {
@@ -100,7 +100,6 @@ describe('MenuStack', () => {
       </ng-template>
     </div>
   `,
-  standalone: true,
   imports: [CdkMenuModule],
 })
 class MultiMenuWithSubmenu {

@@ -11,7 +11,6 @@ import {CdkListbox, CdkOption} from '@angular/cdk/listbox';
   exportAs: 'cdkListboxFormsValidationExample',
   templateUrl: 'cdk-listbox-forms-validation-example.html',
   styleUrl: 'cdk-listbox-forms-validation-example.css',
-  standalone: true,
   imports: [CdkListbox, FormsModule, ReactiveFormsModule, CdkOption, AsyncPipe, JsonPipe],
 })
 export class CdkListboxFormsValidationExample {
@@ -45,13 +44,7 @@ export class CdkListboxFormsValidationExample {
     if (this.signCtrl.hasError('required')) {
       errors.push('You must enter your zodiac sign');
     }
-    if (this.signCtrl.hasError('cdkListboxUnexpectedMultipleValues')) {
-      errors.push('You can only select one zodiac sign');
-    }
-    if (this.signCtrl.hasError('cdkListboxUnexpectedOptionValues')) {
-      const invalidOptions = this.signCtrl.getError('cdkListboxUnexpectedOptionValues').values;
-      errors.push(`You entered an invalid zodiac sign: ${invalidOptions[0]}`);
-    }
+
     return errors.length ? errors : null;
   }
   // #enddocregion errors

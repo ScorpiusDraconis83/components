@@ -3,10 +3,10 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
-import {EmbeddedViewRef, TemplateRef, ViewContainerRef} from '@angular/core';
+import {EmbeddedViewRef, Renderer2, TemplateRef, ViewContainerRef} from '@angular/core';
 import {Direction} from '@angular/cdk/bidi';
 import {
   extendStyles,
@@ -39,6 +39,10 @@ export class PreviewRef {
   /** Reference to the preview element. */
   private _preview: HTMLElement;
 
+  get element(): HTMLElement {
+    return this._preview;
+  }
+
   constructor(
     private _document: Document,
     private _rootElement: HTMLElement,
@@ -52,6 +56,7 @@ export class PreviewRef {
     },
     private _initialTransform: string | null,
     private _zIndex: number,
+    private _renderer: Renderer2,
   ) {}
 
   attach(parent: HTMLElement): void {
@@ -60,7 +65,7 @@ export class PreviewRef {
 
     // The null check is necessary for browsers that don't support the popover API.
     // Note that we use a string access for compatibility with Closure.
-    if ('showPopover' in this._preview) {
+    if (supportsPopover(this._preview)) {
       this._preview['showPopover']();
     }
   }
@@ -87,12 +92,8 @@ export class PreviewRef {
     return getTransformTransitionDurationInMs(this._preview);
   }
 
-  addEventListener(name: string, handler: EventListenerOrEventListenerObject) {
-    this._preview.addEventListener(name, handler);
-  }
-
-  removeEventListener(name: string, handler: EventListenerOrEventListenerObject) {
-    this._preview.removeEventListener(name, handler);
+  addEventListener(name: string, handler: (event: any) => void): () => void {
+    return this._renderer.listen(this._preview, name, handler);
   }
 
   private _createPreview(): HTMLElement {
@@ -135,8 +136,12 @@ export class PreviewRef {
         // It's important that we disable the pointer events on the preview, because
         // it can throw off the `document.elementFromPoint` calls in the `CdkDropList`.
         'pointer-events': 'none',
-        // We have to reset the margin, because it can throw off positioning relative to the viewport.
-        'margin': '0',
+        // If the preview has a margin, it can throw off our positioning so we reset it. The reset
+        // value for `margin-right` needs to be `auto` when opened as a popover, because our
+        // positioning is always top/left based, but native popover seems to position itself
+        // to the top/right if `<html>` or `<body>` have `dir="rtl"` (see #29604). Setting it
+        // to `auto` pushed it to the top/left corner in RTL and is a noop in LTR.
+        'margin': supportsPopover(preview) ? '0 auto 0 0' : '0',
         'position': 'fixed',
         'top': '0',
         'left': '0',
@@ -160,4 +165,9 @@ export class PreviewRef {
 
     return preview;
   }
+}
+
+/** Checks whether a specific element supports the popover API. */
+function supportsPopover(element: HTMLElement): boolean {
+  return 'showPopover' in element;
 }

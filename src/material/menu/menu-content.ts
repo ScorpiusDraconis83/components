@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {DomPortalOutlet, TemplatePortal} from '@angular/cdk/portal';
@@ -11,14 +11,13 @@ import {DOCUMENT} from '@angular/common';
 import {
   ApplicationRef,
   ChangeDetectorRef,
-  ComponentFactoryResolver,
   Directive,
-  Inject,
   InjectionToken,
   Injector,
   OnDestroy,
   TemplateRef,
   ViewContainerRef,
+  inject,
 } from '@angular/core';
 import {Subject} from 'rxjs';
 
@@ -33,48 +32,24 @@ export const MAT_MENU_CONTENT = new InjectionToken<MatMenuContent>('MatMenuConte
 @Directive({
   selector: 'ng-template[matMenuContent]',
   providers: [{provide: MAT_MENU_CONTENT, useExisting: MatMenuContent}],
-  standalone: true,
 })
 export class MatMenuContent implements OnDestroy {
-  private _portal: TemplatePortal<any>;
-  private _outlet: DomPortalOutlet;
+  private _template = inject<TemplateRef<any>>(TemplateRef);
+  private _appRef = inject(ApplicationRef);
+  private _injector = inject(Injector);
+  private _viewContainerRef = inject(ViewContainerRef);
+  private _document = inject(DOCUMENT);
+  private _changeDetectorRef = inject(ChangeDetectorRef);
+
+  private _portal: TemplatePortal<any> | undefined;
+  private _outlet: DomPortalOutlet | undefined;
 
   /** Emits when the menu content has been attached. */
   readonly _attached = new Subject<void>();
 
-  constructor(
-    template: TemplateRef<any>,
-    componentFactoryResolver: ComponentFactoryResolver,
-    appRef: ApplicationRef,
-    injector: Injector,
-    viewContainerRef: ViewContainerRef,
-    document: any,
-    changeDetectorRef: ChangeDetectorRef,
-  );
+  constructor(...args: unknown[]);
 
-  /**
-   * @deprecated `changeDetectorRef` is now a required parameter.
-   * @breaking-change 9.0.0
-   */
-  constructor(
-    template: TemplateRef<any>,
-    componentFactoryResolver: ComponentFactoryResolver,
-    appRef: ApplicationRef,
-    injector: Injector,
-    viewContainerRef: ViewContainerRef,
-    document: any,
-    changeDetectorRef?: ChangeDetectorRef,
-  );
-
-  constructor(
-    private _template: TemplateRef<any>,
-    private _componentFactoryResolver: ComponentFactoryResolver,
-    private _appRef: ApplicationRef,
-    private _injector: Injector,
-    private _viewContainerRef: ViewContainerRef,
-    @Inject(DOCUMENT) private _document: any,
-    private _changeDetectorRef?: ChangeDetectorRef,
-  ) {}
+  constructor() {}
 
   /**
    * Attaches the content with a particular context.
@@ -90,7 +65,7 @@ export class MatMenuContent implements OnDestroy {
     if (!this._outlet) {
       this._outlet = new DomPortalOutlet(
         this._document.createElement('div'),
-        this._componentFactoryResolver,
+        null,
         this._appRef,
         this._injector,
       );
@@ -108,8 +83,7 @@ export class MatMenuContent implements OnDestroy {
     // by Angular. This causes the `@ContentChildren` for menu items within the menu to
     // not be updated by Angular. By explicitly marking for check here, we tell Angular that
     // it needs to check for new menu items and update the `@ContentChild` in `MatMenu`.
-    // @breaking-change 9.0.0 Make change detector ref required
-    this._changeDetectorRef?.markForCheck();
+    this._changeDetectorRef.markForCheck();
     this._portal.attach(this._outlet, context);
     this._attached.next();
   }
@@ -119,14 +93,13 @@ export class MatMenuContent implements OnDestroy {
    * @docs-private
    */
   detach() {
-    if (this._portal.isAttached) {
+    if (this._portal?.isAttached) {
       this._portal.detach();
     }
   }
 
   ngOnDestroy() {
-    if (this._outlet) {
-      this._outlet.dispose();
-    }
+    this.detach();
+    this._outlet?.dispose();
   }
 }

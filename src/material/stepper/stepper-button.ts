@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {CdkStepperNext, CdkStepperPrevious} from '@angular/cdk/stepper';
@@ -16,7 +16,6 @@ import {Directive} from '@angular/core';
     'class': 'mat-stepper-next',
     '[type]': 'type',
   },
-  standalone: true,
 })
 export class MatStepperNext extends CdkStepperNext {}
 
@@ -27,6 +26,5 @@ export class MatStepperNext extends CdkStepperNext {}
     'class': 'mat-stepper-previous',
     '[type]': 'type',
   },
-  standalone: true,
 })
 export class MatStepperPrevious extends CdkStepperPrevious {}

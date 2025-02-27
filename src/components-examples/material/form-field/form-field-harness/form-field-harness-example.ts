@@ -1,7 +1,7 @@
-import {Component} from '@angular/core';
-import {FormControl, Validators, FormsModule, ReactiveFormsModule} from '@angular/forms';
-import {MatInputModule} from '@angular/material/input';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {FormControl, FormsModule, ReactiveFormsModule, Validators} from '@angular/forms';
 import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatInputModule} from '@angular/material/input';
 
 /**
  * @title Testing with MatFormFieldHarness
@@ -9,9 +9,9 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 @Component({
   selector: 'form-field-harness-example',
   templateUrl: 'form-field-harness-example.html',
-  standalone: true,
   imports: [MatFormFieldModule, MatInputModule, FormsModule, ReactiveFormsModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FormFieldHarnessExample {
-  requiredControl = new FormControl('Initial value', [Validators.required]);
+  readonly requiredControl = new FormControl('Initial value', [Validators.required]);
 }

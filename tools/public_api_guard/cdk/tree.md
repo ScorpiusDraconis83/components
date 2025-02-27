@@ -6,13 +6,12 @@
 
 import { AfterContentChecked } from '@angular/core';
 import { AfterContentInit } from '@angular/core';
+import { AfterViewInit } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
-import { ChangeDetectorRef } from '@angular/core';
 import { CollectionViewer } from '@angular/cdk/collections';
 import { DataSource } from '@angular/cdk/collections';
-import { Directionality } from '@angular/cdk/bidi';
 import { ElementRef } from '@angular/core';
-import { FocusableOption } from '@angular/cdk/a11y';
+import { EventEmitter } from '@angular/core';
 import * as i0 from '@angular/core';
 import { InjectionToken } from '@angular/core';
 import { IterableDiffer } from '@angular/core';
@@ -25,9 +24,11 @@ import { SelectionModel } from '@angular/cdk/collections';
 import { Subject } from 'rxjs';
 import { TemplateRef } from '@angular/core';
 import { TrackByFunction } from '@angular/core';
+import { TreeKeyManagerItem } from '@angular/cdk/a11y';
+import { TreeKeyManagerStrategy } from '@angular/cdk/a11y';
 import { ViewContainerRef } from '@angular/core';
 
-// @public
+// @public @deprecated
 export abstract class BaseTreeControl<T, K = T> implements TreeControl<T, K> {
     collapse(dataNode: T): void;
     collapseAll(): void;
@@ -53,8 +54,8 @@ export abstract class BaseTreeControl<T, K = T> implements TreeControl<T, K> {
 export const CDK_TREE_NODE_OUTLET_NODE: InjectionToken<{}>;
 
 // @public
-export class CdkNestedTreeNode<T, K = T> extends CdkTreeNode<T, K> implements AfterContentInit, OnDestroy, OnInit {
-    constructor(elementRef: ElementRef<HTMLElement>, tree: CdkTree<T, K>, _differs: IterableDiffers);
+export class CdkNestedTreeNode<T, K = T> extends CdkTreeNode<T, K> implements AfterContentInit, OnDestroy {
+    constructor(...args: unknown[]);
     protected _children: T[];
     protected _clear(): void;
     // (undocumented)
@@ -63,9 +64,9 @@ export class CdkNestedTreeNode<T, K = T> extends CdkTreeNode<T, K> implements Af
     ngAfterContentInit(): void;
     // (undocumented)
     ngOnDestroy(): void;
-    // (undocumented)
-    ngOnInit(): void;
     nodeOutlet: QueryList<CdkTreeNodeOutlet>;
+    // (undocumented)
+    protected _type: 'flat' | 'nested';
     protected updateChildrenNodes(children?: T[]): void;
     // (undocumented)
     static ɵdir: i0.ɵɵDirectiveDeclaration<CdkNestedTreeNode<any, any>, "cdk-nested-tree-node", ["cdkNestedTreeNode"], {}, {}, ["nodeOutlet"], never, true, never>;
@@ -74,14 +75,39 @@ export class CdkNestedTreeNode<T, K = T> extends CdkTreeNode<T, K> implements Af
 }
 
 // @public
-export class CdkTree<T, K = T> implements AfterContentChecked, CollectionViewer, OnDestroy, OnInit {
-    constructor(_differs: IterableDiffers, _changeDetectorRef: ChangeDetectorRef);
+export class CdkTree<T, K = T> implements AfterContentChecked, AfterContentInit, AfterViewInit, CollectionViewer, OnDestroy, OnInit {
+    constructor(...args: unknown[]);
+    childrenAccessor?: (dataNode: T) => T[] | Observable<T[]>;
+    collapse(dataNode: T): void;
+    collapseAll(): void;
+    collapseDescendants(dataNode: T): void;
     get dataSource(): DataSource<T> | Observable<T[]> | T[];
     set dataSource(dataSource: DataSource<T> | Observable<T[]> | T[]);
+    expand(dataNode: T): void;
+    expandAll(): void;
+    expandDescendants(dataNode: T): void;
+    expansionKey?: (dataNode: T) => K;
+    _getChildrenAccessor(): ((dataNode: T) => T[] | Observable<T[]> | null | undefined) | undefined;
+    _getDirectChildren(dataNode: T): Observable<T[]>;
+    // (undocumented)
+    _getExpansionModel(): SelectionModel<K>;
+    _getLevel(node: T): number | undefined;
+    _getLevelAccessor(): ((dataNode: T) => number) | undefined;
+    _getNodeChildren(node: CdkTreeNode<T, K>): Observable<CdkTreeNode<T, K>[]>;
     _getNodeDef(data: T, i: number): CdkTreeNodeDef<T>;
+    _getNodeParent(node: CdkTreeNode<T, K>): CdkTreeNode<T, K> | null | undefined;
+    _getPositionInSet(dataNode: T): number;
+    _getSetSize(dataNode: T): number;
     insertNode(nodeData: T, index: number, viewContainer?: ViewContainerRef, parentData?: T): void;
+    isExpanded(dataNode: T): boolean;
+    _keyManager: TreeKeyManagerStrategy<CdkTreeNode<T, K>>;
+    levelAccessor?: (dataNode: T) => number;
     // (undocumented)
     ngAfterContentChecked(): void;
+    // (undocumented)
+    ngAfterContentInit(): void;
+    // (undocumented)
+    ngAfterViewInit(): void;
     // (undocumented)
     ngOnDestroy(): void;
     // (undocumented)
@@ -89,15 +115,22 @@ export class CdkTree<T, K = T> implements AfterContentChecked, CollectionViewer,
     _nodeDefs: QueryList<CdkTreeNodeDef<T>>;
     // (undocumented)
     _nodeOutlet: CdkTreeNodeOutlet;
+    _registerNode(node: CdkTreeNode<T, K>): void;
     renderNodeChanges(data: readonly T[], dataDiffer?: IterableDiffer<T>, viewContainer?: ViewContainerRef, parentData?: T): void;
+    protected _sendKeydownToKeyManager(event: KeyboardEvent): void;
+    _setNodeTypeIfUnset(newType: 'flat' | 'nested'): void;
+    toggle(dataNode: T): void;
+    toggleDescendants(dataNode: T): void;
     trackBy: TrackByFunction<T>;
-    treeControl: TreeControl<T, K>;
+    // @deprecated
+    treeControl?: TreeControl<T, K>;
+    _unregisterNode(node: CdkTreeNode<T, K>): void;
     readonly viewChange: BehaviorSubject<{
         start: number;
         end: number;
     }>;
     // (undocumented)
-    static ɵcmp: i0.ɵɵComponentDeclaration<CdkTree<any, any>, "cdk-tree", ["cdkTree"], { "dataSource": { "alias": "dataSource"; "required": false; }; "treeControl": { "alias": "treeControl"; "required": false; }; "trackBy": { "alias": "trackBy"; "required": false; }; }, {}, ["_nodeDefs"], never, true, never>;
+    static ɵcmp: i0.ɵɵComponentDeclaration<CdkTree<any, any>, "cdk-tree", ["cdkTree"], { "dataSource": { "alias": "dataSource"; "required": false; }; "treeControl": { "alias": "treeControl"; "required": false; }; "levelAccessor": { "alias": "levelAccessor"; "required": false; }; "childrenAccessor": { "alias": "childrenAccessor"; "required": false; }; "trackBy": { "alias": "trackBy"; "required": false; }; "expansionKey": { "alias": "expansionKey"; "required": false; }; }, {}, ["_nodeDefs"], never, true, never>;
     // (undocumented)
     static ɵfac: i0.ɵɵFactoryDeclaration<CdkTree<any, any>, never>;
 }
@@ -113,8 +146,11 @@ export class CdkTreeModule {
 }
 
 // @public
-export class CdkTreeNode<T, K = T> implements FocusableOption, OnDestroy, OnInit {
-    constructor(_elementRef: ElementRef<HTMLElement>, _tree: CdkTree<T, K>);
+export class CdkTreeNode<T, K = T> implements OnDestroy, OnInit, TreeKeyManagerItem {
+    constructor(...args: unknown[]);
+    activate(): void;
+    readonly activation: EventEmitter<T>;
+    collapse(): void;
     get data(): T;
     set data(value: T);
     // (undocumented)
@@ -122,13 +158,40 @@ export class CdkTreeNode<T, K = T> implements FocusableOption, OnDestroy, OnInit
     readonly _dataChanges: Subject<void>;
     protected readonly _destroyed: Subject<void>;
     // (undocumented)
-    protected _elementRef: ElementRef<HTMLElement>;
+    _elementRef: ElementRef<HTMLElement>;
+    // (undocumented)
+    _emitExpansionState(expanded: boolean): void;
+    expand(): void;
+    readonly expandedChange: EventEmitter<boolean>;
     focus(): void;
     // (undocumented)
+    _focusItem(): void;
+    _getAriaExpanded(): string | null;
+    // (undocumented)
+    getChildren(): CdkTreeNode<T, K>[] | Observable<CdkTreeNode<T, K>[]>;
+    // (undocumented)
+    getLabel(): string;
+    // (undocumented)
+    getParent(): CdkTreeNode<T, K> | null;
+    _getPositionInSet(): number;
+    _getSetSize(): number;
+    isDisabled: boolean;
+    get isExpandable(): boolean;
+    set isExpandable(isExpandable: boolean);
+    _isExpandable(): boolean;
+    // (undocumented)
     get isExpanded(): boolean;
+    set isExpanded(isExpanded: boolean);
+    // (undocumented)
+    get isLeafNode(): boolean;
     // (undocumented)
     get level(): number;
+    makeFocusable(): void;
     static mostRecentTreeNode: CdkTreeNode<any> | null;
+    // (undocumented)
+    static ngAcceptInputType_isDisabled: unknown;
+    // (undocumented)
+    static ngAcceptInputType_isExpandable: unknown;
     // (undocumented)
     ngOnDestroy(): void;
     // (undocumented)
@@ -137,19 +200,24 @@ export class CdkTreeNode<T, K = T> implements FocusableOption, OnDestroy, OnInit
     get role(): 'treeitem' | 'group';
     set role(_role: 'treeitem' | 'group');
     // (undocumented)
-    protected _setRoleFromData(): void;
+    _setActiveItem(): void;
+    // (undocumented)
+    protected _tabindex: number | null;
     // (undocumented)
     protected _tree: CdkTree<T, K>;
     // (undocumented)
-    static ɵdir: i0.ɵɵDirectiveDeclaration<CdkTreeNode<any, any>, "cdk-tree-node", ["cdkTreeNode"], { "role": { "alias": "role"; "required": false; }; }, {}, never, never, true, never>;
+    protected readonly _type: 'flat' | 'nested';
+    typeaheadLabel: string | null;
+    unfocus(): void;
+    // (undocumented)
+    static ɵdir: i0.ɵɵDirectiveDeclaration<CdkTreeNode<any, any>, "cdk-tree-node", ["cdkTreeNode"], { "role": { "alias": "role"; "required": false; }; "isExpandable": { "alias": "isExpandable"; "required": false; }; "isExpanded": { "alias": "isExpanded"; "required": false; }; "isDisabled": { "alias": "isDisabled"; "required": false; }; "typeaheadLabel": { "alias": "cdkTreeNodeTypeaheadLabel"; "required": false; }; }, { "activation": "activation"; "expandedChange": "expandedChange"; }, never, never, true, never>;
     // (undocumented)
     static ɵfac: i0.ɵɵFactoryDeclaration<CdkTreeNode<any, any>, never>;
 }
 
 // @public
 export class CdkTreeNodeDef<T> {
-    constructor(template: TemplateRef<any>);
-    // (undocumented)
+    constructor(...args: unknown[]);
     template: TemplateRef<any>;
     when: (index: number, nodeData: T) => boolean;
     // (undocumented)
@@ -160,15 +228,15 @@ export class CdkTreeNodeDef<T> {
 
 // @public
 export class CdkTreeNodeOutlet {
-    constructor(viewContainer: ViewContainerRef, _node?: any);
+    constructor(...args: unknown[]);
     // (undocumented)
-    _node?: any;
+    _node?: {} | null | undefined;
     // (undocumented)
     viewContainer: ViewContainerRef;
     // (undocumented)
     static ɵdir: i0.ɵɵDirectiveDeclaration<CdkTreeNodeOutlet, "[cdkTreeNodeOutlet]", never, {}, {}, never, never, true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<CdkTreeNodeOutlet, [null, { optional: true; }]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<CdkTreeNodeOutlet, never>;
 }
 
 // @public
@@ -182,7 +250,7 @@ export class CdkTreeNodeOutletContext<T> {
 
 // @public
 export class CdkTreeNodePadding<T, K = T> implements OnDestroy {
-    constructor(_treeNode: CdkTreeNode<T, K>, _tree: CdkTree<T, K>, _element: ElementRef<HTMLElement>, _dir: Directionality);
+    constructor(...args: unknown[]);
     get indent(): number | string;
     set indent(indent: number | string);
     // (undocumented)
@@ -204,17 +272,17 @@ export class CdkTreeNodePadding<T, K = T> implements OnDestroy {
     // (undocumented)
     static ɵdir: i0.ɵɵDirectiveDeclaration<CdkTreeNodePadding<any, any>, "[cdkTreeNodePadding]", never, { "level": { "alias": "cdkTreeNodePadding"; "required": false; }; "indent": { "alias": "cdkTreeNodePaddingIndent"; "required": false; }; }, {}, never, never, true, never>;
     // (undocumented)
-    static ɵfac: i0.ɵɵFactoryDeclaration<CdkTreeNodePadding<any, any>, [null, null, null, { optional: true; }]>;
+    static ɵfac: i0.ɵɵFactoryDeclaration<CdkTreeNodePadding<any, any>, never>;
 }
 
 // @public
 export class CdkTreeNodeToggle<T, K = T> {
-    constructor(_tree: CdkTree<T, K>, _treeNode: CdkTreeNode<T, K>);
+    constructor(...args: unknown[]);
     // (undocumented)
     static ngAcceptInputType_recursive: unknown;
     recursive: boolean;
     // (undocumented)
-    _toggle(event: Event): void;
+    _toggle(): void;
     // (undocumented)
     protected _tree: CdkTree<T, K>;
     // (undocumented)
@@ -225,7 +293,7 @@ export class CdkTreeNodeToggle<T, K = T> {
     static ɵfac: i0.ɵɵFactoryDeclaration<CdkTreeNodeToggle<any, any>, never>;
 }
 
-// @public
+// @public @deprecated
 export class FlatTreeControl<T, K = T> extends BaseTreeControl<T, K> {
     constructor(getLevel: (dataNode: T) => number, isExpandable: (dataNode: T) => boolean, options?: FlatTreeControlOptions<T, K> | undefined);
     expandAll(): void;
@@ -245,7 +313,7 @@ export interface FlatTreeControlOptions<T, K> {
 }
 
 // @public
-export function getTreeControlFunctionsMissingError(): Error;
+export function getMultipleTreeControlsError(): Error;
 
 // @public
 export function getTreeControlMissingError(): Error;
@@ -259,7 +327,7 @@ export function getTreeMultipleDefaultNodeDefsError(): Error;
 // @public
 export function getTreeNoValidDataSourceError(): Error;
 
-// @public
+// @public @deprecated
 export class NestedTreeControl<T, K = T> extends BaseTreeControl<T, K> {
     constructor(getChildren: (dataNode: T) => Observable<T[]> | T[] | undefined | null, options?: NestedTreeControlOptions<T, K> | undefined);
     expandAll(): void;
@@ -273,11 +341,12 @@ export class NestedTreeControl<T, K = T> extends BaseTreeControl<T, K> {
 
 // @public
 export interface NestedTreeControlOptions<T, K> {
+    isExpandable?: (dataNode: T) => boolean;
     // (undocumented)
     trackBy?: (dataNode: T) => K;
 }
 
-// @public
+// @public @deprecated
 export interface TreeControl<T, K = T> {
     collapse(dataNode: T): void;
     collapseAll(): void;

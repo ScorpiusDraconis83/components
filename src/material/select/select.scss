@@ -1,6 +1,5 @@
 @use 'sass:math';
 @use '@angular/cdk';
-@use '@material/typography/typography' as mdc-typography;
 @use '../core/style/vendor-prefixes';
 @use '../core/style/variables';
 @use '../core/tokens/token-utils';
@@ -14,6 +13,27 @@ $mat-select-placeholder-arrow-space: 2 *
 $leading-width: 12px !default;
 $scale: 0.75 !default;
 
+@keyframes _mat-select-enter {
+  from {
+    opacity: 0;
+    transform: scaleY(0.8);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes _mat-select-exit {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
 
 .mat-mdc-select {
   display: inline-block;
@@ -22,7 +42,7 @@ $scale: 0.75 !default;
 
   @include token-utils.use-tokens(
     tokens-mat-select.$prefix, tokens-mat-select.get-token-slots()) {
-    @include mdc-typography.smooth-font();
+    @include vendor-prefixes.smooth-font();
     @include token-utils.create-token-slot(color, enabled-trigger-text-color);
     @include token-utils.create-token-slot(font-family, trigger-text-font);
     @include token-utils.create-token-slot(line-height, trigger-text-line-height);
@@ -41,6 +61,13 @@ $scale: 0.75 !default;
   @include token-utils.use-tokens(
     tokens-mat-select.$prefix, tokens-mat-select.get-token-slots()) {
     @include token-utils.create-token-slot(color, disabled-trigger-text-color);
+  }
+
+  .mat-mdc-select-placeholder {
+    @include token-utils.use-tokens(
+      tokens-mat-select.$prefix, tokens-mat-select.get-token-slots()) {
+      @include token-utils.create-token-slot(color, disabled-trigger-text-color);
+    }
   }
 }
 
@@ -114,7 +141,7 @@ $scale: 0.75 !default;
     left: 50%;
     transform: translate(-50%, -50%);
 
-    @include cdk.high-contrast(active, off) {
+    @include cdk.high-contrast {
       // On Chromium browsers the `currentColor` blends in with the
       // background for SVGs so we have to fall back to `CanvasText`.
       fill: CanvasText;
@@ -146,7 +173,7 @@ div.mat-mdc-select-panel {
     @include token-utils.create-token-slot(background-color, panel-background-color);
   }
 
-  @include cdk.high-contrast(active, off) {
+  @include cdk.high-contrast {
     outline: solid 1px;
   }
 
@@ -167,6 +194,14 @@ div.mat-mdc-select-panel {
   }
 }
 
+.mat-select-panel-animations-enabled {
+  animation: _mat-select-enter 120ms cubic-bezier(0, 0, 0.2, 1);
+
+  &.mat-select-panel-exit {
+    animation: _mat-select-exit 100ms linear;
+  }
+}
+
 .mat-mdc-select-placeholder {
   // Delay the transition until the label has animated about a third of the way through, in
   // order to prevent the placeholder from overlapping for a split second.
@@ -179,6 +214,7 @@ div.mat-mdc-select-panel {
     @include token-utils.create-token-slot(color, placeholder-text-color);
   }
 
+  .mat-mdc-form-field:not(.mat-form-field-animations-enabled) &,
   ._mat-animation-noopable & {
     transition: none;
   }

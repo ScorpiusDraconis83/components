@@ -3,7 +3,7 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {Rule, SchematicContext, Tree} from '@angular-devkit/schematics';
@@ -53,7 +53,6 @@ export default function (options: Schema): Rule {
       materialVersionRange || fallbackMaterialVersionRange,
     );
     addPackageToPackageJson(host, '@angular/forms', angularDependencyVersion);
-    addPackageToPackageJson(host, '@angular/animations', angularDependencyVersion);
 
     // Since the Angular Material schematics depend on the schematic utility functions from the
     // CDK, we need to install the CDK before loading the schematic files that import from the CDK.

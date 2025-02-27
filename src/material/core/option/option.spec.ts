@@ -14,7 +14,7 @@ describe('MatOption component', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       imports: [MatOptionModule, BasicOption],
-    }).compileComponents();
+    });
   }));
 
   it('should complete the `stateChanges` stream on destroy', () => {
@@ -200,7 +200,7 @@ describe('MatOption component', () => {
     const fixture = TestBed.createComponent(BasicOption);
     const optionNativeElement = fixture.debugElement.query(By.directive(MatOption))!.nativeElement;
 
-    expect(optionNativeElement.parentElement.querySelector('.mat-mdc-focus-indicator'))
+    expect(optionNativeElement.parentElement.querySelector('.mat-focus-indicator'))
       .withContext(
         'expected to find a focus indicator on ' +
           "either the mat-option element or one of it's children",
@@ -221,7 +221,7 @@ describe('MatOption component', () => {
             useValue: {inertGroups: true},
           },
         ],
-      }).compileComponents();
+      });
 
       fixture = TestBed.createComponent(InsideGroup);
       fixture.detectChanges();
@@ -243,7 +243,6 @@ describe('MatOption component', () => {
 
 @Component({
   template: `<mat-option [id]="id()" [disabled]="disabled()"></mat-option>`,
-  standalone: true,
   imports: [MatOptionModule],
 })
 class BasicOption {
@@ -257,7 +256,6 @@ class BasicOption {
       <mat-option>Option</mat-option>
     </mat-optgroup>
   `,
-  standalone: true,
   imports: [MatOptionModule],
 })
 class InsideGroup {}

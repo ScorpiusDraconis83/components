@@ -3,12 +3,11 @@
  * Copyright Google LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
- * found in the LICENSE file at https://angular.io/license
+ * found in the LICENSE file at https://angular.dev/license
  */
 
 import {
   AfterContentInit,
-  Attribute,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
@@ -21,6 +20,8 @@ import {
   ViewEncapsulation,
   ViewChild,
   booleanAttribute,
+  inject,
+  HostAttributeToken,
 } from '@angular/core';
 import {MatButton, MatIconButton} from '@angular/material/button';
 import {merge, Observable, of as observableOf, Subscription} from 'rxjs';
@@ -30,7 +31,6 @@ import {MatDatepickerControl, MatDatepickerPanel} from './datepicker-base';
 /** Can be used to override the icon of a `matDatepickerToggle`. */
 @Directive({
   selector: '[matDatepickerToggleIcon]',
-  standalone: true,
 })
 export class MatDatepickerToggleIcon {}
 
@@ -54,10 +54,11 @@ export class MatDatepickerToggleIcon {}
   exportAs: 'matDatepickerToggle',
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [MatIconButton],
 })
 export class MatDatepickerToggle<D> implements AfterContentInit, OnChanges, OnDestroy {
+  _intl = inject(MatDatepickerIntl);
+  private _changeDetectorRef = inject(ChangeDetectorRef);
   private _stateChanges = Subscription.EMPTY;
 
   /** Datepicker instance that the button will toggle. */
@@ -92,11 +93,10 @@ export class MatDatepickerToggle<D> implements AfterContentInit, OnChanges, OnDe
   /** Underlying button element. */
   @ViewChild('button') _button: MatButton;
 
-  constructor(
-    public _intl: MatDatepickerIntl,
-    private _changeDetectorRef: ChangeDetectorRef,
-    @Attribute('tabindex') defaultTabIndex: string,
-  ) {
+  constructor(...args: unknown[]);
+
+  constructor() {
+    const defaultTabIndex = inject(new HostAttributeToken('tabindex'), {optional: true});
     const parsedTabIndex = Number(defaultTabIndex);
     this.tabIndex = parsedTabIndex || parsedTabIndex === 0 ? parsedTabIndex : null;
   }
