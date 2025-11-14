@@ -58,7 +58,7 @@ import {ComboboxPopup} from '../combobox';
     '[attr.aria-activedescendant]': '_pattern.activeDescendant()',
     '(keydown)': '_pattern.onKeydown($event)',
     '(pointerdown)': '_pattern.onPointerdown($event)',
-    '(focusin)': 'onFocus()',
+    '(focusin)': '_onFocus()',
   },
   hostDirectives: [ComboboxPopup],
 })
@@ -154,7 +154,7 @@ export class Listbox<V> {
       : new ListboxPattern<V>(inputs);
 
     if (this._popup) {
-      this._popup.controls.set(this._pattern as ComboboxListboxPattern<V>);
+      this._popup._controls.set(this._pattern as ComboboxListboxPattern<V>);
     }
 
     afterRenderEffect(() => {
@@ -194,7 +194,7 @@ export class Listbox<V> {
     });
   }
 
-  onFocus() {
+  _onFocus() {
     this._hasFocused.set(true);
   }
 
@@ -257,7 +257,7 @@ export class Option<V> {
   protected searchTerm = computed(() => this.label() ?? this.element.textContent);
 
   /** The parent Listbox UIPattern. */
-  protected listbox = computed(() => this._listbox._pattern);
+  private readonly _listboxPattern = computed(() => this._listbox._pattern);
 
   /** The value of the option. */
   value = input.required<V>();
@@ -276,7 +276,7 @@ export class Option<V> {
     ...this,
     id: this.id,
     value: this.value,
-    listbox: this.listbox,
+    listbox: this._listboxPattern,
     element: () => this.element,
     searchTerm: () => this.searchTerm() ?? '',
   });

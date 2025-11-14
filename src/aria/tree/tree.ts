@@ -93,7 +93,7 @@ function sortDirectives(a: HasElement, b: HasElement) {
     '[tabindex]': '_pattern.tabIndex()',
     '(keydown)': '_pattern.onKeydown($event)',
     '(pointerdown)': '_pattern.onPointerdown($event)',
-    '(focusin)': 'onFocus()',
+    '(focusin)': '_onFocus()',
   },
   hostDirectives: [ComboboxPopup],
 })
@@ -190,7 +190,7 @@ export class Tree<V> {
       : new TreePattern<V>(inputs);
 
     if (this._popup?.combobox) {
-      this._popup?.controls?.set(this._pattern as ComboboxTreePattern<V>);
+      this._popup?._controls?.set(this._pattern as ComboboxTreePattern<V>);
     }
 
     afterRenderEffect(() => {
@@ -220,16 +220,16 @@ export class Tree<V> {
     });
   }
 
-  onFocus() {
+  _onFocus() {
     this._hasFocused.set(true);
   }
 
-  register(child: TreeItem<V>) {
+  _register(child: TreeItem<V>) {
     this._unorderedItems().add(child);
     this._unorderedItems.set(new Set(this._unorderedItems()));
   }
 
-  unregister(child: TreeItem<V>) {
+  _unregister(child: TreeItem<V>) {
     this._unorderedItems().delete(child);
     this._unorderedItems.set(new Set(this._unorderedItems()));
   }
@@ -349,8 +349,8 @@ export class TreeItem<V> extends DeferredContentAware implements OnInit, OnDestr
   }
 
   ngOnInit() {
-    this.parent().register(this);
-    this.tree().register(this);
+    this.parent()._register(this);
+    this.tree()._register(this);
 
     const treePattern = computed(() => this.tree()._pattern);
     const parentPattern = computed(() => {
@@ -363,7 +363,7 @@ export class TreeItem<V> extends DeferredContentAware implements OnInit, OnDestr
       ...this,
       tree: treePattern,
       parent: parentPattern,
-      children: computed(() => this._group()?.children() ?? []),
+      children: computed(() => this._group()?._childPatterns() ?? []),
       hasChildren: computed(() => !!this._group()),
       element: () => this.element,
       searchTerm: () => this.searchTerm() ?? '',
@@ -371,15 +371,15 @@ export class TreeItem<V> extends DeferredContentAware implements OnInit, OnDestr
   }
 
   ngOnDestroy() {
-    this.parent().unregister(this);
-    this.tree().unregister(this);
+    this.parent()._unregister(this);
+    this.tree()._unregister(this);
   }
 
-  register(group: TreeItemGroup<V>) {
+  _register(group: TreeItemGroup<V>) {
     this._group.set(group);
   }
 
-  unregister() {
+  _unregister() {
     this._group.set(undefined);
   }
 }
@@ -423,7 +423,7 @@ export class TreeItemGroup<V> implements OnInit, OnDestroy {
   private readonly _unorderedItems = signal(new Set<TreeItem<V>>());
 
   /** Child items within this group. */
-  readonly children = computed<TreeItemPattern<V>[]>(() =>
+  readonly _childPatterns = computed<TreeItemPattern<V>[]>(() =>
     [...this._unorderedItems()].sort(sortDirectives).map(c => c._pattern),
   );
 
@@ -432,19 +432,19 @@ export class TreeItemGroup<V> implements OnInit, OnDestroy {
 
   ngOnInit() {
     this._deferredContent.deferredContentAware.set(this.ownedBy());
-    this.ownedBy().register(this);
+    this.ownedBy()._register(this);
   }
 
   ngOnDestroy() {
-    this.ownedBy().unregister();
+    this.ownedBy()._unregister();
   }
 
-  register(child: TreeItem<V>) {
+  _register(child: TreeItem<V>) {
     this._unorderedItems().add(child);
     this._unorderedItems.set(new Set(this._unorderedItems()));
   }
 
-  unregister(child: TreeItem<V>) {
+  _unregister(child: TreeItem<V>) {
     this._unorderedItems().delete(child);
     this._unorderedItems.set(new Set(this._unorderedItems()));
   }

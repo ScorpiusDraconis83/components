@@ -96,7 +96,7 @@ export class Tabs {
     [...this._unorderedPanels()].map(tabpanel => tabpanel._pattern),
   );
 
-  register(child: TabList | TabPanel) {
+  _register(child: TabList | TabPanel) {
     if (child instanceof TabList) {
       this._tablist.set(child);
     }
@@ -107,7 +107,7 @@ export class Tabs {
     }
   }
 
-  deregister(child: TabList | TabPanel) {
+  _unregister(child: TabList | TabPanel) {
     if (child instanceof TabList) {
       this._tablist.set(undefined);
     }
@@ -146,7 +146,7 @@ export class Tabs {
     '[attr.aria-activedescendant]': '_pattern.activeDescendant()',
     '(keydown)': '_pattern.onKeydown($event)',
     '(pointerdown)': '_pattern.onPointerdown($event)',
-    '(focusin)': 'onFocus()',
+    '(focusin)': '_onFocus()',
   },
 })
 export class TabList implements OnInit, OnDestroy {
@@ -235,24 +235,24 @@ export class TabList implements OnInit, OnDestroy {
     });
   }
 
-  onFocus() {
+  _onFocus() {
     this._hasFocused.set(true);
   }
 
   ngOnInit() {
-    this._tabs.register(this);
+    this._tabs._register(this);
   }
 
   ngOnDestroy() {
-    this._tabs.deregister(this);
+    this._tabs._unregister(this);
   }
 
-  register(child: Tab) {
+  _register(child: Tab) {
     this._unorderedTabs().add(child);
     this._unorderedTabs.set(new Set(this._unorderedTabs()));
   }
 
-  deregister(child: Tab) {
+  _unregister(child: Tab) {
     this._unorderedTabs().delete(child);
     this._unorderedTabs.set(new Set(this._unorderedTabs()));
   }
@@ -307,10 +307,10 @@ export class Tab implements HasElement, OnInit, OnDestroy {
   readonly id = input(inject(_IdGenerator).getId('ng-tab-', true));
 
   /** The parent TabList UIPattern. */
-  readonly tablist = computed(() => this._tabList._pattern);
+  private readonly _tablistPattern = computed(() => this._tabList._pattern);
 
   /** The TabPanel UIPattern associated with the tab */
-  readonly tabpanel = computed(() =>
+  private readonly _tabpanelPattern = computed(() =>
     this._tabs._unorderedTabpanelPatterns().find(tabpanel => tabpanel.value() === this.value()),
   );
 
@@ -329,8 +329,8 @@ export class Tab implements HasElement, OnInit, OnDestroy {
   /** The Tab UIPattern. */
   readonly _pattern: TabPattern = new TabPattern({
     ...this,
-    tablist: this.tablist,
-    tabpanel: this.tabpanel,
+    tablist: this._tablistPattern,
+    tabpanel: this._tabpanelPattern,
     expanded: signal(false),
     element: () => this.element,
   });
@@ -341,11 +341,11 @@ export class Tab implements HasElement, OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this._tabList.register(this);
+    this._tabList._register(this);
   }
 
   ngOnDestroy() {
-    this._tabList.deregister(this);
+    this._tabList._unregister(this);
   }
 }
 
@@ -400,7 +400,7 @@ export class TabPanel implements OnInit, OnDestroy {
   readonly id = input(inject(_IdGenerator).getId('ng-tabpanel-', true));
 
   /** The Tab UIPattern associated with the tabpanel */
-  readonly tab = computed(() =>
+  private readonly _tabPattern = computed(() =>
     this._Tabs._tabPatterns()?.find(tab => tab.value() === this.value()),
   );
 
@@ -413,6 +413,7 @@ export class TabPanel implements OnInit, OnDestroy {
   /** The TabPanel UIPattern. */
   readonly _pattern: TabPanelPattern = new TabPanelPattern({
     ...this,
+    tab: this._tabPattern,
   });
 
   constructor() {
@@ -420,11 +421,11 @@ export class TabPanel implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
-    this._Tabs.register(this);
+    this._Tabs._register(this);
   }
 
   ngOnDestroy() {
-    this._Tabs.deregister(this);
+    this._Tabs._unregister(this);
   }
 }
 
